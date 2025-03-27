@@ -3,6 +3,7 @@ module github.com/BoruTamena/gabaa-bot
 go 1.23.2
 
 require (
+	github.com/joomcode/errorx v1.2.0
 	github.com/spf13/viper v1.13.0
 	gopkg.in/telebot.v4 v4.0.0-beta.4
 )

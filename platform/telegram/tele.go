@@ -29,3 +29,7 @@ func InitTelBot() platform.Telegram {
 		bot: bot,
 	}
 }
+
+func (tg *telegram) Start() {
+	tg.bot.Start()
+}
