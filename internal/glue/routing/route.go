@@ -10,10 +10,13 @@ type Router struct {
 	Middlewares []tele.HandlerFunc
 }
 
-func (r *Router) Register(bot *tele.Bot) {
+func Register(bot *tele.Bot, routes []Router) {
 	group := bot.Group()
 	// for _, middleware := range r.Middlewares {
 	// 	group.Use(middleware)
 	// }
-	group.Handle(r.path, r.Handler)
+	for _, route := range routes {
+		group.Handle(route.path, route.Handler)
+	}
+
 }
