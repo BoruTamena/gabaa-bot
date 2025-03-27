@@ -12,7 +12,6 @@ tests:
 	- go test ./...  -count=1
 air:
 	- go install github.com/cosmtrek/air@latest
-sqlc:
-	- sqlc generate -f ./config/sqlc.yaml
+	
 lint:
 	- golangci-lint run ./...
