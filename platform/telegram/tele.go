@@ -6,6 +6,7 @@ import (
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/platform"
+	"github.com/spf13/viper"
 	"gopkg.in/telebot.v4"
 )
 
@@ -17,8 +18,7 @@ func InitTelBot() platform.Telegram {
 
 	setting := telebot.Settings{
 
-		// TODO  add token
-		// token:
+		Token:  viper.GetString("tg.token"),
 		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
 	}
 	bot, err := telebot.NewBot(setting)
@@ -33,8 +33,13 @@ func InitTelBot() platform.Telegram {
 }
 
 func (tg *telegram) Start() {
-
 	tg.bot.Start()
+}
+
+func (tg *telegram) Group() telebot.Group {
+
+	return *tg.bot.Group()
+
 }
 
 // add order now inline button

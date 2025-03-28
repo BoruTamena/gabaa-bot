@@ -1,7 +1,11 @@
 
 db:
+  dbname: botdb
   host: localhost 
-  url: 
+  url: postgres://postgres:password@localhost:5430/botdb?sslmode=disable
+  
+migiration:
+  path: internal/constant/query/schemas
 
 tg:
   token: TOKEN_FROM_BOTFATHERS
