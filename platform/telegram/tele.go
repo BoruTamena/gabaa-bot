@@ -31,5 +31,6 @@ func InitTelBot() platform.Telegram {
 }
 
 func (tg *telegram) Start() {
+
 	tg.bot.Start()
 }

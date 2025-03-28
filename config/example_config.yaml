@@ -1,0 +1,7 @@
+
+db:
+  host: localhost 
+  url: 
+
+tg:
+  token: TOKEN_FROM_BOTFATHERS
