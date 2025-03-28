@@ -1,7 +1,6 @@
 package product
 
 import (
-	"context"
 	"strconv"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
@@ -63,7 +62,7 @@ func (p *productHandler) CreateProduct(c telebot.Context) error {
 
 	}
 
-	err := p.productModule.CreateProduct(context.Background(), productData[user_id])
+	err := p.productModule.CreateProduct(c, productData[user_id])
 
 	if err != nil {
 		return err

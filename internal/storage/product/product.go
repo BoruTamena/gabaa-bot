@@ -8,6 +8,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/persistencedb"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
+	"github.com/google/uuid"
 )
 
 type productStorage struct {
@@ -20,7 +21,7 @@ func InitProductStorage(db persistencedb.PersistenceDb) storage.ProductStorage {
 	}
 }
 
-func (ps *productStorage) CreateProduct(ctx context.Context, product dto.Product) error {
+func (ps *productStorage) CreateProduct(ctx context.Context, product dto.Product) (error, uuid.UUID) {
 
 	p := db.Product{
 		Title:       product.Title,
@@ -32,8 +33,8 @@ func (ps *productStorage) CreateProduct(ctx context.Context, product dto.Product
 	if err := res.Error; err != nil {
 
 		log.Println("cant create product ::", err)
-		return err
+		return err, uuid.New()
 	}
 
-	return nil
+	return nil, p.ID
 }

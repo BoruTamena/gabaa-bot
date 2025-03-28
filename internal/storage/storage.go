@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
+	"github.com/google/uuid"
 )
 
-// define U storage interface here
-
+// product interface
 type ProductStorage interface {
-	CreateProduct(ctx context.Context, product dto.Product) error
+	CreateProduct(ctx context.Context, product dto.Product) (error, uuid.UUID)
 }

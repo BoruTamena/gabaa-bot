@@ -1,13 +1,12 @@
 package module
 
 import (
-	"context"
-
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
+	"gopkg.in/telebot.v4"
 )
 
 // define module interface here
 
 type ProductModule interface {
-	CreateProduct(ctx context.Context, product dto.Product) error
+	CreateProduct(c telebot.Context, product dto.Product) error
 }

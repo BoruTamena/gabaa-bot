@@ -1,13 +1,19 @@
 package initiator
 
+import (
+	"github.com/BoruTamena/gabaa-bot/internal/module"
+	"github.com/BoruTamena/gabaa-bot/internal/module/product"
+)
+
 type Module struct {
-
-	/* all your modules goes here
-
-
-	user  module.User
-
-	*/
+	productModule module.ProductModule
 }
 
-func InitModule(arg any) Module
+func InitModule(persistence Persistance, platform PlatFormLayer) Module {
+
+	return Module{
+		productModule: product.InitProductModule(persistence.productStorage,
+			platform.tg),
+	}
+
+}

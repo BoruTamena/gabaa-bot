@@ -1,8 +1,10 @@
 package telegram
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"gopkg.in/telebot.v4"
 )
@@ -33,4 +35,18 @@ func InitTelBot() platform.Telegram {
 func (tg *telegram) Start() {
 
 	tg.bot.Start()
+}
+
+// add order now inline button
+func (tg *telegram) AddOrderButtonToProduct(c telebot.Context, data dto.Product) error {
+	inline := &telebot.ReplyMarkup{}
+
+	btn := inline.Data(" 🛒 Order Now", data.ID)
+	inline.Inline(inline.Row(btn))
+
+	message := fmt.Sprintf("*Product name :* %s \n *Description: *%s \n *Price: * %d \n  --- \n powered by Gabaa Place",
+		data.Title, data.Description, data.Price)
+
+	return c.Send(message, inline, telebot.ModeMarkdown)
+
 }

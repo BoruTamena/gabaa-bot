@@ -5,18 +5,17 @@ import (
 )
 
 type Router struct {
-	path        string
-	Handler     tele.HandlerFunc
-	Middlewares []tele.HandlerFunc
+	Path    string
+	Handler tele.HandlerFunc
+	// Middlewares []tele.MiddlewareFunc
 }
 
-func Register(bot *tele.Bot, routes []Router) {
-	group := bot.Group()
-	// for _, middleware := range r.Middlewares {
-	// 	group.Use(middleware)
-	// }
+func Register(group *tele.Group, routes []Router) {
+
 	for _, route := range routes {
-		group.Handle(route.path, route.Handler)
+		// group.Handle(route.Path, route.Handler, route.Middlewares...)
+		group.Handle(route.Path, route.Handler)
+
 	}
 
 }
