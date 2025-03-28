@@ -32,7 +32,6 @@ func Init() {
 	InitRoute(&group, handler)
 
 	// starting bot
-
 	platform.tg.Start()
 
 }

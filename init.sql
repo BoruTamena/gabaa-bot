@@ -1,0 +1,4 @@
+CREATE DATABASE botdb;
+
+CREATE USER  bot_user;
+GRANT ALL PRIVILEGES ON DATABASE botdb TO bot_user;
