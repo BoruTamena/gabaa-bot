@@ -39,7 +39,7 @@ func (p *productModule) CreateProduct(c telebot.Context, product dto.Product) er
 
 	product.ID = id.String()
 
-	if err := p.tele.AddOrderButtonToProduct(c, product); err != nil {
+	if err := p.tele.AddButtonToProduct(c, product); err != nil {
 
 		log.Println("can't add button to product list ", err)
 

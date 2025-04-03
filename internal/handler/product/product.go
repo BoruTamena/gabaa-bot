@@ -36,7 +36,6 @@ func (p *productHandler) StartProductCreation(c telebot.Context) error {
 	defer mu.Unlock()
 	userState[userID] = "waiting_for_title"
 	productData[userID] = dto.Product{}
-
 	return c.Send("📝 Please enter the product title:")
 
 }
@@ -65,12 +64,7 @@ func (p *productHandler) CreateProduct(c telebot.Context) error {
 
 	case "waiting_for_price":
 
-		// text := strings.TrimSpace(c.Text()) // Remove spaces and special characters
-
-		// // Replace comma with dot for decimal support
-		// text = strings.ReplaceAll(text, ",", ".")
 		price, err := strconv.ParseFloat(c.Text(), 64)
-
 		if err != nil {
 			return c.Send("❌ Invalid price format. Please enter a valid number:" + c.Text())
 		}

@@ -10,3 +10,7 @@ import (
 type ProductModule interface {
 	CreateProduct(c telebot.Context, product dto.Product) error
 }
+
+type OrderModule interface {
+	CreateOrder() error
+}

@@ -9,6 +9,7 @@ import (
 
 type Telegram interface {
 	Start()
+	GetBot() *telebot.Bot
 	Group() telebot.Group
-	AddOrderButtonToProduct(c telebot.Context, data dto.Product) error
+	AddButtonToProduct(c telebot.Context, data dto.Product) error
 }

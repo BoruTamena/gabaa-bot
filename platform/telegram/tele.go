@@ -40,6 +40,12 @@ func (tg *telegram) Start() {
 	fmt.Println("listining... ")
 }
 
+func (tg *telegram) GetBot() *telebot.Bot {
+
+	return tg.bot
+
+}
+
 func (tg *telegram) Group() telebot.Group {
 
 	return *tg.bot.Group()
@@ -47,11 +53,13 @@ func (tg *telegram) Group() telebot.Group {
 }
 
 // add order now inline button
-func (tg *telegram) AddOrderButtonToProduct(c telebot.Context, data dto.Product) error {
+func (tg *telegram) AddButtonToProduct(c telebot.Context, data dto.Product) error {
 	inline := &telebot.ReplyMarkup{}
 
-	btn := inline.Data(" 🛒 Order Now", data.ID)
-	inline.Inline(inline.Row(btn))
+	addToCart := inline.Data(" 🛒 Add to cart", "cart/"+data.ID)
+	orderNow := inline.Data("🛍️ Order Now", "order/"+data.ID)
+	inline.Row(orderNow)
+	inline.Inline(inline.Row(addToCart, orderNow))
 
 	message := fmt.Sprintf("*Product name :* %s \n *Description: *%s \n *Price: * %v \n  --- \n powered by Gabaa Place",
 		data.Title, data.Description, data.Price)
