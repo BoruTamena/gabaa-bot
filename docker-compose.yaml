@@ -3,7 +3,7 @@
 services:
   
   db:
-    container_name: psql_db
+    container_name: botdb
     image: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -20,7 +20,7 @@ services:
 
 
   redis:
-    container_name: redis_container 
+    container_name: rd
     image: redis
     ports:
       - 7979:6379

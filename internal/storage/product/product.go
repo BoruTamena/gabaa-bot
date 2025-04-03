@@ -32,7 +32,7 @@ func (ps *productStorage) CreateProduct(ctx context.Context, product dto.Product
 
 	if err := res.Error; err != nil {
 
-		log.Println("cant create product ::", err)
+		log.Println("can't create product ::", err)
 		return err, uuid.New()
 	}
 

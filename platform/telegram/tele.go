@@ -33,7 +33,11 @@ func InitTelBot() platform.Telegram {
 }
 
 func (tg *telegram) Start() {
+	fmt.Println("bot started ")
+
 	tg.bot.Start()
+
+	fmt.Println("listining... ")
 }
 
 func (tg *telegram) Group() telebot.Group {
@@ -49,7 +53,7 @@ func (tg *telegram) AddOrderButtonToProduct(c telebot.Context, data dto.Product)
 	btn := inline.Data(" 🛒 Order Now", data.ID)
 	inline.Inline(inline.Row(btn))
 
-	message := fmt.Sprintf("*Product name :* %s \n *Description: *%s \n *Price: * %d \n  --- \n powered by Gabaa Place",
+	message := fmt.Sprintf("*Product name :* %s \n *Description: *%s \n *Price: * %v \n  --- \n powered by Gabaa Place",
 		data.Title, data.Description, data.Price)
 
 	return c.Send(message, inline, telebot.ModeMarkdown)

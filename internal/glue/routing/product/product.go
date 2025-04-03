@@ -10,7 +10,11 @@ func InitProductRoute(group *telebot.Group, handler handler.Product) {
 
 	routes := []routing.Router{
 		{
-			Path:    "/list",
+			Path:    "/start",
+			Handler: handler.StartProductCreation,
+		},
+		{
+			Path:    telebot.OnText,
 			Handler: handler.CreateProduct,
 		},
 	}

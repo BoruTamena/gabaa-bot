@@ -2,7 +2,6 @@ package dto
 
 import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/go-ozzo/ozzo-validation/v4/is"
 )
 
 type Product struct {
@@ -14,10 +13,10 @@ type Product struct {
 
 func (p Product) Validate() error {
 
-	return validation.ValidateStruct(
+	return validation.ValidateStruct(&p,
 		validation.Field(&p.Title, validation.Required),
-		validation.Field(&p.Description, validation.Required, validation.Min(5)),
-		validation.Field(&p.Price, validation.Required, is.Float),
+		validation.Field(&p.Description, validation.Required),
+		validation.Field(&p.Price, validation.Required),
 	)
 
 }
