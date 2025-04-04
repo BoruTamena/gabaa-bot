@@ -45,3 +45,12 @@ func (o *orderHandler) HandleOrder(c telebot.Context) error {
 	return c.Respond(&telebot.CallbackResponse{Text: "Unknown action!", ShowAlert: true})
 
 }
+
+func (o *orderHandler) AddToCart(c telebot.Context, productId string) error {
+
+	if err := o.orderModule.AddToCart(c, productId); err != nil {
+	}
+
+	return nil
+
+}

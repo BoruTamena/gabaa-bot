@@ -16,7 +16,7 @@ func InitHandler(module Module) Handler {
 	return Handler{
 
 		productHandler: product.InitProductHandler(module.productModule),
-		orderHandler:   order.InitOrderHandler(),
+		orderHandler:   order.InitOrderHandler(module.orderModule),
 	}
 
 }
