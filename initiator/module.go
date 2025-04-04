@@ -17,7 +17,8 @@ func InitModule(persistence Persistance, platform PlatFormLayer) Module {
 		productModule: product.InitProductModule(persistence.productStorage,
 			platform.tg),
 
-		orderModule: order.InitOrderModule(),
+		orderModule: order.InitOrderModule(persistence.productStorage,
+			platform.cach),
 	}
 
 }

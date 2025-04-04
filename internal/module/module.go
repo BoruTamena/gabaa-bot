@@ -1,6 +1,8 @@
 package module
 
 import (
+	"context"
+
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"gopkg.in/telebot.v4"
 )
@@ -13,4 +15,5 @@ type ProductModule interface {
 
 type OrderModule interface {
 	CreateOrder() error
+	AddToCart(cxt context.Context, user_id, productId string) error
 }

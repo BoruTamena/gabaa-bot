@@ -38,3 +38,20 @@ func (ps *productStorage) CreateProduct(ctx context.Context, product dto.Product
 
 	return nil, p.ID
 }
+
+func (ps *productStorage) GetProductByID(ctx context.Context, id string) (dto.Product, error) {
+	var product db.Product
+	res := ps.db.WithContext(ctx).Where("id = ?", id).First(&product)
+
+	if err := res.Error; err != nil {
+		log.Println("can't get product ::", err)
+		return dto.Product{}, err
+	}
+
+	return dto.Product{
+		ID:          product.ID.String(),
+		Title:       product.Title,
+		Description: product.Description,
+		Price:       product.Price,
+	}, nil
+}

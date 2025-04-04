@@ -1,6 +1,7 @@
 package order
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -38,7 +39,7 @@ func (o *orderHandler) HandleOrder(c telebot.Context) error {
 	case "order":
 		return c.Send(fmt.Sprintf("✅ Order placed for Product ID: %s", productID))
 	case "cart":
-		return c.Send(fmt.Sprintf("🛒 Added to cart: Product ID: %s", productID))
+		return o.AddToCart(c, productID)
 
 	}
 
@@ -48,9 +49,25 @@ func (o *orderHandler) HandleOrder(c telebot.Context) error {
 
 func (o *orderHandler) AddToCart(c telebot.Context, productId string) error {
 
-	if err := o.orderModule.AddToCart(c, productId); err != nil {
-	}
+	user_id := c.Sender().ID
 
-	return nil
+	err := o.orderModule.AddToCart(context.Background(), fmt.Sprint(user_id), productId)
+	if err != nil {
+		if strings.Contains(err.Error(), "already exists") {
+			return c.Respond(&telebot.CallbackResponse{
+				Text:      "Product already exists in the cart",
+				ShowAlert: true,
+			})
+		}
+
+		return c.Respond(&telebot.CallbackResponse{
+			Text:      "Sorry we could not add the product to the cart",
+			ShowAlert: true,
+		})
+	}
+	return c.Respond(&telebot.CallbackResponse{
+		Text:      "Product added to cart successfully!",
+		ShowAlert: true,
+	})
 
 }

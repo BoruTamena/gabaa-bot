@@ -6,6 +6,7 @@ var (
 	InternalError = errorx.NewNamespace("Internal Server:error")
 	InputError    = errorx.NewNamespace("InputValiation:error")
 	DbError       = errorx.NewNamespace("DataBase:error")
+	CartErr       = errorx.NewNamespace("Cart:error")
 )
 
 var (
@@ -21,6 +22,12 @@ var (
 	WriteErr  = errorx.NewType(DbError, "db write :: error ")
 	NullObjId = errorx.NewType(DbError, "Null Object Id Returned :: error")
 	DbReadErr = errorx.NewType(DbError, "db read::error")
+
+	// Cart errors
+	CartNotFoundErr          = errorx.NewType(CartErr, "cart not found :: error")
+	CartItemNotFoundErr      = errorx.NewType(CartErr, "cart item not found :: error")
+	CartItemAlreadyExistsErr = errorx.NewType(CartErr, "cart item already exists :: error")
+	CartItemNotInStockErr    = errorx.NewType(CartErr, "cart item not in stock :: error")
 )
 
 var (
