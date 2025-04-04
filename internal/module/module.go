@@ -7,13 +7,15 @@ import (
 	"gopkg.in/telebot.v4"
 )
 
-// define module interface here
+type UserModule interface {
+	CreateUser(ctx context.Context, userDto dto.User) error
+}
 
 type ProductModule interface {
 	CreateProduct(c telebot.Context, product dto.Product) error
 }
 
 type OrderModule interface {
-	CreateOrder() error
 	AddToCart(cxt context.Context, user_id, productId string) error
+	CreateOrder(ctx context.Context, orderRequest dto.Order) error
 }

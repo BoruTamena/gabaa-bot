@@ -17,6 +17,7 @@ var (
 	UnMarshalErr = errorx.NewType(InternalError, "unable to unmarshal:error")
 	DublicateErr = errorx.NewType(InternalError, "Duplicate::error")
 	AuthErr      = errorx.NewType(InternalError, "Unauthorized user :: error")
+	NotFoundErr  = errorx.NewType(InternalError, "Not Found :: error")
 
 	// Database errors
 	WriteErr  = errorx.NewType(DbError, "db write :: error ")

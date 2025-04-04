@@ -7,4 +7,6 @@ CREATE TABLE payments (
     status      TEXT CHECK (status IN ('pending', 'completed', 'failed')) DEFAULT 'pending',
     transaction_id TEXT UNIQUE NOT NULL,
     created_at  TIMESTAMP DEFAULT now()
+     updated_at  TIMESTAMP DEFAULT NULL,
+     deleted_at  TIMESTAMP DEFAULT NULL
 );

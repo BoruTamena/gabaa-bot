@@ -6,4 +6,6 @@ CREATE TABLE users (
     phone       TEXT UNIQUE,
     role        TEXT CHECK (role IN ('buyer', 'seller')) DEFAULT 'buyer',
     created_at  TIMESTAMP DEFAULT now()
+     updated_at  TIMESTAMP DEFAULT NULL,
+     deleted_at  TIMESTAMP DEFAULT NULL
 );

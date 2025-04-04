@@ -25,7 +25,9 @@ func (b *BaseModel) BeforeCreate(tx *gorm.DB) error {
 
 type Product struct {
 	BaseModel
+	SellerId    int64   `gorm:"type:bigint" json:"seller_id"`
 	Title       string  `gorm:"title" json:"title"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
+	User        User    `gorm:"foreignKey:SellerId;references:TelID" json:"user"`
 }

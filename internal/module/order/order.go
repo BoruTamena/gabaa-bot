@@ -3,22 +3,27 @@ package order
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/errors"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/platform"
 )
 
 type orderModule struct {
+	orderStorage   storage.OrderStorage
 	productStorage storage.ProductStorage
 	cache          platform.Redis
 }
 
-func InitOrderModule(pStorage storage.ProductStorage, cache platform.Redis) module.OrderModule {
+func InitOrderModule(pStorage storage.ProductStorage,
+	orderStorage storage.OrderStorage, cache platform.Redis) module.OrderModule {
 
 	return &orderModule{
+		orderStorage:   orderStorage,
 		productStorage: pStorage,
 		cache:          cache,
 	}
@@ -67,7 +72,46 @@ func (order *orderModule) AddToCart(cxt context.Context, user_id, productId stri
 	return nil
 
 }
-func (order *orderModule) CreateOrder() error {
+func (order *orderModule) CreateOrder(ctx context.Context, orderRequest dto.Order) error {
+
+	// Check if the product exists in the storage
+	product, err := order.productStorage.GetProductByID(ctx, orderRequest.ProductID)
+	if err != nil {
+
+		err := errors.DbReadErr.Wrap(err, "can't get product from db")
+
+		log.Println("can't get product from db ::", err)
+
+		return err
+	}
+
+	if product.ID == "" {
+		err := errors.NotFoundErr.Wrap(fmt.
+			Errorf("product %v not found", orderRequest.ProductID), "product not found")
+
+		log.Println("can't create order ::", err)
+
+		return err
+	}
+
+	// Create the order
+	err, _ = order.orderStorage.CreateOrder(ctx, orderRequest)
+	if err != nil {
+		return err
+
+	}
+	// Remove the product from the cart
+	// err = order.cache.HDel(ctx, orderRequest.UserID, product.ID)
+	// if err != nil {
+	// 	err := errors.CartNotFoundErr.Wrap(fmt.
+	// 		Errorf("product %v not found in the cart",
+	// 			product.ID), "product not found in the cart")
+	// 	log.Println("can't remove product from cart ::", err)
+
+	// 	return err
+	// }
+
+	// Process the payment
 
 	return nil
 

@@ -5,4 +5,6 @@ CREATE TABLE order_items (
     quantity    INT CHECK (quantity > 0) DEFAULT 1,
     price       DECIMAL(10,2) NOT NULL,
     created_at  TIMESTAMP DEFAULT now()
+     updated_at  TIMESTAMP DEFAULT NULL,
+     deleted_at  TIMESTAMP DEFAULT NULL
 );

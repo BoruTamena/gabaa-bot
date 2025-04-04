@@ -50,6 +50,7 @@ func (ps *productStorage) GetProductByID(ctx context.Context, id string) (dto.Pr
 
 	return dto.Product{
 		ID:          product.ID.String(),
+		SellerId:    product.SellerId,
 		Title:       product.Title,
 		Description: product.Description,
 		Price:       product.Price,

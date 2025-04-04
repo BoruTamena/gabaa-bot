@@ -2,8 +2,9 @@ package handler
 
 import "gopkg.in/telebot.v4"
 
-// define your handlers interface here
-
+type User interface {
+	CreateUser(c telebot.Context) error
+}
 type Product interface {
 	StartProductCreation(c telebot.Context) error
 	CreateProduct(c telebot.Context) error

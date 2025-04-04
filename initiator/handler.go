@@ -9,6 +9,7 @@ import (
 type Handler struct {
 	productHandler handler.Product
 	orderHandler   handler.Order
+	userHandler    handler.User
 }
 
 func InitHandler(module Module) Handler {

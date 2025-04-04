@@ -6,5 +6,4 @@ CREATE TABLE products (
     price       DECIMAL(10,2) NOT NULL CHECK (price > 0),
     image_url   TEXT, 
     created_at  TIMESTAMP DEFAULT now()
-    
 );

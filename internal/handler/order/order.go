@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/handler"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"gopkg.in/telebot.v4"
@@ -37,7 +38,7 @@ func (o *orderHandler) HandleOrder(c telebot.Context) error {
 
 	switch action {
 	case "order":
-		return c.Send(fmt.Sprintf("✅ Order placed for Product ID: %s", productID))
+		return o.CreateOrder(c, productID)
 	case "cart":
 		return o.AddToCart(c, productID)
 
@@ -47,6 +48,14 @@ func (o *orderHandler) HandleOrder(c telebot.Context) error {
 
 }
 
+// AddToCart handles the addition of a product to the cart
+// It takes the context and productID as parameters
+// and returns an error if any occurs during the process
+// The function should check if the product exists in the storage
+// and if the product can be added to the cart successfully
+// It should also handle any errors that may occur
+// during the addition process
+// It should return nil if the product is added successfully
 func (o *orderHandler) AddToCart(c telebot.Context, productId string) error {
 
 	user_id := c.Sender().ID
@@ -70,4 +79,37 @@ func (o *orderHandler) AddToCart(c telebot.Context, productId string) error {
 		ShowAlert: true,
 	})
 
+}
+
+// CreateOrder handles the order creation process
+// It should be called when the user confirms the order
+// It takes the context and productID as parameters
+// and returns an error if any occurs during the process
+// The function should check if the product exists in the storage
+// and if the order can be created successfully
+// It should also handle any errors that may occur
+// during the order creation process
+// It should return nil if the order is created successfully
+// It should also handle any errors that may occur
+// during the order creation process
+func (o *orderHandler) CreateOrder(c telebot.Context, productID string) error {
+	// Implement order creation logic here
+
+	err := o.orderModule.CreateOrder(context.Background(), dto.Order{
+		ProductID: productID,
+		UserID:    c.Sender().ID,
+		Quantity:  1,
+		Status:    "pending",
+	})
+
+	if err != nil {
+		return c.Respond(&telebot.CallbackResponse{
+			Text:      "Sorry we could not create the order",
+			ShowAlert: true,
+		})
+	}
+	return c.Respond(&telebot.CallbackResponse{
+		Text:      "Order created successfully!",
+		ShowAlert: true,
+	})
 }
