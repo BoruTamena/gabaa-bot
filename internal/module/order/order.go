@@ -75,27 +75,31 @@ func (order *orderModule) AddToCart(cxt context.Context, user_id, productId stri
 func (order *orderModule) CreateOrder(ctx context.Context, orderRequest dto.Order) error {
 
 	// Check if the product exists in the storage
-	product, err := order.productStorage.GetProductByID(ctx, orderRequest.ProductID)
-	if err != nil {
 
-		err := errors.DbReadErr.Wrap(err, "can't get product from db")
+	for _, orderItem := range orderRequest.OrderItems {
+		product, err := order.productStorage.GetProductByID(ctx, orderItem.ProductId.String())
+		if err != nil {
 
-		log.Println("can't get product from db ::", err)
+			err := errors.DbReadErr.Wrap(err, "can't get product from db")
 
-		return err
-	}
+			log.Println("can't get product from db ::", err)
 
-	if product.ID == "" {
-		err := errors.NotFoundErr.Wrap(fmt.
-			Errorf("product %v not found", orderRequest.ProductID), "product not found")
+			return err
+		}
 
-		log.Println("can't create order ::", err)
+		if product.ID == "" {
+			err := errors.NotFoundErr.Wrap(fmt.
+				Errorf("product %v not found", orderItem.ProductId), "product not found")
 
-		return err
+			log.Println("can't create order ::", err)
+
+			return err
+		}
+
 	}
 
 	// Create the order
-	err, _ = order.orderStorage.CreateOrder(ctx, orderRequest)
+	err, _ := order.orderStorage.CreateOrder(ctx, orderRequest)
 	if err != nil {
 		return err
 

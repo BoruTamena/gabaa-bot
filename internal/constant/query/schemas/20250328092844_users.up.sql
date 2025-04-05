@@ -1,11 +1,12 @@
+
 CREATE TABLE users (
-    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    telegram_id BIGINT UNIQUE NOT NULL,
+    tel_id      BIGINT PRIMARY KEY,
     username    TEXT UNIQUE,
-    full_name   TEXT NOT NULL,
-    phone       TEXT UNIQUE,
+    first_name  TEXT NOT NULL,
+    last_name   TEXT NOT NULL,
+    phone       TEXT UNIQUE DEFAULT NULL,
     role        TEXT CHECK (role IN ('buyer', 'seller')) DEFAULT 'buyer',
-    created_at  TIMESTAMP DEFAULT now()
-     updated_at  TIMESTAMP DEFAULT NULL,
-     deleted_at  TIMESTAMP DEFAULT NULL
+    created_at  TIMESTAMP DEFAULT now(),
+    updated_at  TIMESTAMP DEFAULT NULL,
+    deleted_at  TIMESTAMP DEFAULT NULL
 );

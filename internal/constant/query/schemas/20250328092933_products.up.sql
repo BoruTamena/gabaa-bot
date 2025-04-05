@@ -1,6 +1,6 @@
 CREATE TABLE products (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    seller_id   UUID REFERENCES users(id) ON DELETE CASCADE,
+    seller_id   BIGINT REFERENCES users(tel_id) ON DELETE CASCADE,
     title       TEXT NOT NULL,
     description TEXT,
     price       DECIMAL(10,2) NOT NULL CHECK (price > 0),

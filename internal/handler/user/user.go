@@ -32,19 +32,14 @@ func (user *userHandler) CreateUser(c telebot.Context) error {
 		Username:  userName,
 		FirstName: userFirstName,
 		LastName:  userLastName,
+		UserRole:  "seller",
 	}
 
 	if err := user.userModule.CreateUser(context.Background(), userObj); err != nil {
 
-		return c.Respond(&telebot.CallbackResponse{
-			Text:      "can't register you this time",
-			ShowAlert: true,
-		})
+		return c.Send("❌ An error occurred while creating your account.\n Please try again later." + err.Error())
 	}
 
-	return c.Respond(&telebot.CallbackResponse{
-		Text:      "Congrant !!!  \n you are now offically become a gabaa seller :) ",
-		ShowAlert: true,
-	})
+	return c.Send("✅ Your account has been successfully created!")
 
 }

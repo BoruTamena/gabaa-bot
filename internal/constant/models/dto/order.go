@@ -1,13 +1,17 @@
 package dto
 
+import "github.com/google/uuid"
+
 type Order struct {
-	UserID     int64   `json:"user_id"`
-	ProductID  string  `json:"product_id"`
-	Quantity   int     `json:"quantity"`
-	Status     string  `json:"status"`
-	TotalPrice float64 `json:"total_price"`
+	BuyerID    int64       `json:"buyer_id"`
+	Status     string      `json:"status"`
+	TotalPrice float64     ` json:"total_price"`
+	OrderItems []OrderItem `gorm:"foreignkey:OrderId" `
 }
 
-type OrderList struct {
-	Orders []Order `json:"orders"`
+type OrderItem struct {
+	OrderId   uuid.UUID
+	ProductId uuid.UUID
+	Price     float64
+	Quantity  int
 }

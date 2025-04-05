@@ -4,6 +4,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/handler"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/order"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/product"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/user"
 )
 
 type Handler struct {
@@ -18,6 +19,7 @@ func InitHandler(module Module) Handler {
 
 		productHandler: product.InitProductHandler(module.productModule),
 		orderHandler:   order.InitOrderHandler(module.orderModule),
+		userHandler:    user.InitUserHandler(module.userModule),
 	}
 
 }

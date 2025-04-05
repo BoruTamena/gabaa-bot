@@ -71,6 +71,7 @@ func (p *productHandler) CreateProduct(c telebot.Context) error {
 
 		product := productData[userID]
 		product.Price = price
+		product.SellerId = userID
 		productData[userID] = product
 
 		fmt.Println("product", productData[userID])

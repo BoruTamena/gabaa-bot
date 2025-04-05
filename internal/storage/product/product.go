@@ -24,6 +24,7 @@ func InitProductStorage(db persistencedb.PersistenceDb) storage.ProductStorage {
 func (ps *productStorage) CreateProduct(ctx context.Context, product dto.Product) (error, uuid.UUID) {
 
 	p := db.Product{
+		SellerId:    product.SellerId,
 		Title:       product.Title,
 		Description: product.Description,
 		Price:       product.Price,

@@ -1,17 +1,18 @@
 package db
 
-type User struct {
-	BaseModel
-	TelID     int64    `json:" tel_id"`
-	Username  string   `json:"username"`
-	FirstName string   `json:"first_name"`
-	LastName  string   `json:"last_name"`
-	Phone     string   `json:"phone"`
-	Email     string   `json:"email"`
-	UserRole  UserRole `json:"user_role" gorm:"references:ID"`
-}
+import (
+	"time"
 
-type UserRole struct {
-	BaseModel
-	Name string `json:"name"`
+	"gorm.io/gorm"
+)
+
+type User struct {
+	TelID     int64          `json:" tel_id"`
+	FirstName string         `json:"first_name"`
+	LastName  string         `json:"last_name"`
+	Phone     string         `gorm:"default:null" json:"phone"`
+	Role      string         `json:"role"`
+	CreatedAt time.Time      ` gorm:"default:CURRENT_TIMESTAMP"  json:"created_at"`
+	UpdatedAt time.Time      `gorm:"default:CURRENT_TIMESTAMP" json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }

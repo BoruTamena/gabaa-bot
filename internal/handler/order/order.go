@@ -8,6 +8,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/handler"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
+	"github.com/google/uuid"
 	"gopkg.in/telebot.v4"
 )
 
@@ -75,7 +76,7 @@ func (o *orderHandler) AddToCart(c telebot.Context, productId string) error {
 		})
 	}
 	return c.Respond(&telebot.CallbackResponse{
-		Text:      "Product added to cart successfully!",
+		Text:      "Product added to cart successfully !",
 		ShowAlert: true,
 	})
 
@@ -95,11 +96,18 @@ func (o *orderHandler) AddToCart(c telebot.Context, productId string) error {
 func (o *orderHandler) CreateOrder(c telebot.Context, productID string) error {
 	// Implement order creation logic here
 
+	productId, _ := uuid.Parse(productID)
+
 	err := o.orderModule.CreateOrder(context.Background(), dto.Order{
-		ProductID: productID,
-		UserID:    c.Sender().ID,
-		Quantity:  1,
-		Status:    "pending",
+		BuyerID: c.Sender().ID,
+		Status:  "pending",
+		OrderItems: []dto.OrderItem{
+			{
+				ProductId: productId,
+				Price:     32,
+				Quantity:  1,
+			},
+		},
 	})
 
 	if err != nil {

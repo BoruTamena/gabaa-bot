@@ -25,9 +25,9 @@ func (u userStorage) CreateUser(ctx context.Context, userDto dto.User) error {
 
 	userModel := db.User{
 		TelID:     userDto.TelId,
-		Username:  userDto.Username,
 		FirstName: userDto.FirstName,
 		LastName:  userDto.LastName,
+		Role:      userDto.UserRole,
 	}
 
 	res := u.db.WithContext(ctx).Create(&userModel)

@@ -1,11 +1,20 @@
 package db
 
+import "github.com/google/uuid"
+
 type Order struct {
 	BaseModel
-	UserID     int64     ` gorm:"type:bigint" json:"user_id"`
-	ProductID  string    `json:"product_id"`
-	Quantity   int       `json:"quantity"`
-	Status     string    `json:"status"`
-	TotalPrice float64   `json:"total_price"`
-	Product    []Product `json:"product" gorm:"foreignKey:TelID;references:ProductID"`
+	BuyerID    int64       `gorm:"type:bigint;not null;constraint:OnDelete:CASCADE" json:"buyer_id"`
+	Status     string      `gorm:"type:text;default:'pending';check:status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled')" json:"status"`
+	TotalPrice float64     `gorm:"type:decimal(10,2);not null" json:"total_price"`
+	OrderItems []OrderItem `gorm:"foreignkey:OrderId" `
+}
+
+type OrderItem struct {
+	BaseModel
+	OrderId   uuid.UUID `gorm:"type:uuid;not null"`
+	ProductId uuid.UUID `gorm:"type:uuid;not null"`
+	Price     float64
+	Quantity  int
+	Product   Product `gorm:"foreignKey:ProductId;"`
 }
