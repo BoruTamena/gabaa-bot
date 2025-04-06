@@ -41,15 +41,11 @@ func (tg *telegram) Start() {
 }
 
 func (tg *telegram) GetBot() *telebot.Bot {
-
 	return tg.bot
-
 }
 
 func (tg *telegram) Group() telebot.Group {
-
 	return *tg.bot.Group()
-
 }
 
 // add order now inline button

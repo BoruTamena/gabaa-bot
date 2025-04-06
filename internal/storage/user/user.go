@@ -22,7 +22,6 @@ func InitUserStorage(db persistencedb.PersistenceDb) storage.UserStorage {
 }
 func (u userStorage) CreateUser(ctx context.Context, userDto dto.User) error {
 	// implement the logic to create a user
-
 	userModel := db.User{
 		TelID:     userDto.TelId,
 		FirstName: userDto.FirstName,

@@ -2,13 +2,15 @@ package initiator
 
 import (
 	"github.com/BoruTamena/gabaa-bot/platform"
+	"github.com/BoruTamena/gabaa-bot/platform/arifpay"
 	"github.com/BoruTamena/gabaa-bot/platform/rediscache"
 	"github.com/BoruTamena/gabaa-bot/platform/telegram"
 )
 
 type PlatFormLayer struct {
-	tg   platform.Telegram
-	cach platform.Redis
+	tg      platform.Telegram
+	cach    platform.Redis
+	payment platform.Payment
 }
 
 func InitPlatFormLayer() PlatFormLayer {
@@ -23,5 +25,7 @@ func InitPlatFormLayer() PlatFormLayer {
 				DB:       0,
 			},
 		),
+
+		payment: arifpay.NewPayment(),
 	}
 }

@@ -79,7 +79,6 @@ func (p *productHandler) CreateProduct(c telebot.Context) error {
 		if err := p.productModule.CreateProduct(c, productData[userID]); err != nil {
 			return c.Send("❌ Failed to create product: " + err.Error())
 		}
-
 		// Reset user state after success
 		delete(userState, userID)
 		delete(productData, userID)

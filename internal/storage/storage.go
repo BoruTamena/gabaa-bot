@@ -13,6 +13,8 @@ type UserStorage interface {
 type ProductStorage interface {
 	CreateProduct(ctx context.Context, product dto.Product) (error, uuid.UUID)
 	GetProductByID(ctx context.Context, id string) (dto.Product, error)
+	// GetProductsBySellerId
+
 }
 
 type OrderStorage interface {

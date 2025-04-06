@@ -13,6 +13,9 @@ import (
 
 // define your platform interfaces here
 
+type Payment interface {
+	MakePayment(payload PaymentRequestPayload) (error, PaymentResponse)
+}
 type Telegram interface {
 	Start()
 	GetBot() *telebot.Bot

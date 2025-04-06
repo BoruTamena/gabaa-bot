@@ -34,7 +34,7 @@ func (s *orderStorage) CreateOrder(ctx context.Context, order dto.Order) (error,
 		orderModel.OrderItems = append(orderModel.OrderItems, db.OrderItem{
 			ProductId: items.ProductId,
 			Quantity:  items.Quantity,
-			Price:     34,
+			Price:     items.Price,
 		})
 
 	}
