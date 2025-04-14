@@ -5,20 +5,22 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/BoruTamena/gabaa-bot/platform"
 )
 
-type arifyPayment struct {
+type arifPayment struct {
 	apiKey     string
 	url        string
 	devMode    bool
 	sandBoxUrl string
+	expireDate time.Time
 }
 
 func NewPayment() platform.Payment {
 
-	return &arifyPayment{
+	return &arifPayment{
 		apiKey:     "",
 		url:        "",
 		devMode:    false,
@@ -27,7 +29,7 @@ func NewPayment() platform.Payment {
 
 }
 
-func (ap *arifyPayment) MakePayment(payload platform.PaymentRequestPayload) (error, platform.PaymentResponse) {
+func (ap *arifPayment) MakePayment(payload platform.PaymentRequestPayload) (error, platform.PaymentResponse) {
 
 	var response platform.PaymentResponse
 	client := http.Client{} // creating request clients
@@ -67,4 +69,9 @@ func (ap *arifyPayment) MakePayment(payload platform.PaymentRequestPayload) (err
 
 	return nil, response
 
+}
+
+func (ap *arifPayment) Transaction() error {
+
+	return nil
 }
