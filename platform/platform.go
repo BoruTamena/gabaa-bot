@@ -13,6 +13,14 @@ import (
 
 // define your platform interfaces here
 
+type Logger interface {
+	Info(msg string, fields ...interface{})
+	Error(msg string, fields ...interface{})
+	Debug(msg string, fields ...interface{})
+	Warn(msg string, fields ...interface{})
+	Fatal(msg string, fields ...interface{})
+}
+
 type Payment interface {
 	MakePayment(payload PaymentRequestPayload) (error, PaymentResponse)
 }
@@ -22,6 +30,7 @@ type Telegram interface {
 	Group() telebot.Group
 	AddButtonToProduct(c telebot.Context, data dto.Product) error
 	ValidateInitData(initData string) (bool, error)
+	ParseInitData(initData string) (*dto.TelegramUser, int64, error)
 	IsChatAdmin(chatID int64, userID int64) (bool, error)
 }
 

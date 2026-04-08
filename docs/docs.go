@@ -15,6 +15,33 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/telegram": {
+            "post": {
+                "description": "Validates initData and returns JWT",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Authenticate via Telegram",
+                "parameters": [
+                    {
+                        "description": "initData",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {}
+            }
+        },
         "/order/cart/add": {
             "post": {
                 "tags": [
@@ -67,6 +94,27 @@ const docTemplate = `{
                     "payment"
                 ],
                 "summary": "Verify payment (manual)",
+                "responses": {}
+            }
+        },
+        "/store/:id": {
+            "get": {
+                "description": "Returns store details",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get store by ID",
+                "responses": {}
+            },
+            "put": {
+                "description": "Update store details. Admin only.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Update store",
                 "responses": {}
             }
         },
@@ -188,14 +236,14 @@ const docTemplate = `{
         },
         "/store/from-chat": {
             "post": {
-                "description": "Create a new store linked to a Telegram chat. Admin only.",
+                "description": "Setup a new store. Admin only.",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Create store from chat",
+                "summary": "Create store",
                 "responses": {}
             }
         }

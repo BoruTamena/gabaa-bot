@@ -4,13 +4,14 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/platform"
@@ -18,18 +19,21 @@ import (
 	"gopkg.in/telebot.v4"
 )
 
-
-
 type telegram struct {
 	bot *telebot.Bot
 }
 
 func InitTelBot() platform.Telegram {
 
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
 	setting := telebot.Settings{
 
 		Token:  viper.GetString("tg.token"),
 		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
+		Client: client,
 	}
 	bot, err := telebot.NewBot(setting)
 
@@ -107,6 +111,31 @@ func (tg *telegram) ValidateInitData(initData string) (bool, error) {
 	calculatedHash := hex.EncodeToString(hmacSHA256(secretKey, []byte(dataCheckString.String())))
 
 	return calculatedHash == hash, nil
+}
+
+func (tg *telegram) ParseInitData(initData string) (*dto.TelegramUser, int64, error) {
+	values, err := url.ParseQuery(initData)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	userJSON := values.Get("user")
+	if userJSON == "" {
+		return nil, 0, fmt.Errorf("user data missing in initData")
+	}
+
+	var user dto.TelegramUser
+	if err := json.Unmarshal([]byte(userJSON), &user); err != nil {
+		return nil, 0, err
+	}
+
+	chatIDStr := values.Get("chat_id")
+	var chatID int64
+	if chatIDStr != "" {
+		chatID, _ = strconv.ParseInt(chatIDStr, 10, 64)
+	}
+
+	return &user, chatID, nil
 }
 
 func hmacSHA256(key, data []byte) []byte {

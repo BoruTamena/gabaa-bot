@@ -18,13 +18,13 @@ type Persistence struct {
 	CartStorage    storage.CartStorage
 }
 
-func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis) Persistence {
+func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logger platform.Logger) Persistence {
 	return Persistence{
-		UserStorage:    persistence.NewPersistence(db.DB),
-		StoreStorage:   persistence.NewStorePersistence(db.DB),
-		ProductStorage: persistence.NewProductPersistence(db.DB),
-		OrderStorage:   persistence.NewOrderPersistence(db.DB),
-		WalletStorage:  persistence.NewWalletPersistence(db.DB),
+		UserStorage:    persistence.NewPersistence(db.DB, logger),
+		StoreStorage:   persistence.NewStorePersistence(db.DB, logger),
+		ProductStorage: persistence.NewProductPersistence(db.DB, logger),
+		OrderStorage:   persistence.NewOrderPersistence(db.DB, logger),
+		WalletStorage:  persistence.NewWalletPersistence(db.DB, logger),
 		CartStorage:    cache.NewCartCache(redis),
 	}
 }

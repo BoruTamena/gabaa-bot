@@ -4,8 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-
-
+	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -24,20 +23,20 @@ func (m *AuthMiddleware) TelegramAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		initData := c.GetHeader("X-Telegram-Init-Data")
 		if initData == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing telegram init data"})
+			appErr := errorx.New(errorx.ErrUnauthorized, "Missing telegram init data", http.StatusUnauthorized)
+			c.JSON(appErr.Status, appErr)
 			c.Abort()
 			return
 		}
 
 		valid, err := m.tele.ValidateInitData(initData)
 		if err != nil || !valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid telegram init data"})
+			appErr := errorx.New(errorx.ErrUnauthorized, "Invalid telegram init data", http.StatusUnauthorized)
+			c.JSON(appErr.Status, appErr)
 			c.Abort()
 			return
 		}
 
-		// In a real app, you'd parse user_id from initData here.
-		// For now, we assume it's passed or extracted later.
 		c.Next()
 	}
 }
@@ -46,7 +45,8 @@ func (m *AuthMiddleware) JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing auth header"})
+			appErr := errorx.New(errorx.ErrUnauthorized, "Missing authorization header", http.StatusUnauthorized)
+			c.JSON(appErr.Status, appErr)
 			c.Abort()
 			return
 		}
@@ -57,14 +57,26 @@ func (m *AuthMiddleware) JWTAuth() gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			appErr := errorx.New(errorx.ErrUnauthorized, "Invalid or expired token", http.StatusUnauthorized)
+			c.JSON(appErr.Status, appErr)
 			c.Abort()
 			return
 		}
 
-		claims := token.Claims.(jwt.MapClaims)
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			appErr := errorx.New(errorx.ErrUnauthorized, "Invalid token claims", http.StatusUnauthorized)
+			c.JSON(appErr.Status, appErr)
+			c.Abort()
+			return
+		}
+
 		c.Set("user_id", int64(claims["user_id"].(float64)))
 		c.Set("role", claims["role"].(string))
+		if storeID, ok := claims["store_id"].(float64); ok {
+			c.Set("store_id", int64(storeID))
+		}
+		
 		c.Next()
 	}
 }

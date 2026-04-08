@@ -1,6 +1,24 @@
 info:
   contact: {}
 paths:
+  /auth/telegram:
+    post:
+      consumes:
+      - application/json
+      description: Validates initData and returns JWT
+      parameters:
+      - description: initData
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses: {}
+      summary: Authenticate via Telegram
   /order/cart/add:
     post:
       parameters:
@@ -38,6 +56,21 @@ paths:
       summary: Verify payment (manual)
       tags:
       - payment
+  /store/:id:
+    get:
+      description: Returns store details
+      produces:
+      - application/json
+      responses: {}
+      summary: Get store by ID
+    put:
+      consumes:
+      - application/json
+      description: Update store details. Admin only.
+      produces:
+      - application/json
+      responses: {}
+      summary: Update store
   /store/:store_id/orders:
     get:
       parameters:
@@ -120,9 +153,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new store linked to a Telegram chat. Admin only.
+      description: Setup a new store. Admin only.
       produces:
       - application/json
       responses: {}
-      summary: Create store from chat
+      summary: Create store
 swagger: "2.0"

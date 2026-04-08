@@ -28,6 +28,16 @@ func NewOrderModule(oStorage storage.OrderStorage, pStorage storage.ProductStora
 }
 
 func (m *orderModule) AddToCart(ctx context.Context, userID int64, productID int64, quantity int) error {
+
+	// check if product is in stock
+	product, err := m.productStorage.GetProductByID(ctx, productID)
+	if err != nil {
+		return err
+	}
+	if product.Stock < quantity {
+		return fmt.Errorf("insufficient stock for product %d", productID)
+	}
+
 	return m.cartStorage.AddToCart(ctx, userID, productID, quantity)
 }
 

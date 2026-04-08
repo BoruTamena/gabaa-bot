@@ -6,6 +6,7 @@ import (
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
+	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,7 +31,8 @@ func (h *OrderHandler) AddToCart(c *gin.Context) {
 
 	err := h.orderModule.AddToCart(c.Request.Context(), userID, productID, quantity)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		status, appErr := errorx.ErrorResponse(err)
+		c.JSON(status, appErr)
 		return
 	}
 
@@ -48,7 +50,8 @@ func (h *OrderHandler) Checkout(c *gin.Context) {
 
 	order, err := h.orderModule.Checkout(c.Request.Context(), userID, storeID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		status, appErr := errorx.ErrorResponse(err)
+		c.JSON(status, appErr)
 		return
 	}
 
@@ -77,10 +80,10 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 
 	response, err := h.orderModule.ListOrders(c.Request.Context(), storeID, params)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		status, appErr := errorx.ErrorResponse(err)
+		c.JSON(status, appErr)
 		return
 	}
 
 	c.JSON(http.StatusOK, response)
 }
-

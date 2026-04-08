@@ -1,6 +1,10 @@
 package dto
 
 
+import (
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+)
+
 type Product struct {
 	ID          int64   `json:"id"`
 	StoreID     int64   `json:"store_id"`
@@ -9,5 +13,36 @@ type Product struct {
 	Price       float64 `json:"price"`
 	Stock       int     `json:"stock"`
 	Images      string  `json:"images"`
+}
+
+type CreateProductRequest struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	Stock       int     `json:"stock"`
+	Images      string  `json:"images"`
+}
+
+func (r CreateProductRequest) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Name, validation.Required),
+		validation.Field(&r.Price, validation.Required, validation.Min(0.0)),
+		validation.Field(&r.Stock, validation.Required, validation.Min(0)),
+	)
+}
+
+type UpdateProductRequest struct {
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	Stock       int     `json:"stock"`
+	Images      string  `json:"images"`
+}
+
+func (r UpdateProductRequest) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Price, validation.Min(0.0)),
+		validation.Field(&r.Stock, validation.Min(0)),
+	)
 }
 

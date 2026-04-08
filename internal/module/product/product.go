@@ -2,36 +2,44 @@ package product
 
 import (
 	"context"
+
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
+	"github.com/BoruTamena/gabaa-bot/platform"
 )
 
 type productModule struct {
 	productStorage storage.ProductStorage
+	logger         platform.Logger
 }
 
-func NewProductModule(pStorage storage.ProductStorage) module.ProductModule {
+func NewProductModule(pStorage storage.ProductStorage, logger platform.Logger) module.ProductModule {
 	return &productModule{
 		productStorage: pStorage,
+		logger:         logger,
 	}
 }
 
-func (m *productModule) CreateProduct(ctx context.Context, product *dto.Product) error {
+func (m *productModule) CreateProduct(ctx context.Context, storeID int64, req dto.CreateProductRequest) (*dto.Product, error) {
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+
 	dbProduct := &db.Product{
-		StoreID:     product.StoreID,
-		Name:        product.Name,
-		Description: product.Description,
-		Price:       product.Price,
-		Stock:       product.Stock,
-		Images:      product.Images,
+		StoreID:     storeID,
+		Name:        req.Name,
+		Description: req.Description,
+		Price:       req.Price,
+		Stock:       req.Stock,
+		Images:      req.Images,
 	}
 	if err := m.productStorage.CreateProduct(ctx, dbProduct); err != nil {
-		return err
+		return nil, err
 	}
-	product.ID = dbProduct.ID
-	return nil
+
+	return m.mapToDTO(dbProduct), nil
 }
 
 func (m *productModule) GetProduct(ctx context.Context, id int64) (*dto.Product, error) {
@@ -39,15 +47,7 @@ func (m *productModule) GetProduct(ctx context.Context, id int64) (*dto.Product,
 	if err != nil {
 		return nil, err
 	}
-	return &dto.Product{
-		ID:          product.ID,
-		StoreID:     product.StoreID,
-		Name:        product.Name,
-		Description: product.Description,
-		Price:       product.Price,
-		Stock:       product.Stock,
-		Images:      product.Images,
-	}, nil
+	return m.mapToDTO(product), nil
 }
 
 func (m *productModule) ListProducts(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
@@ -66,15 +66,7 @@ func (m *productModule) ListProducts(ctx context.Context, storeID int64, params 
 
 	dtoProducts := make([]dto.Product, len(products))
 	for i, p := range products {
-		dtoProducts[i] = dto.Product{
-			ID:          p.ID,
-			StoreID:     p.StoreID,
-			Name:        p.Name,
-			Description: p.Description,
-			Price:       p.Price,
-			Stock:       p.Stock,
-			Images:      p.Images,
-		}
+		dtoProducts[i] = *m.mapToDTO(&p)
 	}
 
 	return &dto.PaginatedResponse{
@@ -83,21 +75,51 @@ func (m *productModule) ListProducts(ctx context.Context, storeID int64, params 
 	}, nil
 }
 
-func (m *productModule) UpdateProduct(ctx context.Context, product *dto.Product) error {
-	dbProduct := &db.Product{
-		StoreID:     product.StoreID,
-		Name:        product.Name,
-		Description: product.Description,
-		Price:       product.Price,
-		Stock:       product.Stock,
-		Images:      product.Images,
+func (m *productModule) UpdateProduct(ctx context.Context, id int64, req dto.UpdateProductRequest) (*dto.Product, error) {
+	if err := req.Validate(); err != nil {
+		return nil, err
 	}
-	dbProduct.ID = product.ID
-	return m.productStorage.UpdateProduct(ctx, dbProduct)
+
+	product, err := m.productStorage.GetProductByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Name != "" {
+		product.Name = req.Name
+	}
+	if req.Description != "" {
+		product.Description = req.Description
+	}
+	if req.Price != 0 {
+		product.Price = req.Price
+	}
+	if req.Stock != 0 {
+		product.Stock = req.Stock
+	}
+	if req.Images != "" {
+		product.Images = req.Images
+	}
+
+	if err := m.productStorage.UpdateProduct(ctx, product); err != nil {
+		return nil, err
+	}
+
+	return m.mapToDTO(product), nil
 }
 
 func (m *productModule) DeleteProduct(ctx context.Context, id int64) error {
 	return m.productStorage.DeleteProduct(ctx, id)
 }
 
-
+func (m *productModule) mapToDTO(p *db.Product) *dto.Product {
+	return &dto.Product{
+		ID:          p.ID,
+		StoreID:     p.StoreID,
+		Name:        p.Name,
+		Description: p.Description,
+		Price:       p.Price,
+		Stock:       p.Stock,
+		Images:      p.Images,
+	}
+}

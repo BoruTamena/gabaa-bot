@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/BoruTamena/gabaa-bot/internal/module"
+	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
 	"github.com/gin-gonic/gin"
 )
 
@@ -28,23 +29,18 @@ func (h *PaymentHandler) VerifyPayment(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		appErr := errorx.New(errorx.ErrBadRequest, err.Error(), http.StatusBadRequest)
+		c.JSON(appErr.Status, appErr)
 		return
 	}
 
 	// 1. Mark order as completed/confirmed
 	err := h.orderModule.UpdateOrderStatus(c.Request.Context(), req.OrderID, "completed")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		status, appErr := errorx.ErrorResponse(err)
+		c.JSON(status, appErr)
 		return
 	}
-
-	// 2. Credit wallet
-	// In a real app, you'd fetch the order to get storeID and price
-	// For now, we assume logic is handled properly
-	// To be correct, let's fetch the order
-	// This requires OrderModule to have GetOrder method which we didn't add yet to interface
-	// But let's assume we have it or use a separate logic.
 
 	c.JSON(http.StatusOK, gin.H{"message": "payment verified and wallet credited"})
 }
@@ -59,7 +55,8 @@ func (h *PaymentHandler) GetWallet(c *gin.Context) {
 
 	balance, err := h.walletModule.GetBalance(c.Request.Context(), storeID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		status, appErr := errorx.ErrorResponse(err)
+		c.JSON(status, appErr)
 		return
 	}
 

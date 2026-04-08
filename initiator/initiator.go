@@ -23,9 +23,9 @@ func Init() {
 	fmt.Println("Migrations applied")
 
 	platformLayer := InitPlatFormLayer()
-	
+
 	// Persistence layer needs DB and Redis
-	persistenceLayer := InitPersistence(dbPersistence, platformLayer.cach)
+	persistenceLayer := InitPersistence(dbPersistence, platformLayer.cach, platformLayer.logger)
 
 	moduleLayer := InitModule(persistenceLayer, platformLayer)
 
@@ -37,6 +37,7 @@ func Init() {
 
 	// Initialize Gin Router
 	r := routing.NewGinRouter(
+		handlerLayer.AuthHandler,
 		handlerLayer.StoreHandler,
 		handlerLayer.ProductHandler,
 		handlerLayer.OrderHandler,
@@ -44,10 +45,9 @@ func Init() {
 		handlerLayer.AuthMiddleware,
 	)
 
-
 	port := viper.GetString("server.port")
 	if port == "" {
-		port = "8080"
+		port = "8085"
 	}
 
 	fmt.Printf("Starting HTTP server on port %s\n", port)
@@ -55,4 +55,3 @@ func Init() {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
-

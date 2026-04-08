@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
@@ -21,12 +22,22 @@ func NewStoreModule(sStorage storage.StoreStorage, tele platform.Telegram) modul
 	}
 }
 
-func (m *storeModule) CreateStore(ctx context.Context, userID int64, chatID int64, chatType string, name string) (*dto.Store, error) {
+func (m *storeModule) CreateStore(ctx context.Context, userID int64, req dto.CreateStoreRequest) (*dto.Store, error) {
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+
 	store := &db.Store{
-		SellerID: userID,
-		ChatID:   chatID,
-		ChatType: chatType,
-		Name:     name,
+		SellerID:       userID,
+		TelegramChatID: req.TelegramChatID,
+		Name:           req.Name,
+		Category:       req.Category,
+		Description:    req.Description,
+		LogoImage:      req.LogoImage,
+		CoverImage:     req.CoverImage,
+		Phone:          req.Phone,
+		Email:          req.Email,
+		Location:       req.Location,
 	}
 
 	if err := m.storeStorage.CreateStore(ctx, store); err != nil {
@@ -34,11 +45,17 @@ func (m *storeModule) CreateStore(ctx context.Context, userID int64, chatID int6
 	}
 
 	return &dto.Store{
-		ID:       store.ID,
-		SellerID: store.SellerID,
-		ChatID:   store.ChatID,
-		ChatType: store.ChatType,
-		Name:     store.Name,
+		ID:             store.ID,
+		SellerID:       store.SellerID,
+		TelegramChatID: store.TelegramChatID,
+		Name:           store.Name,
+		Category:       store.Category,
+		Description:    store.Description,
+		LogoImage:      store.LogoImage,
+		CoverImage:     store.CoverImage,
+		Phone:          store.Phone,
+		Email:          store.Email,
+		Location:       store.Location,
 	}, nil
 }
 
@@ -55,21 +72,74 @@ func (m *storeModule) GetAdminDashboard(ctx context.Context, userID int64, chatI
 
 	isAdmin, _ := m.tele.IsChatAdmin(chatID, userID)
 	if isAdmin {
-		return "manage", &dto.Store{
-			ID:       store.ID,
-			SellerID: store.SellerID,
-			ChatID:   store.ChatID,
-			ChatType: store.ChatType,
-			Name:     store.Name,
-		}, nil
+		return "manage", m.mapToDTO(store), nil
 	}
 
-	return "storefront", &dto.Store{
-		ID:       store.ID,
-		SellerID: store.SellerID,
-		ChatID:   store.ChatID,
-		ChatType: store.ChatType,
-		Name:     store.Name,
-	}, nil
+	return "storefront", m.mapToDTO(store), nil
 }
 
+func (m *storeModule) GetStore(ctx context.Context, id int64) (*dto.Store, error) {
+	store, err := m.storeStorage.GetStoreByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return m.mapToDTO(store), nil
+}
+
+func (m *storeModule) UpdateStore(ctx context.Context, id int64, req dto.UpdateStoreRequest) (*dto.Store, error) {
+	if err := req.Validate(); err != nil {
+		return nil, err
+	}
+
+	store, err := m.storeStorage.GetStoreByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Name != "" {
+		store.Name = req.Name
+	}
+	if req.Category != "" {
+		store.Category = req.Category
+	}
+	if req.Description != "" {
+		store.Description = req.Description
+	}
+	if req.LogoImage != "" {
+		store.LogoImage = req.LogoImage
+	}
+	if req.CoverImage != "" {
+		store.CoverImage = req.CoverImage
+	}
+	if req.Phone != "" {
+		store.Phone = req.Phone
+	}
+	if req.Email != "" {
+		store.Email = req.Email
+	}
+	if req.Location != "" {
+		store.Location = req.Location
+	}
+
+	if err := m.storeStorage.UpdateStore(ctx, store); err != nil {
+		return nil, err
+	}
+
+	return m.mapToDTO(store), nil
+}
+
+func (m *storeModule) mapToDTO(store *db.Store) *dto.Store {
+	return &dto.Store{
+		ID:             store.ID,
+		SellerID:       store.SellerID,
+		TelegramChatID: store.TelegramChatID,
+		Name:           store.Name,
+		Category:       store.Category,
+		Description:    store.Description,
+		LogoImage:      store.LogoImage,
+		CoverImage:     store.CoverImage,
+		Phone:          store.Phone,
+		Email:          store.Email,
+		Location:       store.Location,
+	}
+}

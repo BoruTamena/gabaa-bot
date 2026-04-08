@@ -13,9 +13,15 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS stores (
     id BIGSERIAL PRIMARY KEY,
     seller_id BIGINT REFERENCES users(id),
-    chat_id BIGINT UNIQUE NOT NULL,
-    chat_type VARCHAR(20),
+    telegram_chat_id BIGINT UNIQUE NOT NULL,
     name VARCHAR(255),
+    category VARCHAR(100) NOT NULL,
+    description TEXT,
+    logo_image TEXT,
+    cover_image TEXT,
+    phone VARCHAR(50),
+    email VARCHAR(255),
+    location TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP WITH TIME ZONE

@@ -5,20 +5,26 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 )
 
+type AuthModule interface {
+	TelegramAuth(ctx context.Context, initData string) (*dto.AuthResponse, error)
+}
+
 type UserModule interface {
 	GetOrCreateUser(ctx context.Context, telegramID int64, username string) (*dto.User, error)
 }
 
 type StoreModule interface {
-	CreateStore(ctx context.Context, userID int64, chatID int64, chatType string, name string) (*dto.Store, error)
+	CreateStore(ctx context.Context, userID int64, req dto.CreateStoreRequest) (*dto.Store, error)
 	GetAdminDashboard(ctx context.Context, userID int64, chatID int64) (string, *dto.Store, error)
+	GetStore(ctx context.Context, id int64) (*dto.Store, error)
+	UpdateStore(ctx context.Context, id int64, req dto.UpdateStoreRequest) (*dto.Store, error)
 }
 
 type ProductModule interface {
-	CreateProduct(ctx context.Context, product *dto.Product) error
+	CreateProduct(ctx context.Context, storeID int64, req dto.CreateProductRequest) (*dto.Product, error)
 	GetProduct(ctx context.Context, id int64) (*dto.Product, error)
 	ListProducts(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
-	UpdateProduct(ctx context.Context, product *dto.Product) error
+	UpdateProduct(ctx context.Context, id int64, req dto.UpdateProductRequest) (*dto.Product, error)
 	DeleteProduct(ctx context.Context, id int64) error
 }
 
