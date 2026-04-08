@@ -2,20 +2,35 @@ package module
 
 import (
 	"context"
-
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
-	"gopkg.in/telebot.v4"
 )
 
 type UserModule interface {
-	CreateUser(ctx context.Context, userDto dto.User) error
+	GetOrCreateUser(ctx context.Context, telegramID int64, username string) (*dto.User, error)
+}
+
+type StoreModule interface {
+	CreateStore(ctx context.Context, userID int64, chatID int64, chatType string, name string) (*dto.Store, error)
+	GetAdminDashboard(ctx context.Context, userID int64, chatID int64) (string, *dto.Store, error)
 }
 
 type ProductModule interface {
-	CreateProduct(c telebot.Context, product dto.Product) error
+	CreateProduct(ctx context.Context, product *dto.Product) error
+	GetProduct(ctx context.Context, id int64) (*dto.Product, error)
+	ListProducts(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+	UpdateProduct(ctx context.Context, product *dto.Product) error
+	DeleteProduct(ctx context.Context, id int64) error
 }
 
 type OrderModule interface {
-	AddToCart(cxt context.Context, user_id, productId string) error
-	CreateOrder(ctx context.Context, orderRequest dto.Order) error
+	AddToCart(ctx context.Context, userID int64, productID int64, quantity int) error
+	GetCart(ctx context.Context, userID int64) (map[int64]int, error)
+	Checkout(ctx context.Context, userID int64, storeID int64) (*dto.Order, error)
+	ListOrders(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+	UpdateOrderStatus(ctx context.Context, orderID int64, status string) error
+}
+
+type WalletModule interface {
+	GetBalance(ctx context.Context, storeID int64) (float64, error)
+	CreditWallet(ctx context.Context, storeID int64, amount float64) error
 }

@@ -1,0 +1,128 @@
+info:
+  contact: {}
+paths:
+  /order/cart/add:
+    post:
+      parameters:
+      - description: Product ID
+        in: query
+        name: product_id
+        required: true
+        type: integer
+      - description: Quantity
+        in: query
+        name: quantity
+        required: true
+        type: integer
+      responses: {}
+      summary: Add to cart
+      tags:
+      - order
+  /order/create:
+    post:
+      parameters:
+      - description: Store ID
+        in: query
+        name: store_id
+        required: true
+        type: integer
+      responses: {}
+      summary: Create order from cart
+      tags:
+      - order
+  /payment/verify:
+    post:
+      consumes:
+      - application/json
+      responses: {}
+      summary: Verify payment (manual)
+      tags:
+      - payment
+  /store/:store_id/orders:
+    get:
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: List orders
+      tags:
+      - order
+  /store/:store_id/product:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses: {}
+      summary: Add product
+      tags:
+      - product
+  /store/:store_id/product/:id:
+    delete:
+      responses: {}
+      summary: Delete product
+      tags:
+      - product
+    put:
+      responses: {}
+      summary: Edit product
+      tags:
+      - product
+  /store/:store_id/products:
+    get:
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: List products
+      tags:
+      - product
+  /store/:store_id/wallet:
+    get:
+      responses: {}
+      summary: Get wallet balance
+      tags:
+      - wallet
+  /store/dashboard/:chat_id:
+    get:
+      description: 'Returns dashboardType: ''setup'', ''manage'', or ''storefront'''
+      produces:
+      - application/json
+      responses: {}
+      summary: Get admin dashboard info
+  /store/from-chat:
+    post:
+      consumes:
+      - application/json
+      description: Create a new store linked to a Telegram chat. Admin only.
+      produces:
+      - application/json
+      responses: {}
+      summary: Create store from chat
+swagger: "2.0"

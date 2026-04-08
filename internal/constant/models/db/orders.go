@@ -1,20 +1,30 @@
 package db
 
-import "github.com/google/uuid"
-
 type Order struct {
 	BaseModel
-	BuyerID    int64       `gorm:"type:bigint;not null;constraint:OnDelete:CASCADE" json:"buyer_id"`
-	Status     string      `gorm:"type:text;default:'pending';check:status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled')" json:"status"`
-	TotalPrice float64     `gorm:"type:decimal(10,2);not null" json:"total_price"`
-	OrderItems []OrderItem `gorm:"foreignkey:OrderId" `
+	UserID     int64   `gorm:"column:user_id;not null" json:"user_id"`
+	StoreID    int64   `gorm:"column:store_id;not null" json:"store_id"`
+	Status     string  `gorm:"column:status;not null;default:'pending'" json:"status"`
+	TotalPrice float64 `gorm:"column:total_price;type:numeric;not null" json:"total_price"`
+	User       User    `gorm:"foreignKey:UserID;references:ID" json:"user"`
+	Store      Store   `gorm:"foreignKey:StoreID;references:ID" json:"store"`
+	Items      []OrderItem `gorm:"foreignKey:OrderID" json:"items"`
 }
 
 type OrderItem struct {
+	ID        int64   `gorm:"primaryKey;autoIncrement" json:"id"`
+	OrderID   int64   `gorm:"column:order_id;not null" json:"order_id"`
+	ProductID int64   `gorm:"column:product_id;not null" json:"product_id"`
+	Quantity  int     `gorm:"column:quantity;not null" json:"quantity"`
+	Price     float64 `gorm:"column:price;type:numeric;not null" json:"price"`
+	Product   Product `gorm:"foreignKey:ProductID;references:ID" json:"product"`
+}
+
+
+type Payment struct {
 	BaseModel
-	OrderId   uuid.UUID `gorm:"type:uuid;not null"`
-	ProductId uuid.UUID `gorm:"type:uuid;not null"`
-	Price     float64
-	Quantity  int
-	Product   Product `gorm:"foreignKey:ProductId;"`
+	OrderID int64  `gorm:"column:order_id;not null" json:"order_id"`
+	Status  string `gorm:"column:status;not null;default:'pending'" json:"status"` // pending, confirmed
+	Method  string `gorm:"column:method;not null" json:"method"`
+	Order   Order  `gorm:"foreignKey:OrderID;references:ID" json:"order"`
 }

@@ -1,123 +1,86 @@
 package order
 
 import (
-	"context"
-	"fmt"
-	"strings"
+	"net/http"
+	"strconv"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
-	"github.com/BoruTamena/gabaa-bot/internal/handler"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
-	"github.com/google/uuid"
-	"gopkg.in/telebot.v4"
+	"github.com/gin-gonic/gin"
 )
 
-type orderHandler struct {
+type OrderHandler struct {
 	orderModule module.OrderModule
 }
 
-func InitOrderHandler(orderModule module.OrderModule) handler.Order {
-
-	return &orderHandler{
-		orderModule: orderModule,
-	}
+func NewOrderHandler(oModule module.OrderModule) *OrderHandler {
+	return &OrderHandler{orderModule: oModule}
 }
 
-func (o *orderHandler) HandleOrder(c telebot.Context) error {
-	data := c.Callback().Data
+// AddToCart adds an item to the user's active cart
+// @Summary Add to cart
+// @Tags order
+// @Param product_id query int true "Product ID"
+// @Param quantity query int true "Quantity"
+// @Router /order/cart/add [post]
+func (h *OrderHandler) AddToCart(c *gin.Context) {
+	productID, _ := strconv.ParseInt(c.Query("product_id"), 10, 64)
+	quantity, _ := strconv.Atoi(c.Query("quantity"))
+	userID := c.GetInt64("user_id")
 
-	parts := strings.Split(data, "/")
-	if len(parts) != 2 {
-		return c.Respond(&telebot.CallbackResponse{
-			Text: "Invalid command!", ShowAlert: true})
-	}
-
-	action := strings.TrimSpace(parts[0])
-	productID := strings.TrimSpace(parts[1])
-
-	fmt.Println("Action:", action, "Product ID:", productID)
-
-	switch action {
-	case "order":
-		return o.CreateOrder(c, productID)
-	case "cart":
-		return o.AddToCart(c, productID)
-
-	}
-
-	return c.Respond(&telebot.CallbackResponse{Text: "Unknown action!", ShowAlert: true})
-
-}
-
-// AddToCart handles the addition of a product to the cart
-// It takes the context and productID as parameters
-// and returns an error if any occurs during the process
-// The function should check if the product exists in the storage
-// and if the product can be added to the cart successfully
-// It should also handle any errors that may occur
-// during the addition process
-// It should return nil if the product is added successfully
-func (o *orderHandler) AddToCart(c telebot.Context, productId string) error {
-
-	user_id := c.Sender().ID
-
-	err := o.orderModule.AddToCart(context.Background(), fmt.Sprint(user_id), productId)
+	err := h.orderModule.AddToCart(c.Request.Context(), userID, productID, quantity)
 	if err != nil {
-		if strings.Contains(err.Error(), "already exists") {
-			return c.Respond(&telebot.CallbackResponse{
-				Text:      "Product already exists in the cart",
-				ShowAlert: true,
-			})
-		}
-
-		return c.Respond(&telebot.CallbackResponse{
-			Text:      "Sorry we could not add the product to the cart",
-			ShowAlert: true,
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-	return c.Respond(&telebot.CallbackResponse{
-		Text:      "Product added to cart successfully !",
-		ShowAlert: true,
-	})
 
+	c.JSON(http.StatusOK, gin.H{"message": "added to cart"})
 }
 
-// CreateOrder handles the order creation process
-// It should be called when the user confirms the order
-// It takes the context and productID as parameters
-// and returns an error if any occurs during the process
-// The function should check if the product exists in the storage
-// and if the order can be created successfully
-// It should also handle any errors that may occur
-// during the order creation process
-// It should return nil if the order is created successfully
-// It should also handle any errors that may occur
-// during the order creation process
-func (o *orderHandler) CreateOrder(c telebot.Context, productID string) error {
-	// Implement order creation logic here
+// Checkout creates an order from the user's cart
+// @Summary Create order from cart
+// @Tags order
+// @Param store_id query int true "Store ID"
+// @Router /order/create [post]
+func (h *OrderHandler) Checkout(c *gin.Context) {
+	storeID, _ := strconv.ParseInt(c.Query("store_id"), 10, 64)
+	userID := c.GetInt64("user_id")
 
-	productId, _ := uuid.Parse(productID)
-
-	err := o.orderModule.CreateOrder(context.Background(), dto.Order{
-		BuyerID: c.Sender().ID,
-		Status:  "pending",
-		OrderItems: []dto.OrderItem{
-			{
-				ProductId: productId,
-				Price:     32,
-				Quantity:  1,
-			},
-		},
-	})
-
+	order, err := h.orderModule.Checkout(c.Request.Context(), userID, storeID)
 	if err != nil {
-		return c.Respond(&telebot.CallbackResponse{
-			Text:      "Sorry we could not create the order",
-			ShowAlert: true,
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-	return c.Respond(&telebot.CallbackResponse{
-		Text:      "Order created successfully!",
-		ShowAlert: true,
-	})
+
+	c.JSON(http.StatusOK, order)
 }
+
+// ListOrders returns all orders for a store with pagination
+// @Summary List orders
+// @Tags order
+// @Param store_id path int true "Store ID"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Produce json
+// @Router /store/:store_id/orders [get]
+func (h *OrderHandler) ListOrders(c *gin.Context) {
+	storeIDStr := c.Param("store_id")
+	storeID, _ := strconv.ParseInt(storeIDStr, 10, 64)
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	params := dto.PaginationParams{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	response, err := h.orderModule.ListOrders(c.Request.Context(), storeID, params)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+

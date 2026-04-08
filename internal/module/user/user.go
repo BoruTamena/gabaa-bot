@@ -2,10 +2,9 @@ package user
 
 import (
 	"context"
-	"log"
-
-	"github.com/BoruTamena/gabaa-bot/internal/constant/errors"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
+	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 )
 
@@ -13,29 +12,30 @@ type userModule struct {
 	userStorage storage.UserStorage
 }
 
-func InitUserModule(uStorage storage.UserStorage) userModule {
-	return userModule{
+func NewUserModule(uStorage storage.UserStorage) module.UserModule {
+	return &userModule{
 		userStorage: uStorage,
 	}
 }
 
-func (u userModule) CreateUser(ctx context.Context, userDto dto.User) error {
-
-	if err := userDto.Validate(); err != nil {
-
-		err = errors.BadInput.Wrap(err, "bad user input")
-
-		log.Println("can't register user :: ", err)
-		return err
-	}
-
-	err := u.userStorage.CreateUser(ctx, userDto)
-
+func (m *userModule) GetOrCreateUser(ctx context.Context, telegramID int64, username string) (*dto.User, error) {
+	user, err := m.userStorage.GetUserByTelegramID(ctx, telegramID)
 	if err != nil {
-
-		return err
-
+		// If not found, create
+		user = &db.User{
+			TelegramUserID: telegramID,
+			Username:       username,
+			Role:           "customer",
+		}
+		if err := m.userStorage.CreateUser(ctx, user); err != nil {
+			return nil, err
+		}
 	}
 
-	return nil
+	return &dto.User{
+		ID:             user.ID,
+		TelegramUserID: user.TelegramUserID,
+		Username:       user.Username,
+		Role:           user.Role,
+	}, nil
 }

@@ -1,91 +1,115 @@
 package product
 
 import (
-	"fmt"
+	"net/http"
 	"strconv"
-	"sync"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
-	"github.com/BoruTamena/gabaa-bot/internal/handler"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
-	"gopkg.in/telebot.v4"
+	"github.com/gin-gonic/gin"
 )
 
-var (
-	userState   = make(map[int64]string)
-	productData = make(map[int64]dto.Product)
-	mu          sync.Mutex // Ensures thread safety
-)
-
-type productHandler struct {
+type ProductHandler struct {
 	productModule module.ProductModule
 }
 
-func InitProductHandler(pmd module.ProductModule) handler.Product {
-
-	return &productHandler{
-		productModule: pmd,
-	}
-
+func NewProductHandler(pModule module.ProductModule) *ProductHandler {
+	return &ProductHandler{productModule: pModule}
 }
 
-func (p *productHandler) StartProductCreation(c telebot.Context) error {
+// ListProducts returns all products for a store with pagination
+// @Summary List products
+// @Tags product
+// @Param store_id path int true "Store ID"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Produce json
+// @Router /store/:store_id/products [get]
+func (h *ProductHandler) ListProducts(c *gin.Context) {
+	storeIDStr := c.Param("store_id")
+	storeID, _ := strconv.ParseInt(storeIDStr, 10, 64)
 
-	userID := c.Sender().ID
-	mu.Lock()
-	defer mu.Unlock()
-	userState[userID] = "waiting_for_title"
-	productData[userID] = dto.Product{}
-	return c.Send("📝 Please enter the product title:")
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 
-}
-
-func (p *productHandler) CreateProduct(c telebot.Context) error {
-	userID := c.Sender().ID
-
-	mu.Lock()
-	defer mu.Unlock()
-
-	switch userState[userID] {
-
-	case "waiting_for_title":
-		product := productData[userID]
-		product.Title = c.Text()
-		productData[userID] = product
-		userState[userID] = "waiting_for_description"
-		return c.Send("📄 Please enter the product description:")
-
-	case "waiting_for_description":
-		product := productData[userID]
-		product.Description = c.Text()
-		productData[userID] = product
-		userState[userID] = "waiting_for_price"
-		return c.Send("💰 Please enter the product price (numeric value):")
-
-	case "waiting_for_price":
-
-		price, err := strconv.ParseFloat(c.Text(), 64)
-		if err != nil {
-			return c.Send("❌ Invalid price format. Please enter a valid number:" + c.Text())
-		}
-
-		product := productData[userID]
-		product.Price = price
-		product.SellerId = userID
-		productData[userID] = product
-
-		fmt.Println("product", productData[userID])
-		// Save the product in the database
-		if err := p.productModule.CreateProduct(c, productData[userID]); err != nil {
-			return c.Send("❌ Failed to create product: " + err.Error())
-		}
-		// Reset user state after success
-		delete(userState, userID)
-		delete(productData, userID)
-
-		return c.Send("✅ Product successfully created!")
-
+	params := dto.PaginationParams{
+		Page:     page,
+		PageSize: pageSize,
 	}
 
-	return nil
+	response, err := h.productModule.ListProducts(c.Request.Context(), storeID, params)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// CreateProduct adds a new product to a store
+// @Summary Add product
+// @Tags product
+// @Accept json
+// @Produce json
+// @Router /store/:store_id/product [post]
+func (h *ProductHandler) CreateProduct(c *gin.Context) {
+	storeIDStr := c.Param("store_id")
+	storeID, _ := strconv.ParseInt(storeIDStr, 10, 64)
+
+	var product dto.Product
+	if err := c.ShouldBindJSON(&product); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	product.StoreID = storeID
+
+	err := h.productModule.CreateProduct(c.Request.Context(), &product)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, product)
+}
+
+// UpdateProduct edits an existing product
+// @Summary Edit product
+// @Tags product
+// @Router /store/:store_id/product/:id [put]
+func (h *ProductHandler) UpdateProduct(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+
+	var product dto.Product
+	if err := c.ShouldBindJSON(&product); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	product.ID = id
+
+	err := h.productModule.UpdateProduct(c.Request.Context(), &product)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, product)
+}
+
+
+// DeleteProduct removes a product
+// @Summary Delete product
+// @Tags product
+// @Router /store/:store_id/product/:id [delete]
+func (h *ProductHandler) DeleteProduct(c *gin.Context) {
+	idStr := c.Param("id")
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+
+	err := h.productModule.DeleteProduct(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "product deleted"})
 }

@@ -3,120 +3,153 @@ package order
 import (
 	"context"
 	"fmt"
-	"log"
-	"time"
+	"strconv"
 
-	"github.com/BoruTamena/gabaa-bot/internal/constant/errors"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
-	"github.com/BoruTamena/gabaa-bot/platform"
 )
 
 type orderModule struct {
 	orderStorage   storage.OrderStorage
 	productStorage storage.ProductStorage
-	cache          platform.Redis
+	cartStorage    storage.CartStorage
+	walletStorage  storage.WalletStorage
 }
 
-func InitOrderModule(pStorage storage.ProductStorage,
-	orderStorage storage.OrderStorage, cache platform.Redis) module.OrderModule {
-
+func NewOrderModule(oStorage storage.OrderStorage, pStorage storage.ProductStorage, cStorage storage.CartStorage, wStorage storage.WalletStorage) module.OrderModule {
 	return &orderModule{
-		orderStorage:   orderStorage,
+		orderStorage:   oStorage,
 		productStorage: pStorage,
-		cache:          cache,
+		cartStorage:    cStorage,
+		walletStorage:  wStorage,
 	}
-
 }
 
-func (order *orderModule) AddToCart(cxt context.Context, user_id, productId string) error {
-
-	// Check if the product exists in the storage
-	product, err := order.productStorage.GetProductByID(cxt, productId)
-	if err != nil {
-
-		return err
-	}
-
-	// Check if the product is already in the cart
-	exists, err := order.cache.HExists(cxt, user_id, product.ID)
-	if err != nil {
-		return err
-
-	}
-	if exists {
-		err := errors.CartItemAlreadyExistsErr.Wrap(fmt.
-			Errorf("product %v already exists in the cart",
-				product.ID), "product already exists in the cart")
-
-		return err
-	}
-
-	// Add the product to the cart
-	err = order.cache.HSet(cxt, user_id, map[string]interface{}{
-		product.ID: product.ID,
-		"qty":      1,
-	})
-
-	if err != nil {
-		return err
-	}
-
-	// Set the expiration time for the cart
-	// This will remove the cart after 24 hours of inactivity
-	// This is to prevent the cart from growing indefinitely
-	// and to free up memory
-	order.cache.Expire(cxt, user_id, time.Duration(24)*time.Hour)
-
-	return nil
-
+func (m *orderModule) AddToCart(ctx context.Context, userID int64, productID int64, quantity int) error {
+	return m.cartStorage.AddToCart(ctx, userID, productID, quantity)
 }
-func (order *orderModule) CreateOrder(ctx context.Context, orderRequest dto.Order) error {
 
-	// Check if the product exists in the storage
+func (m *orderModule) GetCart(ctx context.Context, userID int64) (map[int64]int, error) {
+	cart, err := m.cartStorage.GetCart(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	res := make(map[int64]int)
+	for k, v := range cart {
+		pID, _ := strconv.ParseInt(k[2:], 10, 64) // k is "p:ID"
+		res[pID] = v
+	}
+	return res, nil
+}
 
-	for _, orderItem := range orderRequest.OrderItems {
-		product, err := order.productStorage.GetProductByID(ctx, orderItem.ProductId.String())
+func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64) (*dto.Order, error) {
+	cart, err := m.GetCart(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if len(cart) == 0 {
+		return nil, fmt.Errorf("cart is empty")
+	}
+
+	order := &db.Order{
+		UserID:     userID,
+		StoreID:    storeID,
+		Status:     "pending",
+		TotalPrice: 0,
+	}
+
+	for pID, qty := range cart {
+		product, err := m.productStorage.GetProductByID(ctx, pID)
 		if err != nil {
-
-			err := errors.DbReadErr.Wrap(err, "can't get product from db")
-
-			log.Println("can't get product from db ::", err)
-
-			return err
+			return nil, err
 		}
-
-		if product.ID == "" {
-			err := errors.NotFoundErr.Wrap(fmt.
-				Errorf("product %v not found", orderItem.ProductId), "product not found")
-
-			log.Println("can't create order ::", err)
-
-			return err
+		if product.Stock < qty {
+			return nil, fmt.Errorf("insufficient stock for product %d", pID)
 		}
+		order.TotalPrice += product.Price * float64(qty)
+		order.Items = append(order.Items, db.OrderItem{
+			ProductID: pID,
+			Quantity:  qty,
+			Price:     product.Price,
+		})
 
+		// Decrement stock
+		product.Stock -= qty
+		if err := m.productStorage.UpdateProduct(ctx, product); err != nil {
+			return nil, err
+		}
 	}
 
-	// Create the order
-	err, _ := order.orderStorage.CreateOrder(ctx, orderRequest)
+	if err := m.orderStorage.CreateOrder(ctx, order); err != nil {
+		return nil, err
+	}
+
+	if err := m.cartStorage.ClearCart(ctx, userID); err != nil {
+		return nil, err
+	}
+
+	return m.mapOrderToDTO(order), nil
+}
+
+func (m *orderModule) ListOrders(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
+	limit := params.GetLimit()
+	offset := params.GetOffset()
+
+	orders, err := m.orderStorage.GetOrdersByStoreID(ctx, storeID, limit, offset)
 	if err != nil {
-		return err
-
+		return nil, err
 	}
-	// Remove the product from the cart
-	// err = order.cache.HDel(ctx, orderRequest.UserID, product.ID)
-	// if err != nil {
-	// 	err := errors.CartNotFoundErr.Wrap(fmt.
-	// 		Errorf("product %v not found in the cart",
-	// 			product.ID), "product not found in the cart")
-	// 	log.Println("can't remove product from cart ::", err)
 
-	// 	return err
-	// }
+	total, err := m.orderStorage.GetOrdersTotalByStoreID(ctx, storeID)
+	if err != nil {
+		return nil, err
+	}
 
-	// Process the payment
+	dtoOrders := make([]dto.Order, len(orders))
+	for i, o := range orders {
+		dtoOrders[i] = *m.mapOrderToDTO(&o)
+	}
 
-	return nil
+	return &dto.PaginatedResponse{
+		Total: total,
+		Data:  dtoOrders,
+	}, nil
+}
 
+func (m *orderModule) UpdateOrderStatus(ctx context.Context, orderID int64, status string) error {
+	if status == "completed" {
+		order, err := m.orderStorage.GetOrderByID(ctx, orderID)
+		if err != nil {
+			return err
+		}
+		if err := m.walletStorage.UpdateWalletBalance(ctx, order.StoreID, order.TotalPrice); err != nil {
+			return err
+		}
+	}
+	return m.orderStorage.UpdateOrderStatus(ctx, orderID, status)
+}
+
+func (m *orderModule) mapOrderToDTO(o *db.Order) *dto.Order {
+	items := make([]dto.OrderItem, len(o.Items))
+	for i, item := range o.Items {
+		items[i] = dto.OrderItem{
+			ID:        item.ID,
+			OrderID:   item.OrderID,
+			ProductID: item.ProductID,
+			Quantity:  item.Quantity,
+			Price:     item.Price,
+		}
+	}
+
+	return &dto.Order{
+		ID:         o.ID,
+		StoreID:    o.StoreID,
+		UserID:     o.UserID,
+		Status:     o.Status,
+		TotalPrice: o.TotalPrice,
+		CreatedAt:  o.CreatedAt,
+		OrderItems: items,
+	}
 }

@@ -14,4 +14,7 @@ type TestInstance struct {
 	*/
 }
 
-func InitiateTest(arg any) (TestInstance, any)
+func InitiateTest(arg any) (TestInstance, any) {
+	return TestInstance{}, nil
+}
+

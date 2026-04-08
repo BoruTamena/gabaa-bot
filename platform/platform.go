@@ -21,7 +21,10 @@ type Telegram interface {
 	GetBot() *telebot.Bot
 	Group() telebot.Group
 	AddButtonToProduct(c telebot.Context, data dto.Product) error
+	ValidateInitData(initData string) (bool, error)
+	IsChatAdmin(chatID int64, userID int64) (bool, error)
 }
+
 
 type Redis interface {
 	// define your Redis methods here

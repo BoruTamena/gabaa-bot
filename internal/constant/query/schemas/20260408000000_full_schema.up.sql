@@ -1,0 +1,77 @@
+-- Users
+CREATE TABLE IF NOT EXISTS users (
+    id BIGSERIAL PRIMARY KEY,
+    telegram_user_id BIGINT UNIQUE NOT NULL,
+    username VARCHAR(255),
+    role VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Stores
+CREATE TABLE IF NOT EXISTS stores (
+    id BIGSERIAL PRIMARY KEY,
+    seller_id BIGINT REFERENCES users(id),
+    chat_id BIGINT UNIQUE NOT NULL,
+    chat_type VARCHAR(20),
+    name VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Products
+CREATE TABLE IF NOT EXISTS products (
+    id BIGSERIAL PRIMARY KEY,
+    store_id BIGINT REFERENCES stores(id),
+    name VARCHAR(255),
+    description TEXT,
+    price NUMERIC NOT NULL,
+    stock INT NOT NULL DEFAULT 0,
+    images JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Orders
+CREATE TABLE IF NOT EXISTS orders (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id),
+    store_id BIGINT REFERENCES stores(id),
+    status VARCHAR(50) DEFAULT 'pending',
+    total_price NUMERIC,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Order Items
+CREATE TABLE IF NOT EXISTS order_items (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT REFERENCES orders(id),
+    product_id BIGINT REFERENCES products(id),
+    quantity INT NOT NULL,
+    price NUMERIC NOT NULL
+);
+
+
+-- Payments
+CREATE TABLE IF NOT EXISTS payments (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT REFERENCES orders(id),
+    status VARCHAR(50) DEFAULT 'pending',
+    method VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Wallets
+CREATE TABLE IF NOT EXISTS wallets (
+    id BIGSERIAL PRIMARY KEY,
+    store_id BIGINT REFERENCES stores(id),
+    balance NUMERIC DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
