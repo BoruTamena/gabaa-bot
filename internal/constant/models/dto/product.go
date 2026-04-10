@@ -12,14 +12,17 @@ type Product struct {
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 	Stock       int     `json:"stock"`
+	Category    string  `json:"category"`
 	Images      string  `json:"images"`
 }
+
 
 type CreateProductRequest struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 	Stock       int     `json:"stock"`
+	Category    string  `json:"category"`
 	Images      string  `json:"images"`
 }
 
@@ -36,7 +39,14 @@ type UpdateProductRequest struct {
 	Description string  `json:"description"`
 	Price       float64 `json:"price"`
 	Stock       int     `json:"stock"`
+	Category    string  `json:"category"`
 	Images      string  `json:"images"`
+}
+
+type ProductFilterParams struct {
+	PaginationParams
+	Category string `form:"category"`
+	Query    string `form:"query"`
 }
 
 func (r UpdateProductRequest) Validate() error {

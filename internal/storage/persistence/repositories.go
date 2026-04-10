@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"gorm.io/gorm"
@@ -142,6 +143,34 @@ func (p *productPersistence) GetProductsTotal(ctx context.Context, storeID int64
 	return count, err
 }
 
+func (p *productPersistence) ListAllProducts(ctx context.Context, filter dto.ProductFilterParams) ([]db.Product, int64, error) {
+	var products []db.Product
+	var count int64
+
+	query := p.db.WithContext(ctx).Model(&db.Product{})
+
+	if filter.Category != "" {
+		query = query.Where("category = ?", filter.Category)
+	}
+
+	if filter.Query != "" {
+		searchTerm := "%" + filter.Query + "%"
+		query = query.Where("name ILIKE ? OR description ILIKE ?", searchTerm, searchTerm)
+	}
+
+	err := query.Count(&count).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = query.Limit(filter.GetLimit()).Offset(filter.GetOffset()).Find(&products).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return products, count, nil
+}
+
 func (p *productPersistence) UpdateProduct(ctx context.Context, product *db.Product) error {
 	err := p.db.WithContext(ctx).Save(product).Error
 	if err != nil {
@@ -218,6 +247,15 @@ func (p *orderPersistence) GetOrdersByCustomerID(ctx context.Context, customerID
 	return orders, err
 }
 
+func (p *orderPersistence) GetOrdersTotalByUserID(ctx context.Context, userID int64) (int64, error) {
+	var count int64
+	err := p.db.WithContext(ctx).Model(&db.Order{}).Where("user_id = ?", userID).Count(&count).Error
+	if err != nil {
+		p.logger.Error("Failed to get total orders by user ID", "error", err, "userID", userID)
+	}
+	return count, err
+}
+
 func (p *orderPersistence) UpdateOrderStatus(ctx context.Context, orderID int64, status string) error {
 	err := p.db.WithContext(ctx).Model(&db.Order{}).Where("id = ?", orderID).Update("status", status).Error
 	if err != nil {
@@ -251,4 +289,49 @@ func (p *walletPersistence) UpdateWalletBalance(ctx context.Context, storeID int
 		p.logger.Error("Failed to update wallet balance", "error", err, "storeID", storeID, "amount", amount)
 	}
 	return err
+}
+
+// CategoryStorage
+type categoryPersistence struct {
+	db     *gorm.DB
+	logger platform.Logger
+}
+
+func NewCategoryPersistence(db *gorm.DB, logger platform.Logger) storage.CategoryStorage {
+	return &categoryPersistence{db: db, logger: logger}
+}
+
+func (p *categoryPersistence) CreateCategory(ctx context.Context, category *db.Category) error {
+	err := p.db.WithContext(ctx).Create(category).Error
+	if err != nil {
+		p.logger.Error("Failed to create category", "error", err, "name", category.Name)
+	}
+	return err
+}
+
+func (p *categoryPersistence) GetAllCategories(ctx context.Context, limit, offset int) ([]db.Category, int64, error) {
+	var categories []db.Category
+	var count int64
+	err := p.db.WithContext(ctx).Model(&db.Category{}).Count(&count).Error
+	if err != nil {
+		return nil, 0, err
+	}
+	err = p.db.WithContext(ctx).Limit(limit).Offset(offset).Find(&categories).Error
+	return categories, count, err
+}
+
+func (p *categoryPersistence) GetCategoriesByStoreID(ctx context.Context, storeID int64) ([]db.Category, error) {
+	var categories []db.Category
+	// Get store specific + global (storeID = 0)
+	err := p.db.WithContext(ctx).Where("store_id = ? OR store_id = 0", storeID).Find(&categories).Error
+	return categories, err
+}
+
+func (p *categoryPersistence) GetCategoryByName(ctx context.Context, name string, storeID int64) (*db.Category, error) {
+	var category db.Category
+	err := p.db.WithContext(ctx).Where("name = ? AND (store_id = ? OR store_id = 0)", name, storeID).First(&category).Error
+	if err != nil {
+		return nil, err
+	}
+	return &category, nil
 }

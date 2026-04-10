@@ -16,6 +16,7 @@ type Persistence struct {
 	OrderStorage   storage.OrderStorage
 	WalletStorage  storage.WalletStorage
 	CartStorage    storage.CartStorage
+	CategoryStorage storage.CategoryStorage
 }
 
 func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logger platform.Logger) Persistence {
@@ -26,6 +27,7 @@ func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logge
 		OrderStorage:   persistence.NewOrderPersistence(db.DB, logger),
 		WalletStorage:  persistence.NewWalletPersistence(db.DB, logger),
 		CartStorage:    cache.NewCartCache(redis),
+		CategoryStorage: persistence.NewCategoryPersistence(db.DB, logger),
 	}
 }
 

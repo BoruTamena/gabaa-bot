@@ -54,6 +54,43 @@ func (m *orderModule) GetCart(ctx context.Context, userID int64) (map[int64]int,
 	return res, nil
 }
 
+func (m *orderModule) GetUserCart(ctx context.Context, userID int64) (*dto.CartResponse, error) {
+	cart, err := m.GetCart(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &dto.CartResponse{
+		Items:      make([]dto.CartItem, 0, len(cart)),
+		TotalPrice: 0,
+	}
+
+	for pID, qty := range cart {
+		product, err := m.productStorage.GetProductByID(ctx, pID)
+		if err != nil {
+			// If product not found, we skip it or handle error
+			continue
+		}
+
+		res.Items = append(res.Items, dto.CartItem{
+			Product: dto.Product{
+				ID:          product.ID,
+				StoreID:     product.StoreID,
+				Name:        product.Name,
+				Description: product.Description,
+				Price:       product.Price,
+				Stock:       product.Stock,
+				Category:    product.Category,
+				Images:      product.Images,
+			},
+			Quantity: qty,
+		})
+		res.TotalPrice += product.Price * float64(qty)
+	}
+
+	return res, nil
+}
+
 func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64) (*dto.Order, error) {
 	cart, err := m.GetCart(ctx, userID)
 	if err != nil {
@@ -139,6 +176,31 @@ func (m *orderModule) UpdateOrderStatus(ctx context.Context, orderID int64, stat
 		}
 	}
 	return m.orderStorage.UpdateOrderStatus(ctx, orderID, status)
+}
+
+func (m *orderModule) GetUserOrders(ctx context.Context, userID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
+	limit := params.GetLimit()
+	offset := params.GetOffset()
+
+	orders, err := m.orderStorage.GetOrdersByCustomerID(ctx, userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+
+	total, err := m.orderStorage.GetOrdersTotalByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	dtoOrders := make([]dto.Order, len(orders))
+	for i, o := range orders {
+		dtoOrders[i] = *m.mapOrderToDTO(&o)
+	}
+
+	return &dto.PaginatedResponse{
+		Total: total,
+		Data:  dtoOrders,
+	}, nil
 }
 
 func (m *orderModule) mapOrderToDTO(o *db.Order) *dto.Order {

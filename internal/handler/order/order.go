@@ -87,3 +87,49 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 
 	c.JSON(http.StatusOK, response)
 }
+
+// GetUserCart returns the user's active cart with product details
+// @Summary Get user cart
+// @Tags order
+// @Produce json
+// @Router /user/cart [get]
+func (h *OrderHandler) GetUserCart(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+
+	cart, err := h.orderModule.GetUserCart(c.Request.Context(), userID)
+	if err != nil {
+		status, appErr := errorx.ErrorResponse(err)
+		c.JSON(status, appErr)
+		return
+	}
+
+	c.JSON(http.StatusOK, cart)
+}
+
+// GetUserOrders returns all orders for the authenticated user
+// @Summary List user orders
+// @Tags order
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Produce json
+// @Router /user/orders [get]
+func (h *OrderHandler) GetUserOrders(c *gin.Context) {
+	userID := c.GetInt64("user_id")
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+
+	params := dto.PaginationParams{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	response, err := h.orderModule.GetUserOrders(c.Request.Context(), userID, params)
+	if err != nil {
+		status, appErr := errorx.ErrorResponse(err)
+		c.JSON(status, appErr)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}

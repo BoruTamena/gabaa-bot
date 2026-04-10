@@ -15,6 +15,7 @@ type Handler struct {
 	ProductHandler *product.ProductHandler
 	OrderHandler   *order.OrderHandler
 	PaymentHandler *payment.PaymentHandler
+	CategoryHandler *product.CategoryHandler
 	AuthMiddleware *middleware.AuthMiddleware
 }
 
@@ -25,6 +26,7 @@ func InitHandler(module Module, platform PlatFormLayer) Handler {
 		ProductHandler: product.NewProductHandler(module.ProductModule),
 		OrderHandler:   order.NewOrderHandler(module.OrderModule),
 		PaymentHandler: payment.NewPaymentHandler(module.OrderModule, module.WalletModule),
+		CategoryHandler: product.NewCategoryHandler(module.CategoryModule),
 		AuthMiddleware: middleware.NewAuthMiddleware(platform.tg),
 	}
 }

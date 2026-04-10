@@ -146,3 +146,36 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "product deleted"})
 }
+
+// PublicListProducts returns all products with filtering and pagination
+// @Summary List all products (public)
+// @Tags product
+// @Param category query string false "Category"
+// @Param query query string false "Search query"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Produce json
+// @Router /products [get]
+func (h *ProductHandler) PublicListProducts(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	category := c.Query("category")
+	query := c.Query("query")
+
+	params := dto.ProductFilterParams{
+		PaginationParams: dto.PaginationParams{
+			Page:     page,
+			PageSize: pageSize,
+		},
+		Category: category,
+		Query:    query,
+	}
+
+	response, err := h.productModule.ListAllProducts(c.Request.Context(), params)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
+}

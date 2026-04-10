@@ -17,6 +17,7 @@ type Module struct {
 	OrderModule   module.OrderModule
 	WalletModule  module.WalletModule
 	UserModule    module.UserModule
+	CategoryModule module.CategoryModule
 }
 
 func InitModule(persistence Persistence, platform PlatFormLayer) Module {
@@ -27,5 +28,6 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 		OrderModule:   order.NewOrderModule(persistence.OrderStorage, persistence.ProductStorage, persistence.CartStorage, persistence.WalletStorage),
 		WalletModule:  wallet.NewWalletModule(persistence.WalletStorage),
 		UserModule:    user.NewUserModule(persistence.UserStorage),
+		CategoryModule: product.NewCategoryModule(persistence.CategoryStorage, platform.logger),
 	}
 }

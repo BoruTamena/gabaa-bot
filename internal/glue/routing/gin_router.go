@@ -19,6 +19,7 @@ func NewGinRouter(
 	productHandler *product.ProductHandler,
 	orderHandler *order.OrderHandler,
 	paymentHandler *payment.PaymentHandler,
+	categoryHandler *product.CategoryHandler,
 	authMiddleware *middleware.AuthMiddleware,
 ) *gin.Engine {
 
@@ -27,6 +28,7 @@ func NewGinRouter(
 	// Swagger documentation
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.ErrorMiddleware())
 
 	// Auth routes
@@ -34,6 +36,10 @@ func NewGinRouter(
 	{
 		auth.POST("/telegram", authHandler.TelegramAuth)
 	}
+
+	// Public routes
+	r.GET("/products", productHandler.PublicListProducts)
+	r.GET("/categories", categoryHandler.ListAllCategories)
 
 	// Protected routes
 	api := r.Group("/")
@@ -51,10 +57,16 @@ func NewGinRouter(
 		api.PUT("/store/:store_id/product/:id", productHandler.UpdateProduct)
 		api.DELETE("/store/:store_id/product/:id", productHandler.DeleteProduct)
 
+		// Category routes
+		api.GET("/store/:store_id/categories", categoryHandler.ListStoreCategories)
+		api.POST("/store/:store_id/category", categoryHandler.CreateCategory)
+
 		// Order routes
 		api.POST("/order/cart/add", orderHandler.AddToCart)
 		api.POST("/order/create", orderHandler.Checkout)
 		api.GET("/store/:store_id/orders", orderHandler.ListOrders)
+		api.GET("/user/orders", orderHandler.GetUserOrders)
+		api.GET("/user/cart", orderHandler.GetUserCart)
 
 		// Payment routes
 		api.POST("/payment/verify", paymentHandler.VerifyPayment)

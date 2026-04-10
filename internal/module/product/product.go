@@ -33,6 +33,7 @@ func (m *productModule) CreateProduct(ctx context.Context, storeID int64, req dt
 		Description: req.Description,
 		Price:       req.Price,
 		Stock:       req.Stock,
+		Category:    req.Category,
 		Images:      req.Images,
 	}
 	if err := m.productStorage.CreateProduct(ctx, dbProduct); err != nil {
@@ -75,6 +76,23 @@ func (m *productModule) ListProducts(ctx context.Context, storeID int64, params 
 	}, nil
 }
 
+func (m *productModule) ListAllProducts(ctx context.Context, filter dto.ProductFilterParams) (*dto.PaginatedResponse, error) {
+	products, total, err := m.productStorage.ListAllProducts(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	dtoProducts := make([]dto.Product, len(products))
+	for i, p := range products {
+		dtoProducts[i] = *m.mapToDTO(&p)
+	}
+
+	return &dto.PaginatedResponse{
+		Total: total,
+		Data:  dtoProducts,
+	}, nil
+}
+
 func (m *productModule) UpdateProduct(ctx context.Context, id int64, req dto.UpdateProductRequest) (*dto.Product, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
@@ -96,6 +114,9 @@ func (m *productModule) UpdateProduct(ctx context.Context, id int64, req dto.Upd
 	}
 	if req.Stock != 0 {
 		product.Stock = req.Stock
+	}
+	if req.Category != "" {
+		product.Category = req.Category
 	}
 	if req.Images != "" {
 		product.Images = req.Images
@@ -120,6 +141,7 @@ func (m *productModule) mapToDTO(p *db.Product) *dto.Product {
 		Description: p.Description,
 		Price:       p.Price,
 		Stock:       p.Stock,
+		Category:    p.Category,
 		Images:      p.Images,
 	}
 }

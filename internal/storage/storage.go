@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 )
 
 type UserStorage interface {
@@ -24,6 +25,7 @@ type ProductStorage interface {
 	GetProductByID(ctx context.Context, id int64) (*db.Product, error)
 	GetProductsByStoreID(ctx context.Context, storeID int64, limit, offset int) ([]db.Product, error)
 	GetProductsTotal(ctx context.Context, storeID int64) (int64, error)
+	ListAllProducts(ctx context.Context, filter dto.ProductFilterParams) ([]db.Product, int64, error)
 	UpdateProduct(ctx context.Context, product *db.Product) error
 	DeleteProduct(ctx context.Context, id int64) error
 }
@@ -34,6 +36,7 @@ type OrderStorage interface {
 	GetOrdersByStoreID(ctx context.Context, storeID int64, limit, offset int) ([]db.Order, error)
 	GetOrdersTotalByStoreID(ctx context.Context, storeID int64) (int64, error)
 	GetOrdersByCustomerID(ctx context.Context, customerID int64, limit, offset int) ([]db.Order, error)
+	GetOrdersTotalByUserID(ctx context.Context, userID int64) (int64, error)
 	UpdateOrderStatus(ctx context.Context, orderID int64, status string) error
 }
 
@@ -47,5 +50,12 @@ type CartStorage interface {
 	GetCart(ctx context.Context, userID int64) (map[string]int, error)
 	AddToCart(ctx context.Context, userID int64, productID int64, quantity int) error
 	ClearCart(ctx context.Context, userID int64) error
+}
+
+type CategoryStorage interface {
+	CreateCategory(ctx context.Context, category *db.Category) error
+	GetAllCategories(ctx context.Context, limit, offset int) ([]db.Category, int64, error)
+	GetCategoriesByStoreID(ctx context.Context, storeID int64) ([]db.Category, error)
+	GetCategoryByName(ctx context.Context, name string, storeID int64) (*db.Category, error)
 }
 

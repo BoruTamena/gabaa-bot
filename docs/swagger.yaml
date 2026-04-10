@@ -56,6 +56,31 @@ paths:
       summary: Verify payment (manual)
       tags:
       - payment
+  /products:
+    get:
+      parameters:
+      - description: Category
+        in: query
+        name: category
+        type: string
+      - description: Search query
+        in: query
+        name: query
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: List all products (public)
+      tags:
+      - product
   /store/:id:
     get:
       description: Returns store details
@@ -158,4 +183,29 @@ paths:
       - application/json
       responses: {}
       summary: Create store
+  /user/cart:
+    get:
+      produces:
+      - application/json
+      responses: {}
+      summary: Get user cart
+      tags:
+      - order
+  /user/orders:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: List user orders
+      tags:
+      - order
 swagger: "2.0"
