@@ -44,6 +44,13 @@ None (Public)
 }
 ```
 
+### **Get Single Product (Public)**
+Retrieve a single product by its unique ID.
+
+- **Endpoint**: `GET /products/:id`
+- **Auth**: None
+- **Success Response**: A single product object (same structure as above, but not in an array).
+
 ---
 
 ## 2. User Cart Status

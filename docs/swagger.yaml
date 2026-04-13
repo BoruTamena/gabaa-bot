@@ -19,6 +19,23 @@ paths:
       - application/json
       responses: {}
       summary: Authenticate via Telegram
+  /categories:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: List all categories
+      tags:
+      - product
   /order/cart/add:
     post:
       parameters:
@@ -81,6 +98,20 @@ paths:
       summary: List all products (public)
       tags:
       - product
+  /products/{id}:
+    get:
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Get a product by ID (Public)
+      tags:
+      - product
   /store/:id:
     get:
       description: Returns store details
@@ -96,6 +127,36 @@ paths:
       - application/json
       responses: {}
       summary: Update store
+  /store/:store_id/categories:
+    get:
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: List store categories
+      tags:
+      - product
+  /store/:store_id/category:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      summary: Add store category
+      tags:
+      - product
   /store/:store_id/orders:
     get:
       parameters:

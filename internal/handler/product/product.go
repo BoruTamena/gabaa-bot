@@ -146,6 +146,27 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "product deleted"})
 }
+// PublicGetProductByID returns a single product by its ID (Public)
+// @Summary Get a product by ID (Public)
+// @Tags product
+// @Param id path int true "Product ID"
+// @Produce json
+// @Router /products/{id} [get]
+func (h *ProductHandler) PublicGetProductByID(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
+		return
+	}
+
+	product, err := h.productModule.GetProduct(c.Request.Context(), id)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, product)
+}
 
 // PublicListProducts returns all products with filtering and pagination
 // @Summary List all products (public)

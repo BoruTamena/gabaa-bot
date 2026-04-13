@@ -25,52 +25,27 @@ func NewGinRouter(
 
 	r := gin.Default()
 
-	// Swagger documentation
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
+	// Global middleware — must be first
 	r.Use(middleware.CORSMiddleware())
 	r.Use(middleware.ErrorMiddleware())
 
-	// Auth routes
-	auth := r.Group("/auth")
-	{
-		auth.POST("/telegram", authHandler.TelegramAuth)
-	}
+	// Swagger documentation
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Public routes
-	r.GET("/products", productHandler.PublicListProducts)
-	r.GET("/categories", categoryHandler.ListAllCategories)
+	// ── Public routes (no auth required) ──────────────────────────────
+	RegisterAuthRoutes(r, authHandler)
+	RegisterPublicProductRoutes(r, productHandler)
+	RegisterPublicCategoryRoutes(r, categoryHandler)
 
-	// Protected routes
+	// ── Protected routes (JWT auth required) ──────────────────────────
 	api := r.Group("/")
 	api.Use(authMiddleware.JWTAuth())
 	{
-		// Store routes
-		api.POST("/store/from-chat", storeHandler.CreateStore)
-		api.GET("/store/:store_id", storeHandler.GetStore)
-		api.PUT("/store/:store_id", storeHandler.UpdateStore)
-		api.GET("/store/dashboard/:chat_id", storeHandler.GetDashboard)
-
-		// Product routes
-		api.GET("/store/:store_id/products", productHandler.ListProducts)
-		api.POST("/store/:store_id/product", productHandler.CreateProduct)
-		api.PUT("/store/:store_id/product/:id", productHandler.UpdateProduct)
-		api.DELETE("/store/:store_id/product/:id", productHandler.DeleteProduct)
-
-		// Category routes
-		api.GET("/store/:store_id/categories", categoryHandler.ListStoreCategories)
-		api.POST("/store/:store_id/category", categoryHandler.CreateCategory)
-
-		// Order routes
-		api.POST("/order/cart/add", orderHandler.AddToCart)
-		api.POST("/order/create", orderHandler.Checkout)
-		api.GET("/store/:store_id/orders", orderHandler.ListOrders)
-		api.GET("/user/orders", orderHandler.GetUserOrders)
-		api.GET("/user/cart", orderHandler.GetUserCart)
-
-		// Payment routes
-		api.POST("/payment/verify", paymentHandler.VerifyPayment)
-		api.GET("/store/:store_id/wallet", paymentHandler.GetWallet)
+		RegisterStoreRoutes(api, storeHandler)
+		RegisterProductRoutes(api, productHandler)
+		RegisterCategoryRoutes(api, categoryHandler)
+		RegisterOrderRoutes(api, orderHandler)
+		RegisterPaymentRoutes(api, paymentHandler)
 	}
 
 	return r
