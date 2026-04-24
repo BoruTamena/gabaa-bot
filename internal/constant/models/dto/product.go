@@ -1,29 +1,27 @@
 package dto
 
-
 import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 type Product struct {
-	ID          int64   `json:"id"`
-	StoreID     int64   `json:"store_id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Price       float64 `json:"price"`
-	Stock       int     `json:"stock"`
-	Category    string  `json:"category"`
-	Images      string  `json:"images"`
+	ID          int64    `json:"id"`
+	StoreID     int64    `json:"store_id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Price       float64  `json:"price"`
+	Stock       int      `json:"stock"`
+	Category    string   `json:"category"`
+	Images      []string `json:"images"`
 }
 
-
 type CreateProductRequest struct {
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Price       float64 `json:"price"`
-	Stock       int     `json:"stock"`
-	Category    string  `json:"category"`
-	Images      string  `json:"images"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Price       float64  `json:"price"`
+	Stock       int      `json:"stock"`
+	Category    string   `json:"category"`
+	Images      []string `json:"images"`
 }
 
 func (r CreateProductRequest) Validate() error {
@@ -35,12 +33,12 @@ func (r CreateProductRequest) Validate() error {
 }
 
 type UpdateProductRequest struct {
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Price       float64 `json:"price"`
-	Stock       int     `json:"stock"`
-	Category    string  `json:"category"`
-	Images      string  `json:"images"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Price       float64  `json:"price"`
+	Stock       int      `json:"stock"`
+	Category    string   `json:"category"`
+	Images      []string `json:"images"`
 }
 
 type ProductFilterParams struct {
@@ -55,4 +53,3 @@ func (r UpdateProductRequest) Validate() error {
 		validation.Field(&r.Stock, validation.Min(0)),
 	)
 }
-

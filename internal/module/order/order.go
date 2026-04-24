@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -72,6 +73,14 @@ func (m *orderModule) GetUserCart(ctx context.Context, userID int64) (*dto.CartR
 			continue
 		}
 
+		var images []string
+		if product.Images != "" {
+			_ = json.Unmarshal([]byte(product.Images), &images)
+		}
+		if images == nil {
+			images = []string{}
+		}
+
 		res.Items = append(res.Items, dto.CartItem{
 			Product: dto.Product{
 				ID:          product.ID,
@@ -81,7 +90,7 @@ func (m *orderModule) GetUserCart(ctx context.Context, userID int64) (*dto.CartR
 				Price:       product.Price,
 				Stock:       product.Stock,
 				Category:    product.Category,
-				Images:      product.Images,
+				Images:      images,
 			},
 			Quantity: qty,
 		})

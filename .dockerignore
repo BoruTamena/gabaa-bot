@@ -1,0 +1,9 @@
+.git
+.idea
+.vscode
+Dockerfile
+docker-compose.yaml
+main
+gabaa-bot
+tmp/
+vendor/

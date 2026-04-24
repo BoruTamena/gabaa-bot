@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
@@ -27,6 +28,7 @@ func (m *productModule) CreateProduct(ctx context.Context, storeID int64, req dt
 		return nil, err
 	}
 
+	imagesBytes, _ := json.Marshal(req.Images)
 	dbProduct := &db.Product{
 		StoreID:     storeID,
 		Name:        req.Name,
@@ -34,7 +36,7 @@ func (m *productModule) CreateProduct(ctx context.Context, storeID int64, req dt
 		Price:       req.Price,
 		Stock:       req.Stock,
 		Category:    req.Category,
-		Images:      req.Images,
+		Images:      string(imagesBytes),
 	}
 	if err := m.productStorage.CreateProduct(ctx, dbProduct); err != nil {
 		return nil, err
@@ -118,8 +120,9 @@ func (m *productModule) UpdateProduct(ctx context.Context, id int64, req dto.Upd
 	if req.Category != "" {
 		product.Category = req.Category
 	}
-	if req.Images != "" {
-		product.Images = req.Images
+	if len(req.Images) > 0 {
+		imagesBytes, _ := json.Marshal(req.Images)
+		product.Images = string(imagesBytes)
 	}
 
 	if err := m.productStorage.UpdateProduct(ctx, product); err != nil {
@@ -134,6 +137,14 @@ func (m *productModule) DeleteProduct(ctx context.Context, id int64) error {
 }
 
 func (m *productModule) mapToDTO(p *db.Product) *dto.Product {
+	var images []string
+	if p.Images != "" {
+		_ = json.Unmarshal([]byte(p.Images), &images)
+	}
+	if images == nil {
+		images = []string{}
+	}
+
 	return &dto.Product{
 		ID:          p.ID,
 		StoreID:     p.StoreID,
@@ -142,6 +153,6 @@ func (m *productModule) mapToDTO(p *db.Product) *dto.Product {
 		Price:       p.Price,
 		Stock:       p.Stock,
 		Category:    p.Category,
-		Images:      p.Images,
+		Images:      images,
 	}
 }

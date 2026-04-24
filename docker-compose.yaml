@@ -1,7 +1,22 @@
 
 
 services:
-  
+  app:
+    container_name: botapp
+    build:
+      context: .
+    ports:
+      - "8085:8085"
+    depends_on:
+      - db
+      - redis
+    networks:
+      - bot_network
+    environment:
+      - DB_URL=postgres://postgres:password@db:5432/botdb?sslmode=disable
+      - DB_HOST=db
+      - REDIS_URL=rd:6379 # Assuming redis is used, let's inject it if necessary
+
   db:
     container_name: botdb
     image: postgres

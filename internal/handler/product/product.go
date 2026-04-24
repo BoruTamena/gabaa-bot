@@ -146,6 +146,7 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "product deleted"})
 }
+
 // PublicGetProductByID returns a single product by its ID (Public)
 // @Summary Get a product by ID (Public)
 // @Tags product
