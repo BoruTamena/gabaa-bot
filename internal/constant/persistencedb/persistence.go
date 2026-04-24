@@ -1,6 +1,8 @@
 package persistencedb
 
 import (
+	"os"
+
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -12,7 +14,10 @@ type PersistenceDb struct {
 
 func NewPersistenceDb() PersistenceDb {
 
-	url := viper.GetString("db.url")
+	url := os.Getenv("DATABASE_URL")
+	if url == "" {
+		url = viper.GetString("db.url")
+	}
 
 	g_db, err := gorm.Open(postgres.Open(url), &gorm.Config{})
 

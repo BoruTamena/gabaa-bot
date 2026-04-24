@@ -84,8 +84,13 @@ func Init() {
 
 	dbPersistence := persistencedb.NewPersistenceDb()
 
+	dbUrl := os.Getenv("DATABASE_URL")
+	if dbUrl == "" {
+		dbUrl = viper.GetString("db.url")
+	}
+
 	// Migration setup
-	mg := InitMigiration(viper.GetString("migiration.path"), viper.GetString("db.url"))
+	mg := InitMigiration(viper.GetString("migiration.path"), dbUrl)
 	UpMigiration(mg)
 	fmt.Println("Migrations applied")
 
