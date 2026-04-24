@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/persistencedb"
@@ -116,7 +117,10 @@ func Init() {
 		handlerLayer.AuthMiddleware,
 	)
 
-	port := viper.GetString("server.port")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = viper.GetString("server.port")
+	}
 	if port == "" {
 		port = "8085"
 	}
