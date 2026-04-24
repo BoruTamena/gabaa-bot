@@ -9,9 +9,6 @@ services:
       - key: PORT
         value: 8080
       - key: GIN_MODE
-        release: release
+        value: release
       - key: DATABASE_URL
-        fromDatabase:
-          name: botdb # Replace with your database name if different
-          property: postgresql://botdb_51rx_user:vabKnBBBhgOV4uVRLo6FOoF9eUj7J386@dpg-d7lt0hm7r5hc73airsi0-a.virginia-postgres.render.com/botdb_51rx
-          
+        value: postgresql://botdb_51rx_user:vabKnBBBhgOV4uVRLo6FOoF9eUj7J386@dpg-d7lt0hm7r5hc73airsi0-a.virginia-postgres.render.com/botdb_51rx

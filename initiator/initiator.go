@@ -90,7 +90,11 @@ func Init() {
 	}
 
 	// Migration setup
-	mg := InitMigiration(viper.GetString("migiration.path"), dbUrl)
+	migrationPath := viper.GetString("migiration.path")
+	if migrationPath == "" {
+		migrationPath = "internal/constant/query/schemas"
+	}
+	mg := InitMigiration(migrationPath, dbUrl)
 	UpMigiration(mg)
 	fmt.Println("Migrations applied")
 

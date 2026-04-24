@@ -6,6 +6,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/platform/logger"
 	"github.com/BoruTamena/gabaa-bot/platform/rediscache"
 	"github.com/BoruTamena/gabaa-bot/platform/telegram"
+	"github.com/spf13/viper"
 )
 
 type PlatFormLayer struct {
@@ -22,9 +23,9 @@ func InitPlatFormLayer() PlatFormLayer {
 		tg: telegram.InitTelBot(),
 		cach: rediscache.NewRedis(
 			&rediscache.RedisClient{
-				Addr:     "localhost:7979",
-				Password: "",
-				DB:       0,
+				Addr:     viper.GetString("redis.addr"),
+				Password: viper.GetString("redis.password"),
+				DB:       viper.GetInt("redis.db"),
 			},
 		),
 

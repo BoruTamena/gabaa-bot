@@ -18,8 +18,12 @@ func InitViper(currentDir string) error {
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
-		log.Print("failed to read config", err)
-		return err
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Print("config file not found, using environment variables")
+		} else {
+			log.Print("failed to read config", err)
+			return err
+		}
 	}
 
 	return nil
