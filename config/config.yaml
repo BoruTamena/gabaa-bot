@@ -1,0 +1,16 @@
+
+db:
+  dbname: botdb
+  host: localhost 
+  url: postgresql://botdb_51rx_user:vabKnBBBhgOV4uVRLo6FOoF9eUj7J386@dpg-d7lt0hm7r5hc73airsi0-a.virginia-postgres.render.com/botdb_51rx
+migiration:
+  path: internal/constant/query/schemas
+
+tg:
+  token: 7046930551:AAHJtFzY5I3-P2OTwfm6zEHyAoK8DBV5J1Q
+
+server:
+  port: 8085
+
+jwt:
+  secret: your_super_secret_jwt_key

@@ -25,4 +25,4 @@ go.work.sum
 .env
 
 # ignoring config/config.yaml file for security purpose
-config/config.yaml
+# config/config.yaml
