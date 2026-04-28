@@ -24,10 +24,10 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 	return Module{
 		AuthModule:    auth.NewAuthModule(persistence.UserStorage, persistence.StoreStorage, platform.tg),
 		StoreModule:   store.NewStoreModule(persistence.StoreStorage, platform.tg),
-		ProductModule: product.NewProductModule(persistence.ProductStorage, platform.logger),
+		ProductModule: product.NewProductModule(persistence.ProductStorage),
 		OrderModule:   order.NewOrderModule(persistence.OrderStorage, persistence.ProductStorage, persistence.CartStorage, persistence.WalletStorage),
 		WalletModule:  wallet.NewWalletModule(persistence.WalletStorage),
 		UserModule:    user.NewUserModule(persistence.UserStorage),
-		CategoryModule: product.NewCategoryModule(persistence.CategoryStorage, platform.logger),
+		CategoryModule: product.NewCategoryModule(persistence.CategoryStorage),
 	}
 }

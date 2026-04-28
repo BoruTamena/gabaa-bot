@@ -7,18 +7,17 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
-	"github.com/BoruTamena/gabaa-bot/platform"
+	"github.com/BoruTamena/gabaa-bot/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type categoryModule struct {
 	categoryStorage storage.CategoryStorage
-	logger          platform.Logger
 }
 
-func NewCategoryModule(cStorage storage.CategoryStorage, logger platform.Logger) module.CategoryModule {
+func NewCategoryModule(cStorage storage.CategoryStorage) module.CategoryModule {
 	return &categoryModule{
 		categoryStorage: cStorage,
-		logger:          logger,
 	}
 }
 
@@ -33,8 +32,11 @@ func (m *categoryModule) CreateCategory(ctx context.Context, storeID int64, req 
 	}
 
 	if err := m.categoryStorage.CreateCategory(ctx, dbCategory); err != nil {
+		logger.Error("failed to create category", zap.Error(err), zap.Int64("store_id", storeID))
 		return nil, err
 	}
+
+	logger.Info("category created successfully", zap.Int64("category_id", dbCategory.ID), zap.Int64("store_id", storeID))
 
 	return m.mapToDTO(dbCategory), nil
 }

@@ -7,7 +7,9 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
+	"github.com/BoruTamena/gabaa-bot/pkg/logger"
 	"github.com/BoruTamena/gabaa-bot/platform"
+	"go.uber.org/zap"
 )
 
 type storeModule struct {
@@ -41,8 +43,11 @@ func (m *storeModule) CreateStore(ctx context.Context, userID int64, req dto.Cre
 	}
 
 	if err := m.storeStorage.CreateStore(ctx, store); err != nil {
+		logger.Error("failed to create store", zap.Error(err), zap.Int64("seller_id", userID))
 		return nil, err
 	}
+
+	logger.Info("store created successfully", zap.Int64("store_id", store.ID), zap.Int64("seller_id", userID))
 
 	return &dto.Store{
 		ID:             store.ID,
@@ -122,8 +127,11 @@ func (m *storeModule) UpdateStore(ctx context.Context, id int64, req dto.UpdateS
 	}
 
 	if err := m.storeStorage.UpdateStore(ctx, store); err != nil {
+		logger.Error("failed to update store", zap.Error(err), zap.Int64("store_id", id))
 		return nil, err
 	}
+
+	logger.Info("store updated successfully", zap.Int64("store_id", id))
 
 	return m.mapToDTO(store), nil
 }

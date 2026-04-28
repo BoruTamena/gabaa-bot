@@ -9,9 +9,11 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
+	"github.com/BoruTamena/gabaa-bot/pkg/logger"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type authModule struct {
@@ -29,21 +31,27 @@ func NewAuthModule(uStorage storage.UserStorage, sStorage storage.StoreStorage, 
 }
 
 func (m *authModule) TelegramAuth(ctx context.Context, initData string) (*dto.AuthResponse, error) {
+	
+	logger.Info("telegram auth", zap.String("init_data", initData))
+	
 	// 1. Validate Telegram initData
 	valid, err := m.tele.ValidateInitData(initData)
 	if err != nil || !valid {
+		logger.Error("invalid telegram init data", zap.Error(err))
 		return nil, fmt.Errorf("invalid telegram init data")
 	}
 
 	// 2. Extract user data
 	tgUser, chatID, err := m.tele.ParseInitData(initData)
 	if err != nil {
+		logger.Error("failed to parse init data", zap.Error(err))
 		return nil, err
 	}
 
 	// 3. Check if user exists -> create if not
 	user, err := m.userStorage.GetUserByTelegramID(ctx, tgUser.ID)
 	if err != nil {
+		logger.Info("user not found, creating new user", zap.Int64("telegram_id", tgUser.ID))
 		// Create user
 		user = &db.User{
 			TelegramUserID: tgUser.ID,
@@ -51,8 +59,10 @@ func (m *authModule) TelegramAuth(ctx context.Context, initData string) (*dto.Au
 			Role:           "customer", // Default role
 		}
 		if err := m.userStorage.CreateUser(ctx, user); err != nil {
+			logger.Error("failed to create user", zap.Error(err), zap.Int64("telegram_id", tgUser.ID))
 			return nil, err
 		}
+		logger.Info("user created successfully", zap.Int64("user_id", user.ID))
 	}
 
 	// 4. Determine role
@@ -78,8 +88,11 @@ func (m *authModule) TelegramAuth(ctx context.Context, initData string) (*dto.Au
 	// 6. Generate JWT
 	token, err := m.generateJWT(user.ID, role, storeID)
 	if err != nil {
+		logger.Error("failed to generate JWT", zap.Error(err), zap.Int64("user_id", user.ID))
 		return nil, err
 	}
+
+	logger.Info("user authenticated successfully", zap.Int64("user_id", user.ID), zap.String("role", role), zap.Int64("store_id", storeID))
 
 	return &dto.AuthResponse{
 		Token:    token,

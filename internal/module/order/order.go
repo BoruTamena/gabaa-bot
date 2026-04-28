@@ -10,6 +10,8 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
+	"github.com/BoruTamena/gabaa-bot/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type orderModule struct {
@@ -39,7 +41,13 @@ func (m *orderModule) AddToCart(ctx context.Context, userID int64, productID int
 		return fmt.Errorf("insufficient stock for product %d", productID)
 	}
 
-	return m.cartStorage.AddToCart(ctx, userID, productID, quantity)
+	err = m.cartStorage.AddToCart(ctx, userID, productID, quantity)
+	if err != nil {
+		logger.Error("failed to add item to cart", zap.Error(err), zap.Int64("user_id", userID), zap.Int64("product_id", productID))
+	} else {
+		logger.Info("item added to cart successfully", zap.Int64("user_id", userID), zap.Int64("product_id", productID), zap.Int("quantity", quantity))
+	}
+	return err
 }
 
 func (m *orderModule) GetCart(ctx context.Context, userID int64) (map[int64]int, error) {
@@ -139,12 +147,16 @@ func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64)
 	}
 
 	if err := m.orderStorage.CreateOrder(ctx, order); err != nil {
+		logger.Error("failed to create order", zap.Error(err), zap.Int64("user_id", userID))
 		return nil, err
 	}
 
 	if err := m.cartStorage.ClearCart(ctx, userID); err != nil {
+		logger.Error("failed to clear cart after checkout", zap.Error(err), zap.Int64("user_id", userID))
 		return nil, err
 	}
+
+	logger.Info("checkout completed successfully", zap.Int64("order_id", order.ID), zap.Int64("user_id", userID), zap.Float64("total_price", order.TotalPrice))
 
 	return m.mapOrderToDTO(order), nil
 }
@@ -178,13 +190,21 @@ func (m *orderModule) UpdateOrderStatus(ctx context.Context, orderID int64, stat
 	if status == "completed" {
 		order, err := m.orderStorage.GetOrderByID(ctx, orderID)
 		if err != nil {
+			logger.Error("failed to get order for status update", zap.Error(err), zap.Int64("order_id", orderID))
 			return err
 		}
 		if err := m.walletStorage.UpdateWalletBalance(ctx, order.StoreID, order.TotalPrice); err != nil {
+			logger.Error("failed to update wallet balance on order completion", zap.Error(err), zap.Int64("store_id", order.StoreID))
 			return err
 		}
 	}
-	return m.orderStorage.UpdateOrderStatus(ctx, orderID, status)
+	err := m.orderStorage.UpdateOrderStatus(ctx, orderID, status)
+	if err != nil {
+		logger.Error("failed to update order status", zap.Error(err), zap.Int64("order_id", orderID), zap.String("status", status))
+	} else {
+		logger.Info("order status updated successfully", zap.Int64("order_id", orderID), zap.String("status", status))
+	}
+	return err
 }
 
 func (m *orderModule) GetUserOrders(ctx context.Context, userID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {

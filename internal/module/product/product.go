@@ -8,18 +8,17 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
-	"github.com/BoruTamena/gabaa-bot/platform"
+	"github.com/BoruTamena/gabaa-bot/pkg/logger"
+	"go.uber.org/zap"
 )
 
 type productModule struct {
 	productStorage storage.ProductStorage
-	logger         platform.Logger
 }
 
-func NewProductModule(pStorage storage.ProductStorage, logger platform.Logger) module.ProductModule {
+func NewProductModule(pStorage storage.ProductStorage) module.ProductModule {
 	return &productModule{
 		productStorage: pStorage,
-		logger:         logger,
 	}
 }
 
@@ -39,8 +38,11 @@ func (m *productModule) CreateProduct(ctx context.Context, storeID int64, req dt
 		Images:      string(imagesBytes),
 	}
 	if err := m.productStorage.CreateProduct(ctx, dbProduct); err != nil {
+		logger.Error("failed to create product", zap.Error(err), zap.Int64("store_id", storeID))
 		return nil, err
 	}
+
+	logger.Info("product created successfully", zap.Int64("product_id", dbProduct.ID), zap.Int64("store_id", storeID))
 
 	return m.mapToDTO(dbProduct), nil
 }
@@ -126,14 +128,23 @@ func (m *productModule) UpdateProduct(ctx context.Context, id int64, req dto.Upd
 	}
 
 	if err := m.productStorage.UpdateProduct(ctx, product); err != nil {
+		logger.Error("failed to update product", zap.Error(err), zap.Int64("product_id", id))
 		return nil, err
 	}
+
+	logger.Info("product updated successfully", zap.Int64("product_id", id))
 
 	return m.mapToDTO(product), nil
 }
 
 func (m *productModule) DeleteProduct(ctx context.Context, id int64) error {
-	return m.productStorage.DeleteProduct(ctx, id)
+	err := m.productStorage.DeleteProduct(ctx, id)
+	if err != nil {
+		logger.Error("failed to delete product", zap.Error(err), zap.Int64("product_id", id))
+	} else {
+		logger.Info("product deleted successfully", zap.Int64("product_id", id))
+	}
+	return err
 }
 
 func (m *productModule) mapToDTO(p *db.Product) *dto.Product {
