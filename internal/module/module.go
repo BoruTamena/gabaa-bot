@@ -21,12 +21,13 @@ type StoreModule interface {
 }
 
 type ProductModule interface {
-	CreateProduct(ctx context.Context, storeID int64, req dto.CreateProductRequest) (*dto.Product, error)
+	CreateProduct(ctx context.Context, sellerID int64, storeID int64, req dto.CreateProductRequest) (*dto.Product, error)
 	GetProduct(ctx context.Context, id int64) (*dto.Product, error)
 	ListProducts(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
 	ListAllProducts(ctx context.Context, filter dto.ProductFilterParams) (*dto.PaginatedResponse, error)
 	UpdateProduct(ctx context.Context, id int64, req dto.UpdateProductRequest) (*dto.Product, error)
 	DeleteProduct(ctx context.Context, id int64) error
+	PostProduct(ctx context.Context, productID int64, storeID int64) (*dto.Product, error)
 }
 
 type OrderModule interface {

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
@@ -27,6 +28,16 @@ func NewStoreModule(sStorage storage.StoreStorage, tele platform.Telegram) modul
 func (m *storeModule) CreateStore(ctx context.Context, userID int64, req dto.CreateStoreRequest) (*dto.Store, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
+	}
+
+	// Security: Verify user is admin of the target chat
+	if req.TelegramChatID != userID {
+		isAdmin, err := m.tele.IsChatAdmin(req.TelegramChatID, userID)
+		if err != nil || !isAdmin {
+			logger.Warn("user attempted to create store for chat without admin rights", 
+				zap.Int64("user_id", userID), zap.Int64("chat_id", req.TelegramChatID))
+			return nil, fmt.Errorf("you must be an admin of the chat to create a store")
+		}
 	}
 
 	store := &db.Store{

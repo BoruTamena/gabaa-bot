@@ -72,13 +72,23 @@ func (m *authModule) TelegramAuth(ctx context.Context, initData string) (*dto.Au
 		if isAdmin {
 			role = "admin"
 		}
+	} else {
+		// Personal chat - check if user has any stores
+		stores, err := m.storeStorage.GetStoresBySellerID(ctx, user.ID)
+		if err == nil && len(stores) > 0 {
+			role = "admin"
+		}
 	}
 
 	// 5. Check store existence for admins
 	var storeID int64
 	hasStore := false
-	if role == "admin" && chatID != 0 {
-		store, err := m.storeStorage.GetStoreByChatID(ctx, chatID)
+	if role == "admin" {
+		targetChatID := chatID
+		if targetChatID == 0 {
+			targetChatID = tgUser.ID // Check for personal store
+		}
+		store, err := m.storeStorage.GetStoreByChatID(ctx, targetChatID)
 		if err == nil {
 			hasStore = true
 			storeID = store.ID

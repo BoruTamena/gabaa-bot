@@ -33,13 +33,7 @@ func (h *StoreHandler) CreateStore(c *gin.Context) {
 	}
 
 	userID := c.GetInt64("user_id")
-	role := c.GetString("role")
-	if role != "admin" {
-		appErr := errorx.New(errorx.ErrForbidden, "Only admins can create stores", http.StatusForbidden)
-		c.JSON(appErr.Status, appErr)
-		return
-	}
-
+	
 	store, err := h.storeModule.CreateStore(c.Request.Context(), userID, req)
 	if err != nil {
 		// Ozzo validation returns errors that we should handle
