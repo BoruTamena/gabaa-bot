@@ -99,7 +99,7 @@ func (tg *telegram) ValidateInitData(initData string) (bool, error) {
 
 	var keys []string
 	for k := range values {
-		if k != "hash" && k != "signature" {
+		if k != "hash" {
 			keys = append(keys, k)
 		}
 	}
