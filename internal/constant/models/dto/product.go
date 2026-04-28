@@ -6,13 +6,16 @@ import (
 
 type Product struct {
 	ID          int64    `json:"id"`
-	StoreID     int64    `json:"store_id"`
+	SellerID    int64    `json:"seller_id"`
+	StoreID     *int64   `json:"store_id"`
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	Price       float64  `json:"price"`
 	Stock       int      `json:"stock"`
 	Category    string   `json:"category"`
 	Images      []string `json:"images"`
+	IsPosted    bool     `json:"is_posted"`
+	IsBoosted   bool     `json:"is_boosted"`
 }
 
 type CreateProductRequest struct {
@@ -22,6 +25,7 @@ type CreateProductRequest struct {
 	Stock       int      `json:"stock"`
 	Category    string   `json:"category"`
 	Images      []string `json:"images"`
+	IsPosted    bool     `json:"is_posted"`
 }
 
 func (r CreateProductRequest) Validate() error {

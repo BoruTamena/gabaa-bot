@@ -58,16 +58,16 @@ func SeedData(p Persistence) {
 	count, _ := p.ProductStorage.GetProductsTotal(ctx, store.ID)
 	if count == 0 {
 		products := []db.Product{
-			{StoreID: store.ID, Name: "Smartphone X", Category: "Electronics", Price: 799.99, Stock: 50, Description: "Latest flagship smartphone", Images: `["https://picsum.photos/id/160/600/400"]`},
-			{StoreID: store.ID, Name: "Laptop Pro", Category: "Electronics", Price: 1299.99, Stock: 20, Description: "Powerful laptop for professionals", Images: `["https://picsum.photos/id/119/600/400"]`},
-			{StoreID: store.ID, Name: "Wireless Earbuds", Category: "Electronics", Price: 149.99, Stock: 100, Description: "Noise cancelling earbuds", Images: `["https://picsum.photos/id/211/600/400"]`},
-			{StoreID: store.ID, Name: "Summer T-Shirt", Category: "Fashion", Price: 19.99, Stock: 200, Description: "Breathable cotton t-shirt", Images: `["https://picsum.photos/id/22/600/400"]`},
-			{StoreID: store.ID, Name: "Jeans Slim Fit", Category: "Fashion", Price: 49.99, Stock: 80, Description: "Denim jeans for everyday wear", Images: `["https://picsum.photos/id/23/600/400"]`},
-			{StoreID: store.ID, Name: "Running Shoes", Category: "Fashion", Price: 89.99, Stock: 40, Description: "Lightweight running sneakers", Images: `["https://picsum.photos/id/24/600/400"]`},
-			{StoreID: store.ID, Name: "Coffee Maker", Category: "Home & Garden", Price: 59.99, Stock: 30, Description: "Brews perfect coffee every time", Images: `["https://picsum.photos/id/25/600/400"]`},
-			{StoreID: store.ID, Name: "Garden Tool Set", Category: "Home & Garden", Price: 34.99, Stock: 60, Description: "Essential tools for gardening", Images: `["https://picsum.photos/id/26/600/400"]`},
-			{StoreID: store.ID, Name: "Lipstick Matte", Category: "Beauty", Price: 14.99, Stock: 150, Description: "Long lasting matte finish", Images: `["https://picsum.photos/id/27/600/400"]`},
-			{StoreID: store.ID, Name: "Action Figure", Category: "Toys", Price: 24.99, Stock: 70, Description: "Collectible action hero toy", Images: `["https://picsum.photos/id/28/600/400"]`},
+			{StoreID: &store.ID, Name: "Smartphone X", Category: "Electronics", Price: 799.99, Stock: 50, Description: "Latest flagship smartphone", Images: `["https://picsum.photos/id/160/600/400"]`},
+			{StoreID: &store.ID, Name: "Laptop Pro", Category: "Electronics", Price: 1299.99, Stock: 20, Description: "Powerful laptop for professionals", Images: `["https://picsum.photos/id/119/600/400"]`},
+			{StoreID: &store.ID, Name: "Wireless Earbuds", Category: "Electronics", Price: 149.99, Stock: 100, Description: "Noise cancelling earbuds", Images: `["https://picsum.photos/id/211/600/400"]`},
+			{StoreID: &store.ID, Name: "Summer T-Shirt", Category: "Fashion", Price: 19.99, Stock: 200, Description: "Breathable cotton t-shirt", Images: `["https://picsum.photos/id/22/600/400"]`},
+			{StoreID: &store.ID, Name: "Jeans Slim Fit", Category: "Fashion", Price: 49.99, Stock: 80, Description: "Denim jeans for everyday wear", Images: `["https://picsum.photos/id/23/600/400"]`},
+			{StoreID: &store.ID, Name: "Running Shoes", Category: "Fashion", Price: 89.99, Stock: 40, Description: "Lightweight running sneakers", Images: `["https://picsum.photos/id/24/600/400"]`},
+			{StoreID: &store.ID, Name: "Coffee Maker", Category: "Home & Garden", Price: 59.99, Stock: 30, Description: "Brews perfect coffee every time", Images: `["https://picsum.photos/id/25/600/400"]`},
+			{StoreID: &store.ID, Name: "Garden Tool Set", Category: "Home & Garden", Price: 34.99, Stock: 60, Description: "Essential tools for gardening", Images: `["https://picsum.photos/id/26/600/400"]`},
+			{StoreID: &store.ID, Name: "Lipstick Matte", Category: "Beauty", Price: 14.99, Stock: 150, Description: "Long lasting matte finish", Images: `["https://picsum.photos/id/27/600/400"]`},
+			{StoreID: &store.ID, Name: "Action Figure", Category: "Toys", Price: 24.99, Stock: 70, Description: "Collectible action hero toy", Images: `["https://picsum.photos/id/28/600/400"]`},
 		}
 
 		for _, prod := range products {

@@ -37,6 +37,9 @@ func NewRedis(redisClient *RedisClient) *redisCache {
 }
 
 func (r *redisCache) Set(ctx context.Context, key string, value interface{}) error {
+	if r == nil || r.rdb == nil {
+		return nil // Or return a specific error
+	}
 	err := r.rdb.Set(ctx, key, value,
 		time.Duration(48*time.Hour)).Err()
 	if err != nil {
@@ -45,6 +48,9 @@ func (r *redisCache) Set(ctx context.Context, key string, value interface{}) err
 	return nil
 }
 func (r *redisCache) Get(ctx context.Context, key string) (string, error) {
+	if r == nil || r.rdb == nil {
+		return "", nil
+	}
 	val, err := r.rdb.Get(ctx, key).Result()
 	if err != nil {
 		return "", err
@@ -52,6 +58,9 @@ func (r *redisCache) Get(ctx context.Context, key string) (string, error) {
 	return val, nil
 }
 func (r *redisCache) Delete(ctx context.Context, key string) error {
+	if r == nil || r.rdb == nil {
+		return nil
+	}
 	err := r.rdb.Del(ctx, key).Err()
 	if err != nil {
 		return err
@@ -60,6 +69,9 @@ func (r *redisCache) Delete(ctx context.Context, key string) error {
 }
 
 func (r *redisCache) Expire(ctx context.Context, key string, expiration time.Duration) error {
+	if r == nil || r.rdb == nil {
+		return nil
+	}
 	err := r.rdb.Expire(ctx, key, expiration).Err()
 	if err != nil {
 		return err
@@ -68,6 +80,9 @@ func (r *redisCache) Expire(ctx context.Context, key string, expiration time.Dur
 }
 
 func (r *redisCache) Exists(ctx context.Context, key string) (bool, error) {
+	if r == nil || r.rdb == nil {
+		return false, nil
+	}
 	val, err := r.rdb.Exists(ctx, key).Result()
 	if err != nil {
 		return false, err
@@ -77,6 +92,9 @@ func (r *redisCache) Exists(ctx context.Context, key string) (bool, error) {
 
 func (r *redisCache) HSet(ctx context.Context,
 	key string, values map[string]interface{}) error {
+	if r == nil || r.rdb == nil {
+		return nil
+	}
 	err := r.rdb.HSet(ctx, key, values).Err()
 	if err != nil {
 		return err
@@ -87,11 +105,18 @@ func (r *redisCache) HSet(ctx context.Context,
 func (r *redisCache) HGetAll(ctx context.Context, key string) (
 	*redis.StringStringMapCmd, error) {
 
+	if r == nil || r.rdb == nil {
+		return &redis.StringStringMapCmd{}, nil
+	}
+
 	val := r.rdb.HGetAll(ctx, key)
 	return val, nil
 }
 
 func (r *redisCache) HExists(ctx context.Context, key string, field string) (bool, error) {
+	if r == nil || r.rdb == nil {
+		return false, nil
+	}
 	val, err := r.rdb.HExists(ctx, key, field).Result()
 	if err != nil {
 		return false, err
@@ -99,6 +124,9 @@ func (r *redisCache) HExists(ctx context.Context, key string, field string) (boo
 	return val, nil
 }
 func (r *redisCache) HDel(ctx context.Context, key string, fields ...string) error {
+	if r == nil || r.rdb == nil {
+		return nil
+	}
 	err := r.rdb.HDel(ctx, key, fields...).Err()
 	if err != nil {
 		return err
@@ -106,6 +134,9 @@ func (r *redisCache) HDel(ctx context.Context, key string, fields ...string) err
 	return nil
 }
 func (r *redisCache) HGet(ctx context.Context, key string, field string) (string, error) {
+	if r == nil || r.rdb == nil {
+		return "", nil
+	}
 	val, err := r.rdb.HGet(ctx, key, field).Result()
 	if err != nil {
 		return "", err
@@ -113,6 +144,9 @@ func (r *redisCache) HGet(ctx context.Context, key string, field string) (string
 	return val, nil
 }
 func (r *redisCache) HKeys(ctx context.Context, key string) ([]string, error) {
+	if r == nil || r.rdb == nil {
+		return nil, nil
+	}
 	val, err := r.rdb.HKeys(ctx, key).Result()
 	if err != nil {
 		return nil, err

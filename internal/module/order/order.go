@@ -93,12 +93,15 @@ func (m *orderModule) GetUserCart(ctx context.Context, userID int64) (*dto.CartR
 			Product: dto.Product{
 				ID:          product.ID,
 				StoreID:     product.StoreID,
+				SellerID:    product.SellerID,
 				Name:        product.Name,
 				Description: product.Description,
 				Price:       product.Price,
 				Stock:       product.Stock,
 				Category:    product.Category,
 				Images:      images,
+				IsPosted:    product.IsPosted,
+				IsBoosted:   product.IsBoosted,
 			},
 			Quantity: qty,
 		})

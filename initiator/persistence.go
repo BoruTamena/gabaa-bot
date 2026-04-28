@@ -26,7 +26,7 @@ func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logge
 		ProductStorage: persistence.NewProductPersistence(db.DB, logger),
 		OrderStorage:   persistence.NewOrderPersistence(db.DB, logger),
 		WalletStorage:  persistence.NewWalletPersistence(db.DB, logger),
-		CartStorage:    cache.NewCartCache(redis),
+		CartStorage:    persistence.NewCartPersistence(db.DB, logger),
 		CategoryStorage: persistence.NewCategoryPersistence(db.DB, logger),
 	}
 }

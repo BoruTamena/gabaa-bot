@@ -29,7 +29,7 @@ func (m *productModule) CreateProduct(ctx context.Context, storeID int64, req dt
 
 	imagesBytes, _ := json.Marshal(req.Images)
 	dbProduct := &db.Product{
-		StoreID:     storeID,
+		StoreID:     &storeID,
 		Name:        req.Name,
 		Description: req.Description,
 		Price:       req.Price,
@@ -159,11 +159,14 @@ func (m *productModule) mapToDTO(p *db.Product) *dto.Product {
 	return &dto.Product{
 		ID:          p.ID,
 		StoreID:     p.StoreID,
+		SellerID:    p.SellerID,
 		Name:        p.Name,
 		Description: p.Description,
 		Price:       p.Price,
 		Stock:       p.Stock,
 		Category:    p.Category,
 		Images:      images,
+		IsPosted:    p.IsPosted,
+		IsBoosted:   p.IsBoosted,
 	}
 }

@@ -335,3 +335,48 @@ func (p *categoryPersistence) GetCategoryByName(ctx context.Context, name string
 	}
 	return &category, nil
 }
+
+// CartStorage
+type cartPersistence struct {
+	db     *gorm.DB
+	logger platform.Logger
+}
+
+func NewCartPersistence(db *gorm.DB, logger platform.Logger) storage.CartStorage {
+	return &cartPersistence{db: db, logger: logger}
+}
+
+func (p *cartPersistence) GetCart(ctx context.Context, userID int64) (map[string]int, error) {
+	var items []db.CartItem
+	err := p.db.WithContext(ctx).Where("user_id = ?", userID).Find(&items).Error
+	if err != nil {
+		p.logger.Error("Failed to get cart items from DB", "error", err, "userID", userID)
+		return nil, err
+	}
+
+	cart := make(map[string]int)
+	for _, item := range items {
+		cart[fmt.Sprintf("p:%d", item.ProductID)] = item.Quantity
+	}
+	return cart, nil
+}
+
+func (p *cartPersistence) AddToCart(ctx context.Context, userID int64, productID int64, quantity int) error {
+	if quantity <= 0 {
+		return p.db.WithContext(ctx).Where("user_id = ? AND product_id = ?", userID, productID).Delete(&db.CartItem{}).Error
+	}
+
+	item := db.CartItem{
+		UserID:    userID,
+		ProductID: productID,
+		Quantity:  quantity,
+	}
+
+	// Use OnConflict to handle update if already exists
+	return p.db.WithContext(ctx).Save(&item).Error
+}
+
+func (p *cartPersistence) ClearCart(ctx context.Context, userID int64) error {
+	return p.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&db.CartItem{}).Error
+}
+
