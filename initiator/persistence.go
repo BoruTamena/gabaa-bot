@@ -3,7 +3,6 @@ package initiator
 import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/persistencedb"
 	"github.com/BoruTamena/gabaa-bot/internal/storage/persistence"
-	"github.com/BoruTamena/gabaa-bot/internal/storage/cache"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/platform"
 )

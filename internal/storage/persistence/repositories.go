@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
