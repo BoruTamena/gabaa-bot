@@ -22,13 +22,14 @@ func NewProductModule(pStorage storage.ProductStorage) module.ProductModule {
 	}
 }
 
-func (m *productModule) CreateProduct(ctx context.Context, storeID int64, req dto.CreateProductRequest) (*dto.Product, error) {
+func (m *productModule) CreateProduct(ctx context.Context, sellerID int64, storeID int64, req dto.CreateProductRequest) (*dto.Product, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
 	}
 
 	imagesBytes, _ := json.Marshal(req.Images)
 	dbProduct := &db.Product{
+		SellerID:    sellerID,
 		StoreID:     &storeID,
 		Name:        req.Name,
 		Description: req.Description,
@@ -36,15 +37,32 @@ func (m *productModule) CreateProduct(ctx context.Context, storeID int64, req dt
 		Stock:       req.Stock,
 		Category:    req.Category,
 		Images:      string(imagesBytes),
+		IsPosted:    req.IsPosted,
 	}
 	if err := m.productStorage.CreateProduct(ctx, dbProduct); err != nil {
-		logger.Error("failed to create product", zap.Error(err), zap.Int64("store_id", storeID))
+		logger.Error("failed to create product", zap.Error(err), zap.Int64("store_id", storeID), zap.Int64("seller_id", sellerID))
 		return nil, err
 	}
 
 	logger.Info("product created successfully", zap.Int64("product_id", dbProduct.ID), zap.Int64("store_id", storeID))
 
 	return m.mapToDTO(dbProduct), nil
+}
+
+func (m *productModule) PostProduct(ctx context.Context, productID int64, storeID int64) (*dto.Product, error) {
+	product, err := m.productStorage.GetProductByID(ctx, productID)
+	if err != nil {
+		return nil, err
+	}
+
+	product.IsPosted = true
+	if err := m.productStorage.UpdateProduct(ctx, product); err != nil {
+		logger.Error("failed to post product", zap.Error(err), zap.Int64("product_id", productID))
+		return nil, err
+	}
+
+	logger.Info("product posted successfully", zap.Int64("product_id", productID))
+	return m.mapToDTO(product), nil
 }
 
 func (m *productModule) GetProduct(ctx context.Context, id int64) (*dto.Product, error) {

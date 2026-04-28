@@ -73,7 +73,8 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productModule.CreateProduct(c.Request.Context(), storeID, req)
+	userID := c.GetInt64("user_id")
+	product, err := h.productModule.CreateProduct(c.Request.Context(), userID, storeID, req)
 	if err != nil {
 		appErr := errorx.New(errorx.ErrValidation, err.Error(), http.StatusUnprocessableEntity)
 		c.Error(appErr)
