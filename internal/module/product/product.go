@@ -275,12 +275,18 @@ func (m *productModule) pushProductToTelegram(p *db.Product) {
 	)
 
 	// 3. Construct "Order Now" button
+	bot := m.tele.GetBot()
 	productURL := fmt.Sprintf("%s/product/%d", m.appURL, p.ID)
+
+	// Use Telegram direct link to open Mini App if bot username is available
+	if bot.Me != nil && bot.Me.Username != "" {
+		productURL = fmt.Sprintf("https://t.me/%s/app?startapp=product_%d", bot.Me.Username, p.ID)
+	}
+
 	selector := &telebot.ReplyMarkup{}
-	btn := selector.WebApp("🛒 Order Now", &telebot.WebApp{URL: productURL})
+	btn := selector.URL("🛒 Order Now", productURL)
 	selector.Inline(selector.Row(btn))
 
-	bot := m.tele.GetBot()
 	chat := &telebot.Chat{ID: store.TelegramChatID}
 
 	// 4. Handle Images (Multiple vs Single)
