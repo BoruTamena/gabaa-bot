@@ -105,12 +105,13 @@ func (m *authModule) TelegramAuth(ctx context.Context, initData string) (*dto.Au
 	logger.Info("user authenticated successfully", zap.Int64("user_id", user.ID), zap.String("role", role), zap.Int64("store_id", storeID))
 
 	return &dto.AuthResponse{
-		Token:    token,
-		UserID:   user.ID,
-		Username: user.Username,
-		Role:     role,
-		HasStore: hasStore,
-		StoreID:  storeID,
+		Token:          token,
+		UserID:         user.ID,
+		TelegramUserID: tgUser.ID,
+		Username:       user.Username,
+		Role:           role,
+		HasStore:       hasStore,
+		StoreID:        storeID,
 	}, nil
 }
 

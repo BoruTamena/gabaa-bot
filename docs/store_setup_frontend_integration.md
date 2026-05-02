@@ -1,10 +1,15 @@
-# Store Setup Frontend Integration Guide
+## 1. Important: Distinguishing between IDs
 
-This guide is for frontend developers implementing the Store Setup and Management screens in the Telegram Mini App or Web Dashboard.
+To avoid "Record Not Found" or "Chat Not Found" errors, the frontend must distinguish between two types of IDs:
+
+- **`userId` (Internal DB ID)**: Used only for internal references. e.g., `2`.
+- **`telegramUserId` (Telegram ID)**: Used for all bot and chat-related API calls. e.g., `635492226`.
+
+**Always use `telegramUserId` when calling `/store/dashboard/:chat_id` or setting the `telegram_chat_id` in a store request.**
 
 ---
 
-## 1. Initial State Check
+## 2. Initial State Check
 
 When the app loads, you must determine if the current user/chat context requires a store setup or management view.
 
@@ -41,7 +46,7 @@ The Setup Form should be displayed when `dashboard_type === "setup"`.
 **Payload Example:**
 ```json
 {
-  "telegram_chat_id": 635492226, // Current chat_id from Telegram.WebApp.initData
+  "telegram_chat_id": 635492226, // Use telegramUserId (NOT internal userId)
   "name": "My New Store",
   "category": "Fashion",
   "description": "Trendy clothes for everyone",

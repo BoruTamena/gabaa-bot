@@ -32,7 +32,7 @@ func (p *persistence) CreateUser(ctx context.Context, user *db.User) error {
 func (p *persistence) GetUserByTelegramID(ctx context.Context, telegramID int64) (*db.User, error) {
 	var user db.User
 	err := p.db.WithContext(ctx).Where("telegram_user_id = ?", telegramID).First(&user).Error
-	if err != nil {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		p.logger.Error("Failed to get user by telegram ID", "error", err, "telegramID", telegramID)
 	}
 	return &user, err
@@ -41,7 +41,7 @@ func (p *persistence) GetUserByTelegramID(ctx context.Context, telegramID int64)
 func (p *persistence) GetUserByID(ctx context.Context, id int64) (*db.User, error) {
 	var user db.User
 	err := p.db.WithContext(ctx).First(&user, id).Error
-	if err != nil {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		p.logger.Error("Failed to get user by ID", "error", err, "userID", id)
 	}
 	return &user, err
@@ -85,7 +85,7 @@ func (p *storePersistence) GetStoreByID(ctx context.Context, id int64) (*db.Stor
 func (p *storePersistence) GetStoreByChatID(ctx context.Context, chatID int64) (*db.Store, error) {
 	var store db.Store
 	err := p.db.WithContext(ctx).Where("telegram_chat_id = ?", chatID).First(&store).Error
-	if err != nil {
+	if err != nil && err != gorm.ErrRecordNotFound {
 		p.logger.Error("Failed to get store by chat ID", "error", err, "chatID", chatID)
 	}
 	return &store, err
