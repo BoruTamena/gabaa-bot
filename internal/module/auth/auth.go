@@ -84,14 +84,20 @@ func (m *authModule) TelegramAuth(ctx context.Context, initData string) (*dto.Au
 	var storeID int64
 	hasStore := false
 	if role == "admin" {
-		targetChatID := chatID
-		if targetChatID == 0 {
-			targetChatID = tgUser.ID // Check for personal store
-		}
-		store, err := m.storeStorage.GetStoreByChatID(ctx, targetChatID)
-		if err == nil {
-			hasStore = true
-			storeID = store.ID
+		if chatID != 0 {
+			// Inside a group - look for store linked to this group
+			store, err := m.storeStorage.GetStoreByChatID(ctx, chatID)
+			if err == nil {
+				hasStore = true
+				storeID = store.ID
+			}
+		} else {
+			// Private chat - look for any store owned by this merchant
+			stores, err := m.storeStorage.GetStoresBySellerID(ctx, user.ID)
+			if err == nil && len(stores) > 0 {
+				hasStore = true
+				storeID = stores[0].ID
+			}
 		}
 	}
 
