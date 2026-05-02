@@ -42,7 +42,7 @@ func NewGinRouter(
 	RegisterAuthRoutes(r, authHandler)
 	RegisterPublicProductRoutes(r, productHandler)
 	RegisterPublicCategoryRoutes(r, categoryHandler)
-	
+
 	// Image Upload (Public as requested)
 	uploadGroup := r.Group("/")
 	RegisterUploadRoutes(uploadGroup, uploadHandler)

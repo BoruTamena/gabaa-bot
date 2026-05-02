@@ -8,6 +8,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/platform"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
@@ -121,7 +122,7 @@ func (p *storePersistence) IncrementStoreViews(ctx context.Context, storeIDs []i
 		DO UPDATE SET views = store_stats.views + 1, updated_at = EXCLUDED.updated_at
 	`
 	
-	err := p.db.WithContext(ctx).Exec(query, storeIDs).Error
+	err := p.db.WithContext(ctx).Exec(query, pq.Array(storeIDs)).Error
 	if err != nil {
 		p.logger.Error("Failed to increment store views", "error", err, "count", len(storeIDs))
 	}

@@ -11,5 +11,6 @@ type User struct {
 	PasswordHash   string `gorm:"column:password_hash" json:"-"`
 	Username       string `gorm:"column:username" json:"username"`
 	Role           string `gorm:"column:role;not null" json:"role"` // 'merchant' or 'customer'
+	PendingStoreID *int64 `gorm:"column:pending_store_id" json:"pending_store_id"`
 }
 

@@ -3,6 +3,7 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant"
@@ -43,22 +44,39 @@ func (m *botModule) registerHandlers() {
 func (m *botModule) handleStart(c telebot.Context) error {
 	payload := c.Message().Payload
 	if strings.HasPrefix(payload, "link_store_") {
-		// This is where we could handle deep-linked store association
-		// For now just acknowledge
-		return c.Send("Starting store linking process... Please add me to your group as an admin.")
+		storeIDStr := strings.TrimPrefix(payload, "link_store_")
+		storeID, err := strconv.ParseInt(storeIDStr, 10, 64)
+		if err != nil {
+			return c.Send("❌ Invalid store ID.")
+		}
+
+		ctx := context.Background()
+		user, err := m.userStorage.GetUserByTelegramID(ctx, c.Sender().ID)
+		if err != nil {
+			return c.Send("❌ User record not found. Please ensure you are logged in to the web app.")
+		}
+
+		// Save the store we are currently trying to link
+		user.PendingStoreID = &storeID
+		if err := m.userStorage.UpdateUser(ctx, user); err != nil {
+			logger.Error("failed to update user pending store", zap.Error(err))
+			return c.Send("❌ Failed to initiate linking. Please try again from the dashboard.")
+		}
+
+		return c.Send("🚀 *Store linking initiated!*\n\nNow, add me to your Group or Channel as an *Administrator* to complete the setup.")
 	}
 	return c.Send("Welcome to Gabaa Bot! 🛍️\n\nUse our web dashboard to manage your store.")
 }
 
 func (m *botModule) handleMyChatMember(c telebot.Context) error {
 	update := c.ChatMember()
-	
+
 	// Check if the bot was added as an administrator
 	if update.NewChatMember.Role == telebot.Administrator {
 		merchantTGID := update.Sender.ID
 		chatID := c.Chat().ID
 		chatTitle := c.Chat().Title
-		
+
 		ctx := context.Background()
 		user, err := m.userStorage.GetUserByTelegramID(ctx, merchantTGID)
 		if err != nil {
@@ -66,35 +84,59 @@ func (m *botModule) handleMyChatMember(c telebot.Context) error {
 			return nil
 		}
 
-		stores, err := m.storeStorage.GetStoresBySellerID(ctx, user.ID)
-		if err != nil || len(stores) == 0 {
-			logger.Warn("Merchant has no stores to link", zap.Int64("user_id", user.ID))
+		// Check if the chat is already linked to ANOTHER store
+		existing, err := m.storeStorage.GetStoreByChatID(ctx, chatID)
+		if err == nil && existing.ID != 0 {
+			m.tele.GetBot().Send(&telebot.User{ID: merchantTGID},
+				fmt.Sprintf("❌ Linking failed! This group is already linked to your other store: '%s'.", existing.Name))
 			return nil
 		}
 
-		// Linking logic: For now, link to the first store found for the merchant
-		// In a production scenario, we'd use the state saved during /start deep-linking
-		store := stores[0]
-		
-		logger.Info("Silently linking store to chat", 
-			zap.Int64("store_id", store.ID), 
-			zap.Int64("chat_id", chatID), 
+		// Determine which store to link
+		var targetStoreID int64
+		if user.PendingStoreID != nil {
+			targetStoreID = *user.PendingStoreID
+		} else {
+			// Fallback: If merchant has only one store, link that one
+			stores, _ := m.storeStorage.GetStoresBySellerID(ctx, user.ID)
+			if len(stores) == 1 {
+				targetStoreID = stores[0].ID
+			} else {
+				m.tele.GetBot().Send(&telebot.User{ID: merchantTGID},
+					"⚠️ Could not determine which store to link. Please go to your store dashboard and click 'Connect Bot' again.")
+				return nil
+			}
+		}
+
+		store, err := m.storeStorage.GetStoreByID(ctx, targetStoreID)
+		if err != nil {
+			logger.Error("failed to get store for linking", zap.Error(err), zap.Int64("store_id", targetStoreID))
+			return nil
+		}
+
+		logger.Info("Linking store to chat",
+			zap.Int64("store_id", store.ID),
+			zap.Int64("chat_id", chatID),
 			zap.String("chat_title", chatTitle))
-		
-		// For now, we update the store's TelegramChatID (legacy mapping)
+
 		store.TelegramChatID = chatID
 		store.TelegramChatTitle = chatTitle
 		store.Status = constant.StoreStatusLaunched
-		
-		if err := m.storeStorage.UpdateStore(ctx, &store); err != nil {
+
+		if err := m.storeStorage.UpdateStore(ctx, store); err != nil {
 			logger.Error("failed to update store after linking", zap.Error(err), zap.Int64("store_id", store.ID))
+			m.tele.GetBot().Send(&telebot.User{ID: merchantTGID}, "❌ Failed to link store due to a technical error.")
 			return nil
 		}
 
+		// Reset pending store
+		user.PendingStoreID = nil
+		m.userStorage.UpdateUser(ctx, user)
+
 		// Send PRIVATE confirmation to merchant
-		m.tele.GetBot().Send(&telebot.User{ID: merchantTGID}, 
-			fmt.Sprintf("✅ Store '%s' successfully linked to group '%s'!", store.Name, chatTitle))
+		m.tele.GetBot().Send(&telebot.User{ID: merchantTGID},
+			fmt.Sprintf("✅ Success! Store '%s' is now linked to '%s' and is live! 🚀", store.Name, chatTitle))
 	}
-	
+
 	return nil
 }

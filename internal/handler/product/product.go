@@ -19,20 +19,17 @@ func NewProductHandler(pModule module.ProductModule) *ProductHandler {
 	return &ProductHandler{productModule: pModule}
 }
 
-// ListProducts returns all products for a store with pagination
-// @Summary List products
-// @Description Retrieve a paginated list of all products for a store
-// @Tags Product
-// @Produce json
-// @Param store_id path int true "Store ID"
-// @Param page query int false "Page number"
-// @Param page_size query int false "Page size"
 // @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
-// @Router /store/:store_id/products [get]
+// @Router /my-store/products [get]
 func (h *ProductHandler) ListProducts(c *gin.Context) {
-	storeIDStr := c.Param("store_id")
-	storeID, _ := strconv.ParseInt(storeIDStr, 10, 64)
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		appErr := errorx.New(errorx.ErrUnauthorized, "Store context missing", http.StatusUnauthorized)
+		c.Error(appErr)
+		return
+	}
 
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
@@ -51,24 +48,15 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 	response.Success(c, http.StatusOK, resp)
 }
 
-// CreateProduct adds a new product to a store
-// @Summary Add product
-// @Description Add a new product to a store (Admin only)
-// @Tags Product
-// @Accept json
-// @Produce json
-// @Param store_id path int true "Store ID"
-// @Param request body dto.CreateProductRequest true "Product details"
-// @Success 201 {object} response.BaseResponse{data=dto.Product}
-// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
-// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
-// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
-// @Failure 422 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
-// @Router /store/:store_id/product [post]
+// @Router /my-store/product [post]
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
-	storeIDStr := c.Param("store_id")
-	storeID, _ := strconv.ParseInt(storeIDStr, 10, 64)
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		appErr := errorx.New(errorx.ErrUnauthorized, "Store context missing", http.StatusUnauthorized)
+		c.Error(appErr)
+		return
+	}
 
 	var req dto.CreateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -78,10 +66,9 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	}
 
 	role := c.GetString("role")
-	userStoreID := c.GetInt64("store_id")
 
-	if role != "admin" || (userStoreID != 0 && userStoreID != storeID) {
-		appErr := errorx.New(errorx.ErrForbidden, "Unauthorized to add products to this store", http.StatusForbidden)
+	if role != "admin" {
+		appErr := errorx.New(errorx.ErrForbidden, "Unauthorized to add products", http.StatusForbidden)
 		c.Error(appErr)
 		return
 	}
@@ -97,25 +84,20 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	response.Success(c, http.StatusCreated, product)
 }
 
-// UpdateProduct edits an existing product
-// @Summary Edit product
-// @Description Modify details of an existing product (Admin only)
-// @Tags Product
-// @Accept json
-// @Produce json
-// @Param store_id path int true "Store ID"
-// @Param id path int true "Product ID"
-// @Param request body dto.UpdateProductRequest true "Product update details"
 // @Success 200 {object} response.BaseResponse{data=dto.Product}
 // @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 422 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
-// @Router /store/:store_id/product/:id [put]
+// @Router /my-store/product/:id [put]
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
-	storeIDStr := c.Param("store_id")
-	storeID, _ := strconv.ParseInt(storeIDStr, 10, 64)
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		appErr := errorx.New(errorx.ErrUnauthorized, "Store context missing", http.StatusUnauthorized)
+		c.Error(appErr)
+		return
+	}
 	idStr := c.Param("id")
 	id, _ := strconv.ParseInt(idStr, 10, 64)
 
@@ -127,10 +109,9 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	}
 
 	role := c.GetString("role")
-	userStoreID := c.GetInt64("store_id")
 
-	if role != "admin" || (userStoreID != 0 && userStoreID != storeID) {
-		appErr := errorx.New(errorx.ErrForbidden, "Unauthorized to update products for this store", http.StatusForbidden)
+	if role != "admin" {
+		appErr := errorx.New(errorx.ErrForbidden, "Unauthorized to update products", http.StatusForbidden)
 		c.Error(appErr)
 		return
 	}
@@ -145,29 +126,22 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	response.Success(c, http.StatusOK, product)
 }
 
-// DeleteProduct removes a product
-// @Summary Delete product
-// @Description Completely remove a product from a store (Admin only)
-// @Tags Product
-// @Produce json
-// @Param store_id path int true "Store ID"
-// @Param id path int true "Product ID"
-// @Success 200 {object} response.BaseResponse{data=map[string]string}
-// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
-// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
-// @Router /store/:store_id/product/:id [delete]
+// @Router /my-store/product/:id [delete]
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
-	storeIDStr := c.Param("store_id")
-	storeID, _ := strconv.ParseInt(storeIDStr, 10, 64)
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		appErr := errorx.New(errorx.ErrUnauthorized, "Store context missing", http.StatusUnauthorized)
+		c.Error(appErr)
+		return
+	}
 	idStr := c.Param("id")
 	id, _ := strconv.ParseInt(idStr, 10, 64)
 
 	role := c.GetString("role")
-	userStoreID := c.GetInt64("store_id")
 
-	if role != "admin" || (userStoreID != 0 && userStoreID != storeID) {
-		appErr := errorx.New(errorx.ErrForbidden, "Unauthorized to delete products from this store", http.StatusForbidden)
+	if role != "admin" {
+		appErr := errorx.New(errorx.ErrForbidden, "Unauthorized to delete products", http.StatusForbidden)
 		c.Error(appErr)
 		return
 	}
