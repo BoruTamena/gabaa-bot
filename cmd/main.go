@@ -8,7 +8,7 @@ import (
 func main() {
 	// Initialize logger
 	logger.InitLogger()
-	defer logger.Sync()
+	// defer logger.Sync()
 
 	// call your initator init
 	initiator.Init()

@@ -30,14 +30,22 @@ type ProductModule interface {
 	PostProduct(ctx context.Context, productID int64, storeID int64) (*dto.Product, error)
 }
 
-type OrderModule interface {
+type CartModule interface {
 	AddToCart(ctx context.Context, userID int64, productID int64, quantity int) error
 	GetCart(ctx context.Context, userID int64) (map[int64]int, error)
 	GetUserCart(ctx context.Context, userID int64) (*dto.CartResponse, error)
+	UpdateCartItem(ctx context.Context, userID int64, productID int64, action string) error
+	RemoveFromCart(ctx context.Context, userID int64, productID int64) error
+	ClearCart(ctx context.Context, userID int64) error
+}
+
+type OrderModule interface {
 	Checkout(ctx context.Context, userID int64, storeID int64) (*dto.Order, error)
+	GetOrder(ctx context.Context, orderID int64) (*dto.Order, error)
 	ListOrders(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
 	GetUserOrders(ctx context.Context, userID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
 	UpdateOrderStatus(ctx context.Context, orderID int64, status string) error
+	CancelOrder(ctx context.Context, userID int64, orderID int64) error
 }
 
 type WalletModule interface {
@@ -49,4 +57,8 @@ type CategoryModule interface {
 	CreateCategory(ctx context.Context, storeID int64, req dto.CreateCategoryRequest) (*dto.Category, error)
 	ListAllCategories(ctx context.Context, params dto.PaginationParams) (*dto.PaginatedResponse, error)
 	ListStoreCategories(ctx context.Context, storeID int64) ([]dto.Category, error)
+}
+
+type BotModule interface {
+	// Any specific bot-related methods can go here
 }

@@ -31,9 +31,9 @@ func NewAuthModule(uStorage storage.UserStorage, sStorage storage.StoreStorage, 
 }
 
 func (m *authModule) TelegramAuth(ctx context.Context, initData string) (*dto.AuthResponse, error) {
-	
+
 	logger.Info("telegram auth", zap.String("init_data", initData))
-	
+
 	// 1. Validate Telegram initData
 	valid, err := m.tele.ValidateInitData(initData)
 	if err != nil || !valid {
@@ -54,7 +54,7 @@ func (m *authModule) TelegramAuth(ctx context.Context, initData string) (*dto.Au
 		logger.Info("user not found, creating new user", zap.Int64("telegram_id", tgUser.ID))
 		// Create user
 		user = &db.User{
-			TelegramUserID: tgUser.ID,
+			TelegramUserID: &tgUser.ID,
 			Username:       tgUser.Username,
 			Role:           "customer", // Default role
 		}

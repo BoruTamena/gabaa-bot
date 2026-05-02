@@ -32,6 +32,7 @@ type Telegram interface {
 	ValidateInitData(initData string) (bool, error)
 	ParseInitData(initData string) (*dto.TelegramUser, int64, error)
 	IsChatAdmin(chatID int64, userID int64) (bool, error)
+	ProcessUpdate(u telebot.Update)
 }
 
 

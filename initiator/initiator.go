@@ -32,7 +32,7 @@ func SeedData(p Persistence) {
 	user, err := p.UserStorage.GetUserByTelegramID(ctx, sellerID)
 	if err != nil {
 		user = &db.User{
-			TelegramUserID: sellerID,
+			TelegramUserID: &sellerID,
 			Username:       "sample_seller",
 			Role:           "admin",
 		}
@@ -121,9 +121,11 @@ func Init() {
 		handlerLayer.StoreHandler,
 		handlerLayer.ProductHandler,
 		handlerLayer.OrderHandler,
+		handlerLayer.CartHandler,
 		handlerLayer.PaymentHandler,
 		handlerLayer.CategoryHandler,
 		handlerLayer.AuthMiddleware,
+		handlerLayer.WebhookHandler,
 	)
 
 	port := os.Getenv("PORT")

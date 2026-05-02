@@ -6,6 +6,7 @@ import (
 
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
+	"github.com/BoruTamena/gabaa-bot/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,8 +21,15 @@ func NewPaymentHandler(oModule module.OrderModule, wModule module.WalletModule) 
 
 // VerifyPayment verifies a manual payment and credits the store wallet
 // @Summary Verify payment (manual)
-// @Tags payment
+// @Description Verify manual payment order and credit wallet
+// @Tags Payment
 // @Accept json
+// @Produce json
+// @Param request body map[string]int64 true "Payment Details"
+// @Success 200 {object} response.BaseResponse{data=map[string]string}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /payment/verify [post]
 func (h *PaymentHandler) VerifyPayment(c *gin.Context) {
 	var req struct {
@@ -30,24 +38,29 @@ func (h *PaymentHandler) VerifyPayment(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		appErr := errorx.New(errorx.ErrBadRequest, err.Error(), http.StatusBadRequest)
-		c.JSON(appErr.Status, appErr)
+		response.CustomError(c, appErr)
 		return
 	}
 
 	// 1. Mark order as completed/confirmed
 	err := h.orderModule.UpdateOrderStatus(c.Request.Context(), req.OrderID, "completed")
 	if err != nil {
-		status, appErr := errorx.ErrorResponse(err)
-		c.JSON(status, appErr)
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "payment verified and wallet credited"})
+	response.Success(c, http.StatusOK, gin.H{"message": "payment verified and wallet credited"})
 }
 
 // GetWallet returns the wallet balance for a store
 // @Summary Get wallet balance
-// @Tags wallet
+// @Description Retrieve the wallet balance for a given store
+// @Tags Wallet
+// @Produce json
+// @Param store_id path int true "Store ID"
+// @Success 200 {object} response.BaseResponse{data=map[string]float64}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /store/:store_id/wallet [get]
 func (h *PaymentHandler) GetWallet(c *gin.Context) {
 	storeIDStr := c.Param("store_id")
@@ -55,10 +68,9 @@ func (h *PaymentHandler) GetWallet(c *gin.Context) {
 
 	balance, err := h.walletModule.GetBalance(c.Request.Context(), storeID)
 	if err != nil {
-		status, appErr := errorx.ErrorResponse(err)
-		c.JSON(status, appErr)
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"balance": balance})
+	response.Success(c, http.StatusOK, gin.H{"balance": balance})
 }

@@ -15,12 +15,14 @@ import (
 
 type storeModule struct {
 	storeStorage storage.StoreStorage
+	userStorage  storage.UserStorage
 	tele         platform.Telegram
 }
 
-func NewStoreModule(sStorage storage.StoreStorage, tele platform.Telegram) module.StoreModule {
+func NewStoreModule(sStorage storage.StoreStorage, uStorage storage.UserStorage, tele platform.Telegram) module.StoreModule {
 	return &storeModule{
 		storeStorage: sStorage,
+		userStorage:  uStorage,
 		tele:         tele,
 	}
 }
@@ -30,9 +32,18 @@ func (m *storeModule) CreateStore(ctx context.Context, userID int64, req dto.Cre
 		return nil, err
 	}
 
-	// Security: Verify user is admin of the target chat
-	if req.TelegramChatID != userID {
-		isAdmin, err := m.tele.IsChatAdmin(req.TelegramChatID, userID)
+	// Security: Verify user is admin of the target chat if provided
+	if req.TelegramChatID != 0 {
+		user, err := m.userStorage.GetUserByID(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("user not found")
+		}
+
+		if user.TelegramUserID == nil {
+			return nil, fmt.Errorf("user has no telegram id linked")
+		}
+
+		isAdmin, err := m.tele.IsChatAdmin(req.TelegramChatID, *user.TelegramUserID)
 		if err != nil || !isAdmin {
 			logger.Warn("user attempted to create store for chat without admin rights", 
 				zap.Int64("user_id", userID), zap.Int64("chat_id", req.TelegramChatID))
@@ -77,18 +88,29 @@ func (m *storeModule) CreateStore(ctx context.Context, userID int64, req dto.Cre
 
 func (m *storeModule) GetAdminDashboard(ctx context.Context, userID int64, chatID int64) (string, *dto.Store, error) {
 	store, err := m.storeStorage.GetStoreByChatID(ctx, chatID)
+	
+	user, userErr := m.userStorage.GetUserByID(ctx, userID)
+	tgUserID := int64(0)
+	if userErr == nil && user.TelegramUserID != nil {
+		tgUserID = *user.TelegramUserID
+	}
+
 	if err != nil {
 		// No store associated with this chat yet
-		isAdmin, _ := m.tele.IsChatAdmin(chatID, userID)
-		if isAdmin {
-			return "setup", nil, nil
+		if tgUserID != 0 {
+			isAdmin, _ := m.tele.IsChatAdmin(chatID, tgUserID)
+			if isAdmin {
+				return "setup", nil, nil
+			}
 		}
 		return "storefront", nil, nil
 	}
 
-	isAdmin, _ := m.tele.IsChatAdmin(chatID, userID)
-	if isAdmin {
-		return "manage", m.mapToDTO(store), nil
+	if tgUserID != 0 {
+		isAdmin, _ := m.tele.IsChatAdmin(chatID, tgUserID)
+		if isAdmin {
+			return "manage", m.mapToDTO(store), nil
+		}
 	}
 
 	return "storefront", m.mapToDTO(store), nil

@@ -1,3 +1,250 @@
+definitions:
+  dto.AuthResponse:
+    properties:
+      hasStore:
+        type: boolean
+      role:
+        type: string
+      storeId:
+        type: integer
+      token:
+        type: string
+      userId:
+        type: integer
+      username:
+        type: string
+    type: object
+  dto.CartItem:
+    properties:
+      product:
+        $ref: '#/definitions/dto.Product'
+      quantity:
+        type: integer
+    type: object
+  dto.CartResponse:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/dto.CartItem'
+        type: array
+      total_price:
+        type: number
+    type: object
+  dto.Category:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      store_id:
+        type: integer
+    type: object
+  dto.CreateCategoryRequest:
+    properties:
+      name:
+        type: string
+    type: object
+  dto.CreateProductRequest:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      images:
+        items:
+          type: string
+        type: array
+      is_posted:
+        type: boolean
+      name:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+    type: object
+  dto.CreateStoreRequest:
+    properties:
+      category:
+        type: string
+      cover_image:
+        type: string
+      description:
+        type: string
+      email:
+        type: string
+      location:
+        type: string
+      logo_image:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      telegram_chat_id:
+        type: integer
+    type: object
+  dto.Order:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      order_items:
+        items:
+          $ref: '#/definitions/dto.OrderItem'
+        type: array
+      status:
+        type: string
+      store_id:
+        type: integer
+      total_price:
+        type: number
+      user_id:
+        type: integer
+    type: object
+  dto.OrderItem:
+    properties:
+      id:
+        type: integer
+      order_id:
+        type: integer
+      price:
+        type: number
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+    type: object
+  dto.PaginatedResponse:
+    properties:
+      data: {}
+      total:
+        type: integer
+    type: object
+  dto.Product:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      images:
+        items:
+          type: string
+        type: array
+      is_boosted:
+        type: boolean
+      is_posted:
+        type: boolean
+      name:
+        type: string
+      price:
+        type: number
+      seller_id:
+        type: integer
+      stock:
+        type: integer
+      store_id:
+        type: integer
+    type: object
+  dto.Store:
+    properties:
+      category:
+        type: string
+      cover_image:
+        type: string
+      description:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      location:
+        type: string
+      logo_image:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      seller_id:
+        type: integer
+      telegram_chat_id:
+        type: integer
+    type: object
+  dto.UpdateProductRequest:
+    properties:
+      category:
+        type: string
+      description:
+        type: string
+      images:
+        items:
+          type: string
+        type: array
+      name:
+        type: string
+      price:
+        type: number
+      stock:
+        type: integer
+    type: object
+  dto.UpdateStoreRequest:
+    properties:
+      category:
+        type: string
+      cover_image:
+        type: string
+      description:
+        type: string
+      email:
+        type: string
+      location:
+        type: string
+      logo_image:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+    type: object
+  errorx.AppError:
+    properties:
+      details:
+        additionalProperties: true
+        type: object
+      error:
+        $ref: '#/definitions/errorx.ErrorCode'
+      message:
+        type: string
+    type: object
+  errorx.ErrorCode:
+    enum:
+    - UNAUTHORIZED
+    - FORBIDDEN
+    - VALIDATION_ERROR
+    - NOT_FOUND
+    - INTERNAL_ERROR
+    - BAD_REQUEST
+    - CONFLICT
+    type: string
+    x-enum-varnames:
+    - ErrUnauthorized
+    - ErrForbidden
+    - ErrValidation
+    - ErrNotFound
+    - ErrInternal
+    - ErrBadRequest
+    - ErrConflict
+  response.BaseResponse:
+    properties:
+      data: {}
+      error: {}
+      success:
+        type: boolean
+    type: object
 info:
   contact: {}
 paths:
@@ -9,7 +256,7 @@ paths:
       parameters:
       - description: initData
         in: body
-        name: body
+        name: request
         required: true
         schema:
           additionalProperties:
@@ -17,10 +264,49 @@ paths:
           type: object
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Authenticate via Telegram
+      tags:
+      - Auth
   /categories:
     get:
+      description: Retrieve a paginated list of all global categories
       parameters:
       - description: Page number
         in: query
@@ -32,49 +318,192 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: List all categories
       tags:
-      - product
-  /order/cart/add:
-    post:
-      parameters:
-      - description: Product ID
-        in: query
-        name: product_id
-        required: true
-        type: integer
-      - description: Quantity
-        in: query
-        name: quantity
-        required: true
-        type: integer
-      responses: {}
-      summary: Add to cart
-      tags:
-      - order
+      - Category
   /order/create:
     post:
+      description: Creates a new order based on the user's current cart items for
+        a specific store
       parameters:
       - description: Store ID
         in: query
         name: store_id
         required: true
         type: integer
-      responses: {}
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Order'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Create order from cart
       tags:
-      - order
+      - Order
+  /orders/:order_id:
+    get:
+      description: Retrieve details of a specific order by ID
+      parameters:
+      - description: Order ID
+        in: path
+        name: order_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Order'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get order
+      tags:
+      - Order
   /payment/verify:
     post:
       consumes:
       - application/json
-      responses: {}
+      description: Verify manual payment order and credit wallet
+      parameters:
+      - description: Payment Details
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: integer
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Verify payment (manual)
       tags:
-      - payment
+      - Payment
   /products:
     get:
+      description: Fetch all available products across stores with filtering/pagination
       parameters:
       - description: Category
         in: query
@@ -94,12 +523,31 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: List all products (public)
       tags:
-      - product
+      - Product
   /products/{id}:
     get:
+      description: Fetch details of a single product (public endpoint)
       parameters:
       - description: Product ID
         in: path
@@ -108,27 +556,176 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Product'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Get a product by ID (Public)
       tags:
-      - product
-  /store/:id:
+      - Product
+  /store/:store_id:
     get:
       description: Returns store details
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Store'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Get store by ID
+      tags:
+      - Store
     put:
       consumes:
       - application/json
       description: Update store details. Admin only.
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Store details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateStoreRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Store'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Update store
+      tags:
+      - Store
   /store/:store_id/categories:
     get:
+      description: Retrieve all categories specific to a store
       parameters:
       - description: Store ID
         in: path
@@ -137,28 +734,110 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.Category'
+                  type: array
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: List store categories
       tags:
-      - product
+      - Category
   /store/:store_id/category:
     post:
       consumes:
       - application/json
+      description: Creates a new custom category for a store
       parameters:
       - description: Store ID
         in: path
         name: store_id
         required: true
         type: integer
+      - description: Category Details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCategoryRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Category'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Add store category
       tags:
-      - product
+      - Category
   /store/:store_id/orders:
     get:
+      description: Retrieve a paginated list of all orders for a given store
       parameters:
       - description: Store ID
         in: path
@@ -175,33 +854,314 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: List orders
       tags:
-      - order
+      - Order
+  /store/:store_id/orders/:order_id/status:
+    put:
+      description: Update the status of an existing order
+      parameters:
+      - description: Order ID
+        in: path
+        name: order_id
+        required: true
+        type: integer
+      - description: New Status
+        in: query
+        name: status
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Update order status
+      tags:
+      - Order
   /store/:store_id/product:
     post:
       consumes:
       - application/json
+      description: Add a new product to a store (Admin only)
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Product details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Product'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Add product
       tags:
-      - product
+      - Product
   /store/:store_id/product/:id:
     delete:
-      responses: {}
+      description: Completely remove a product from a store (Admin only)
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Delete product
       tags:
-      - product
+      - Product
     put:
-      responses: {}
+      consumes:
+      - application/json
+      description: Modify details of an existing product (Admin only)
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Product update details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Product'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Edit product
       tags:
-      - product
+      - Product
   /store/:store_id/products:
     get:
+      description: Retrieve a paginated list of all products for a store
       parameters:
       - description: Store ID
         in: path
@@ -218,42 +1178,417 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: List products
       tags:
-      - product
+      - Product
   /store/:store_id/wallet:
     get:
-      responses: {}
+      description: Retrieve the wallet balance for a given store
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: number
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Get wallet balance
       tags:
-      - wallet
+      - Wallet
   /store/dashboard/:chat_id:
     get:
       description: 'Returns dashboardType: ''setup'', ''manage'', or ''storefront'''
+      parameters:
+      - description: Telegram Chat ID
+        in: path
+        name: chat_id
+        required: true
+        type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Get admin dashboard info
+      tags:
+      - Store
   /store/from-chat:
     post:
       consumes:
       - application/json
       description: Setup a new store. Admin only.
+      parameters:
+      - description: Store details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateStoreRequest'
       produces:
       - application/json
-      responses: {}
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Store'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Create store
+      tags:
+      - Store
   /user/cart:
     get:
+      description: Fetch the active user's cart including product details and total
+        price
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.CartResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: Get user cart
       tags:
-      - order
+      - Cart
+  /user/cart/add:
+    post:
+      description: Add a product to the cart with a specific quantity
+      parameters:
+      - description: Product ID
+        in: query
+        name: product_id
+        required: true
+        type: integer
+      - description: Quantity
+        in: query
+        name: quantity
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Add to cart
+      tags:
+      - Cart
+  /user/cart/clear:
+    delete:
+      description: Empty the user's active cart completely
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Clear cart
+      tags:
+      - Cart
+  /user/cart/remove:
+    delete:
+      description: Remove a specific item from the cart entirely
+      parameters:
+      - description: Product ID
+        in: query
+        name: product_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Remove from cart
+      tags:
+      - Cart
+  /user/cart/update:
+    put:
+      description: Update the specific quantity of a cart item
+      parameters:
+      - description: Product ID
+        in: query
+        name: product_id
+        required: true
+        type: integer
+      - description: New Quantity
+        in: query
+        name: quantity
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Update cart item
+      tags:
+      - Cart
   /user/orders:
     get:
+      description: Retrieve a paginated list of all orders belonging to the authenticated
+        user
       parameters:
       - description: Page number
         in: query
@@ -265,8 +1600,88 @@ paths:
         type: integer
       produces:
       - application/json
-      responses: {}
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
       summary: List user orders
       tags:
-      - order
+      - Order
+  /user/orders/:order_id/cancel:
+    put:
+      description: Cancels a pending order and restores product stock
+      parameters:
+      - description: Order ID
+        in: path
+        name: order_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  additionalProperties:
+                    type: string
+                  type: object
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Cancel order
+      tags:
+      - Order
 swagger: "2.0"

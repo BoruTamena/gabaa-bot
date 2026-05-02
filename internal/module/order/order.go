@@ -2,7 +2,6 @@ package order
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -30,27 +29,7 @@ func NewOrderModule(oStorage storage.OrderStorage, pStorage storage.ProductStora
 	}
 }
 
-func (m *orderModule) AddToCart(ctx context.Context, userID int64, productID int64, quantity int) error {
-
-	// check if product is in stock
-	product, err := m.productStorage.GetProductByID(ctx, productID)
-	if err != nil {
-		return err
-	}
-	if product.Stock < quantity {
-		return fmt.Errorf("insufficient stock for product %d", productID)
-	}
-
-	err = m.cartStorage.AddToCart(ctx, userID, productID, quantity)
-	if err != nil {
-		logger.Error("failed to add item to cart", zap.Error(err), zap.Int64("user_id", userID), zap.Int64("product_id", productID))
-	} else {
-		logger.Info("item added to cart successfully", zap.Int64("user_id", userID), zap.Int64("product_id", productID), zap.Int("quantity", quantity))
-	}
-	return err
-}
-
-func (m *orderModule) GetCart(ctx context.Context, userID int64) (map[int64]int, error) {
+func (m *orderModule) getCart(ctx context.Context, userID int64) (map[int64]int, error) {
 	cart, err := m.cartStorage.GetCart(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -63,56 +42,8 @@ func (m *orderModule) GetCart(ctx context.Context, userID int64) (map[int64]int,
 	return res, nil
 }
 
-func (m *orderModule) GetUserCart(ctx context.Context, userID int64) (*dto.CartResponse, error) {
-	cart, err := m.GetCart(ctx, userID)
-	if err != nil {
-		return nil, err
-	}
-
-	res := &dto.CartResponse{
-		Items:      make([]dto.CartItem, 0, len(cart)),
-		TotalPrice: 0,
-	}
-
-	for pID, qty := range cart {
-		product, err := m.productStorage.GetProductByID(ctx, pID)
-		if err != nil {
-			// If product not found, we skip it or handle error
-			continue
-		}
-
-		var images []string
-		if product.Images != "" {
-			_ = json.Unmarshal([]byte(product.Images), &images)
-		}
-		if images == nil {
-			images = []string{}
-		}
-
-		res.Items = append(res.Items, dto.CartItem{
-			Product: dto.Product{
-				ID:          product.ID,
-				StoreID:     product.StoreID,
-				SellerID:    product.SellerID,
-				Name:        product.Name,
-				Description: product.Description,
-				Price:       product.Price,
-				Stock:       product.Stock,
-				Category:    product.Category,
-				Images:      images,
-				IsPosted:    product.IsPosted,
-				IsBoosted:   product.IsBoosted,
-			},
-			Quantity: qty,
-		})
-		res.TotalPrice += product.Price * float64(qty)
-	}
-
-	return res, nil
-}
-
 func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64) (*dto.Order, error) {
-	cart, err := m.GetCart(ctx, userID)
+	cart, err := m.getCart(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -233,6 +164,48 @@ func (m *orderModule) GetUserOrders(ctx context.Context, userID int64, params dt
 		Total: total,
 		Data:  dtoOrders,
 	}, nil
+}
+
+func (m *orderModule) GetOrder(ctx context.Context, orderID int64) (*dto.Order, error) {
+	order, err := m.orderStorage.GetOrderByID(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+	return m.mapOrderToDTO(order), nil
+}
+
+func (m *orderModule) CancelOrder(ctx context.Context, userID int64, orderID int64) error {
+	order, err := m.orderStorage.GetOrderByID(ctx, orderID)
+	if err != nil {
+		return err
+	}
+
+	// Only allow user to cancel their own order, or add proper permissions check
+	if order.UserID != userID {
+		return fmt.Errorf("unauthorized to cancel this order")
+	}
+
+	if order.Status != "pending" {
+		return fmt.Errorf("can only cancel pending orders")
+	}
+
+	// Revert stock
+	for _, item := range order.Items {
+		product, err := m.productStorage.GetProductByID(ctx, item.ProductID)
+		if err == nil {
+			product.Stock += item.Quantity
+			_ = m.productStorage.UpdateProduct(ctx, product) // ignore error for now, best effort
+		}
+	}
+
+	err = m.orderStorage.UpdateOrderStatus(ctx, orderID, "cancelled")
+	if err != nil {
+		logger.Error("failed to cancel order", zap.Error(err), zap.Int64("order_id", orderID))
+		return err
+	}
+
+	logger.Info("order cancelled successfully", zap.Int64("order_id", orderID))
+	return nil
 }
 
 func (m *orderModule) mapOrderToDTO(o *db.Order) *dto.Order {

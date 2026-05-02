@@ -7,6 +7,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
+	"github.com/BoruTamena/gabaa-bot/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,11 +21,14 @@ func NewProductHandler(pModule module.ProductModule) *ProductHandler {
 
 // ListProducts returns all products for a store with pagination
 // @Summary List products
-// @Tags product
+// @Description Retrieve a paginated list of all products for a store
+// @Tags Product
+// @Produce json
 // @Param store_id path int true "Store ID"
 // @Param page query int false "Page number"
 // @Param page_size query int false "Page size"
-// @Produce json
+// @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /store/:store_id/products [get]
 func (h *ProductHandler) ListProducts(c *gin.Context) {
 	storeIDStr := c.Param("store_id")
@@ -38,20 +42,29 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 		PageSize: pageSize,
 	}
 
-	response, err := h.productModule.ListProducts(c.Request.Context(), storeID, params)
+	resp, err := h.productModule.ListProducts(c.Request.Context(), storeID, params)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	response.Success(c, http.StatusOK, resp)
 }
 
 // CreateProduct adds a new product to a store
 // @Summary Add product
-// @Tags product
+// @Description Add a new product to a store (Admin only)
+// @Tags Product
 // @Accept json
 // @Produce json
+// @Param store_id path int true "Store ID"
+// @Param request body dto.CreateProductRequest true "Product details"
+// @Success 201 {object} response.BaseResponse{data=dto.Product}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 422 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /store/:store_id/product [post]
 func (h *ProductHandler) CreateProduct(c *gin.Context) {
 	storeIDStr := c.Param("store_id")
@@ -81,12 +94,24 @@ func (h *ProductHandler) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, product)
+	response.Success(c, http.StatusCreated, product)
 }
 
 // UpdateProduct edits an existing product
 // @Summary Edit product
-// @Tags product
+// @Description Modify details of an existing product (Admin only)
+// @Tags Product
+// @Accept json
+// @Produce json
+// @Param store_id path int true "Store ID"
+// @Param id path int true "Product ID"
+// @Param request body dto.UpdateProductRequest true "Product update details"
+// @Success 200 {object} response.BaseResponse{data=dto.Product}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 422 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /store/:store_id/product/:id [put]
 func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 	storeIDStr := c.Param("store_id")
@@ -117,12 +142,20 @@ func (h *ProductHandler) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, product)
+	response.Success(c, http.StatusOK, product)
 }
 
 // DeleteProduct removes a product
 // @Summary Delete product
-// @Tags product
+// @Description Completely remove a product from a store (Admin only)
+// @Tags Product
+// @Produce json
+// @Param store_id path int true "Store ID"
+// @Param id path int true "Product ID"
+// @Success 200 {object} response.BaseResponse{data=map[string]string}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /store/:store_id/product/:id [delete]
 func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 	storeIDStr := c.Param("store_id")
@@ -145,19 +178,28 @@ func (h *ProductHandler) DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "product deleted"})
+	response.Success(c, http.StatusOK, gin.H{"message": "product deleted"})
 }
 
 // PublicGetProductByID returns a single product by its ID (Public)
 // @Summary Get a product by ID (Public)
-// @Tags product
-// @Param id path int true "Product ID"
+// @Description Fetch details of a single product (public endpoint)
+// @Tags Product
 // @Produce json
+// @Param id path int true "Product ID"
+// @Success 200 {object} response.BaseResponse{data=dto.Product}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /products/{id} [get]
 func (h *ProductHandler) PublicGetProductByID(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid product id"})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"data":    nil,
+			"error":   gin.H{"code": "BAD_REQUEST", "message": "invalid product id"},
+		})
 		return
 	}
 
@@ -167,17 +209,20 @@ func (h *ProductHandler) PublicGetProductByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, product)
+	response.Success(c, http.StatusOK, product)
 }
 
 // PublicListProducts returns all products with filtering and pagination
 // @Summary List all products (public)
-// @Tags product
+// @Description Fetch all available products across stores with filtering/pagination
+// @Tags Product
+// @Produce json
 // @Param category query string false "Category"
 // @Param query query string false "Search query"
 // @Param page query int false "Page number"
 // @Param page_size query int false "Page size"
-// @Produce json
+// @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /products [get]
 func (h *ProductHandler) PublicListProducts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -194,11 +239,11 @@ func (h *ProductHandler) PublicListProducts(c *gin.Context) {
 		Query:    query,
 	}
 
-	response, err := h.productModule.ListAllProducts(c.Request.Context(), params)
+	resp, err := h.productModule.ListAllProducts(c.Request.Context(), params)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	response.Success(c, http.StatusOK, resp)
 }

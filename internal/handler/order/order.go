@@ -6,7 +6,7 @@ import (
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
-	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
+	"github.com/BoruTamena/gabaa-bot/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,31 +18,18 @@ func NewOrderHandler(oModule module.OrderModule) *OrderHandler {
 	return &OrderHandler{orderModule: oModule}
 }
 
-// AddToCart adds an item to the user's active cart
-// @Summary Add to cart
-// @Tags order
-// @Param product_id query int true "Product ID"
-// @Param quantity query int true "Quantity"
-// @Router /order/cart/add [post]
-func (h *OrderHandler) AddToCart(c *gin.Context) {
-	productID, _ := strconv.ParseInt(c.Query("product_id"), 10, 64)
-	quantity, _ := strconv.Atoi(c.Query("quantity"))
-	userID := c.GetInt64("user_id")
-
-	err := h.orderModule.AddToCart(c.Request.Context(), userID, productID, quantity)
-	if err != nil {
-		status, appErr := errorx.ErrorResponse(err)
-		c.JSON(status, appErr)
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "added to cart"})
-}
+// AddToCart and GetUserCart removed
 
 // Checkout creates an order from the user's cart
 // @Summary Create order from cart
-// @Tags order
+// @Description Creates a new order based on the user's current cart items for a specific store
+// @Tags Order
+// @Produce json
 // @Param store_id query int true "Store ID"
+// @Success 200 {object} response.BaseResponse{data=dto.Order}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /order/create [post]
 func (h *OrderHandler) Checkout(c *gin.Context) {
 	storeID, _ := strconv.ParseInt(c.Query("store_id"), 10, 64)
@@ -50,21 +37,24 @@ func (h *OrderHandler) Checkout(c *gin.Context) {
 
 	order, err := h.orderModule.Checkout(c.Request.Context(), userID, storeID)
 	if err != nil {
-		status, appErr := errorx.ErrorResponse(err)
-		c.JSON(status, appErr)
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, order)
+	response.Success(c, http.StatusOK, order)
 }
 
 // ListOrders returns all orders for a store with pagination
 // @Summary List orders
-// @Tags order
+// @Description Retrieve a paginated list of all orders for a given store
+// @Tags Order
+// @Produce json
 // @Param store_id path int true "Store ID"
 // @Param page query int false "Page number"
 // @Param page_size query int false "Page size"
-// @Produce json
+// @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /store/:store_id/orders [get]
 func (h *OrderHandler) ListOrders(c *gin.Context) {
 	storeIDStr := c.Param("store_id")
@@ -78,40 +68,100 @@ func (h *OrderHandler) ListOrders(c *gin.Context) {
 		PageSize: pageSize,
 	}
 
-	response, err := h.orderModule.ListOrders(c.Request.Context(), storeID, params)
+	resp, err := h.orderModule.ListOrders(c.Request.Context(), storeID, params)
 	if err != nil {
-		status, appErr := errorx.ErrorResponse(err)
-		c.JSON(status, appErr)
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	response.Success(c, http.StatusOK, resp)
 }
 
-// GetUserCart returns the user's active cart with product details
-// @Summary Get user cart
-// @Tags order
+// GetOrder returns an order by its ID
+// @Summary Get order
+// @Description Retrieve details of a specific order by ID
+// @Tags Order
 // @Produce json
-// @Router /user/cart [get]
-func (h *OrderHandler) GetUserCart(c *gin.Context) {
-	userID := c.GetInt64("user_id")
+// @Param order_id path int true "Order ID"
+// @Success 200 {object} response.BaseResponse{data=dto.Order}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /orders/:order_id [get]
+func (h *OrderHandler) GetOrder(c *gin.Context) {
+	orderIDStr := c.Param("order_id")
+	orderID, _ := strconv.ParseInt(orderIDStr, 10, 64)
 
-	cart, err := h.orderModule.GetUserCart(c.Request.Context(), userID)
+	order, err := h.orderModule.GetOrder(c.Request.Context(), orderID)
 	if err != nil {
-		status, appErr := errorx.ErrorResponse(err)
-		c.JSON(status, appErr)
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, cart)
+	response.Success(c, http.StatusOK, order)
+}
+
+// CancelOrder allows a user to cancel their own pending order
+// @Summary Cancel order
+// @Description Cancels a pending order and restores product stock
+// @Tags Order
+// @Produce json
+// @Param order_id path int true "Order ID"
+// @Success 200 {object} response.BaseResponse{data=map[string]string}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /user/orders/:order_id/cancel [put]
+func (h *OrderHandler) CancelOrder(c *gin.Context) {
+	orderIDStr := c.Param("order_id")
+	orderID, _ := strconv.ParseInt(orderIDStr, 10, 64)
+	userID := c.GetInt64("user_id")
+
+	err := h.orderModule.CancelOrder(c.Request.Context(), userID, orderID)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, gin.H{"message": "order cancelled"})
+}
+
+// UpdateOrderStatus updates the status of an order
+// @Summary Update order status
+// @Description Update the status of an existing order
+// @Tags Order
+// @Produce json
+// @Param order_id path int true "Order ID"
+// @Param status query string true "New Status"
+// @Success 200 {object} response.BaseResponse{data=map[string]string}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /store/:store_id/orders/:order_id/status [put]
+func (h *OrderHandler) UpdateOrderStatus(c *gin.Context) {
+	orderIDStr := c.Param("order_id")
+	orderID, _ := strconv.ParseInt(orderIDStr, 10, 64)
+	status := c.Query("status")
+
+	err := h.orderModule.UpdateOrderStatus(c.Request.Context(), orderID, status)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, gin.H{"message": "order status updated"})
 }
 
 // GetUserOrders returns all orders for the authenticated user
 // @Summary List user orders
-// @Tags order
+// @Description Retrieve a paginated list of all orders belonging to the authenticated user
+// @Tags Order
+// @Produce json
 // @Param page query int false "Page number"
 // @Param page_size query int false "Page size"
-// @Produce json
+// @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /user/orders [get]
 func (h *OrderHandler) GetUserOrders(c *gin.Context) {
 	userID := c.GetInt64("user_id")
@@ -124,12 +174,11 @@ func (h *OrderHandler) GetUserOrders(c *gin.Context) {
 		PageSize: pageSize,
 	}
 
-	response, err := h.orderModule.GetUserOrders(c.Request.Context(), userID, params)
+	resp, err := h.orderModule.GetUserOrders(c.Request.Context(), userID, params)
 	if err != nil {
-		status, appErr := errorx.ErrorResponse(err)
-		c.JSON(status, appErr)
+		response.Error(c, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	response.Success(c, http.StatusOK, resp)
 }

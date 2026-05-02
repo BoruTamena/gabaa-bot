@@ -1,79 +1,111 @@
 # Frontend Integration Guide
 
-This guide outlines the integration process for the Gabaa E-Commerce Telegram Mini App.
+This guide outlines the integration process for the Gabaa E-Commerce Telegram Mini App, including all updated endpoints, HTTP methods, and the new standardized JSON response structure.
 
-## 1. Authentication & Onboarding Flow
+## 0. Standard API Responses
 
-All requests (except authentication) require a `Bearer` token in the `Authorization` header.
+All endpoints adhere to a standardized JSON response format.
 
-### Scenario: Authenticate User
-**Endpoint:** `POST /auth/telegram`  
-**Description:** Send the `initData` provided by Telegram to get a JWT token. The response tells the frontend how to route the user.
-
-**Request:**
+**Success Response Envelope:**
 ```json
 {
-  "initData": "user=%7B%22id%22%3A123456...&auth_date=162...&hash=..."
+  "success": true,
+  "data": { ... },
+  "error": null
 }
 ```
 
-### Response Scenarios:
+**Error Response Envelope:**
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "error": "BAD_REQUEST",
+    "message": "Detailed error message here"
+  }
+}
+```
+**Common Error Codes:**
+- `UNAUTHORIZED`: Invalid or missing token/initData.
+- `FORBIDDEN`: No permission for this resource.
+- `VALIDATION_ERROR`: Field validation failed.
+- `NOT_FOUND`: Resource doesn't exist.
+- `INTERNAL_ERROR`: Unexpected server error.
 
-#### A. Customer (Shopper)
-*Role is "customer". Frontend should redirect to the marketplace or a specific store's product list.*
+*Note: All endpoints below show only the `data` payload or request bodies for brevity unless the full envelope is required for context. Every request (except `/auth/telegram`) must include a `Bearer` token in the `Authorization` header.*
+
+---
+
+## 1. Authentication & Onboarding
+
+### Option A: Telegram Mini App Login
+**Endpoint:** `POST /auth/telegram`  
+**Description:** Validate Telegram `initData` and fetch JWT. Use this for automatic login within the Mini App.
+
+**Request Body:**
+```json
+{
+  "initData": "user=%7B%22id%22%3A123456...&auth_date=162..."
+}
+```
+
+### Option B: Email & Password (Dashboard)
+**Endpoint:** `POST /auth/register` (Register new merchant/user)  
+**Endpoint:** `POST /auth/login` (Login existing merchant/user)
+
+**Request Body:**
+```json
+{
+  "email": "merchant@example.com",
+  "password": "securepassword123"
+}
+```
+
+### Option C: Telegram Login Widget (Dashboard)
+**Description:** Use the official [Telegram Login Widget](https://core.telegram.org/widgets/login).
+**Callback Endpoint:** `GET /auth/telegram/callback` (Handled by backend to issue JWT).
+
+**Response Data (`data` field for all auth methods):**
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiI...",
   "userId": 1,
   "username": "customer_joe",
-  "role": "customer",
-  "hasStore": false
-}
-```
-
-#### B. Admin with NO Store
-*Role is "admin" but `hasStore` is false. Frontend must guide the user to the **Store Setup** screen.*
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiI...",
-  "userId": 2,
-  "username": "seller_new",
-  "role": "admin",
-  "hasStore": false
-}
-```
-
-#### C. Admin WITH Store
-*Role is "admin", `hasStore` is true, and `storeId` is provided. Frontend should redirect to the **Seller Dashboard** for that store.*
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiI...",
-  "userId": 3,
-  "username": "seller_pro",
-  "role": "admin",
-  "hasStore": true,
-  "storeId": 10
+  "role": "merchant",  // or "customer"
+  "hasStore": false,
+  "storeId": 0
 }
 ```
 
 ---
 
-## 2. Store Management
+## 2. Store Setup & Silent Linking
 
-### Scenario: First-time Seller (Determine State)
+For merchants to link their store to a Telegram Group/Channel silently:
+
+1.  **Initialize Store:** Create the store via `POST /store/from-chat` (or similar).
+2.  **Deep Link to Bot:** Redirect the merchant to the bot with a start payload:  
+    `https://t.me/GabaaPlaceBot?start=link_store_{store_id}`
+3.  **Bot PM Start:** When the merchant clicks "Start" in PM, the bot acknowledges but does nothing in public.
+4.  **Add Bot to Group:** Merchant adds the bot to their target group/channel as an **Administrator**.
+5.  **Silent Activation:** The backend detects the addition and silently links the group to the store. The merchant receives a **Private Message** confirmation: "✅ Store successfully linked!"
+
+### Get Dashboard State
 **Endpoint:** `GET /store/dashboard/:chat_id`  
-**Description:** Use this to decide if the seller needs to set up a store or manage products.
+**Description:** Determine if the user needs to set up a store or manage products.
 
-**Response:**
+**Response Data:**
 ```json
 {
   "dashboard_type": "setup", // or "manage"
-  "store": null // or Store object
+  "store": null // or Store details
 }
 ```
 
-### Scenario: Create Store (Setup)
-**Endpoint:** `POST /store/from-chat`
+### Create Store (Setup)
+**Endpoint:** `POST /store/from-chat`  
+**Description:** Create a new store (Admin only).
 
 **Request:**
 ```json
@@ -88,37 +120,33 @@ All requests (except authentication) require a `Bearer` token in the `Authorizat
 }
 ```
 
-### Scenario: Get/Update Store Profile
-**GET** `/store/:store_id`  
-**PUT** `/store/:store_id`
+### Get / Update Store
+- **GET** `/store/:store_id` (Fetch store details)
+- **PUT** `/store/:store_id` (Update store details)
 
 ---
 
-## 3. Product Management
+## 3. Categories Management
 
-### Scenario: List Store Products
-**Endpoint:** `GET /store/:store_id/products?page=1&page_size=10`
+- **GET** `/categories?page=1&page_size=10` (List all global categories)
+- **GET** `/store/:store_id/categories` (List specific store categories)
+- **POST** `/store/:store_id/category` (Add custom store category)
 
-**Response:**
-```json
-{
-  "total": 50,
-  "data": [
-    {
-      "id": 1,
-      "name": "Smartphone",
-      "price": 500,
-      "stock": 10,
-      "images": "url1,url2"
-    }
-  ]
-}
-```
+---
 
-### Scenario: Add New Product
-**Endpoint:** `POST /store/:store_id/product`
+## 4. Product Management
 
-**Request:**
+### Public Browsing
+- **GET** `/products?page=1&page_size=10&category=Phones&query=iPhone` (Public list/search all products)
+- **GET** `/products/:id` (Fetch single public product)
+
+### Store Products (Admin / Store View)
+- **GET** `/store/:store_id/products?page=1&page_size=10`
+- **POST** `/store/:store_id/product` (Create new product)
+- **PUT** `/store/:store_id/product/:id` (Update existing product)
+- **DELETE** `/store/:store_id/product/:id` (Delete product)
+
+**Product Request Body Example (POST/PUT):**
 ```json
 {
   "name": "Laptop",
@@ -131,24 +159,26 @@ All requests (except authentication) require a `Bearer` token in the `Authorizat
 
 ---
 
-## 4. Shopping Cart & Checkout
+## 5. Shopping Cart Management
 
-### Scenario: Add Item to Cart
-**Endpoint:** `POST /order/cart/add?product_id=1&quantity=2`  
-**Description:** Items are stored in Redis cache per user.
+The user's cart is managed via Redis and persists per user.
 
-**Response:**
-```json
-{
-  "message": "added to cart"
-}
-```
+- **POST** `/user/cart/add?product_id=1&quantity=2` (Add item to cart)
+- **GET** `/user/cart` (Fetch active user cart)
+- **PUT** `/user/cart/update?product_id=1&action=increment` (Increase quantity by 1)
+- **PUT** `/user/cart/update?product_id=1&action=decrement` (Decrease quantity by 1. If quantity reaches 0, item is removed.)
+- **DELETE** `/user/cart/remove?product_id=1` (Remove item completely)
+- **DELETE** `/user/cart/clear` (Empty the cart)
 
-### Scenario: Checkout (Create Order)
+---
+
+## 6. Order Management
+
+### Checkout (Create Order)
 **Endpoint:** `POST /order/create?store_id=1`  
-**Description:** Converts all items in the user's cart (for that store) into a single order.
+**Description:** Converts the user's cart items (filtered by the given store ID) into an order. Cart items for that store are then cleared.
 
-**Response:**
+**Response Data Example:**
 ```json
 {
   "id": 101,
@@ -166,16 +196,22 @@ All requests (except authentication) require a `Bearer` token in the `Authorizat
 }
 ```
 
+### User Orders
+- **GET** `/user/orders?page=1&page_size=10` (List all orders placed by the user)
+- **GET** `/orders/:order_id` (Get specific order details)
+- **PUT** `/user/orders/:order_id/cancel` (Cancel a 'pending' order - restores product stock automatically)
+
+### Store Orders (Admin)
+- **GET** `/store/:store_id/orders?page=1&page_size=20` (List store orders)
+- **PUT** `/store/:store_id/orders/:order_id/status?status=completed` (Update an order status to 'processing', 'completed', 'shipped', etc.)
+
 ---
 
-## 5. Order Management (Seller Side)
+## 7. Payments & Wallet
 
-### Scenario: List Store Orders
-**Endpoint:** `GET /store/:store_id/orders?page=1&page_size=20`
-
-### Scenario: Verify Payment (Manual)
+### Verify Payment (Manual)
 **Endpoint:** `POST /payment/verify`  
-**Description:** Mark an order as paid and credit the seller's wallet.
+**Description:** Confirm offline/manual payment. This marks the order as completed and credits the store wallet.
 
 **Request:**
 ```json
@@ -184,19 +220,13 @@ All requests (except authentication) require a `Bearer` token in the `Authorizat
 }
 ```
 
----
+### Get Store Wallet
+**Endpoint:** `GET /store/:store_id/wallet`  
+**Description:** Fetch the store's current verified wallet balance.
 
-## Error Handling
-
-All error responses follow this structure:
+**Response Data:**
 ```json
 {
-  "error": "BAD_REQUEST",
-  "message": "Invalid email format"
+  "balance": 2400.50
 }
 ```
-**Common Error Codes:**
-- `UNAUTHORIZED`: Invalid or missing token/initData.
-- `FORBIDDEN`: No permission for this resource.
-- `VALIDATION_ERROR`: Field validation failed.
-- `NOT_FOUND`: Resource doesn't exist.

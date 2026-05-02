@@ -3,7 +3,8 @@ package dto
 
 type User struct {
 	ID             int64  `json:"id"`
-	TelegramUserID int64  `json:"telegram_user_id"`
+	TelegramUserID *int64 `json:"telegram_user_id"`
+	Email          string `json:"email"`
 	Username       string `json:"username"`
 	Role           string `json:"role"`
 }

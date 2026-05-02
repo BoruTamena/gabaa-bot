@@ -3,11 +3,13 @@ package routing
 import (
 	_ "github.com/BoruTamena/gabaa-bot/docs"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/auth"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/cart"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/middleware"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/order"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/payment"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/product"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/store"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/telegram"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -18,9 +20,11 @@ func NewGinRouter(
 	storeHandler *store.StoreHandler,
 	productHandler *product.ProductHandler,
 	orderHandler *order.OrderHandler,
+	cartHandler *cart.CartHandler,
 	paymentHandler *payment.PaymentHandler,
 	categoryHandler *product.CategoryHandler,
 	authMiddleware *middleware.AuthMiddleware,
+	webhookHandler *telegram.WebhookHandler,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -37,6 +41,9 @@ func NewGinRouter(
 	RegisterPublicProductRoutes(r, productHandler)
 	RegisterPublicCategoryRoutes(r, categoryHandler)
 
+	// Telegram Webhook
+	r.POST("/api/v1/webhook/telegram", authMiddleware.TelegramWebhookSecret(), webhookHandler.HandleUpdate)
+
 	// ── Protected routes (JWT auth required) ──────────────────────────
 	api := r.Group("/")
 	api.Use(authMiddleware.JWTAuth())
@@ -45,6 +52,7 @@ func NewGinRouter(
 		RegisterProductRoutes(api, productHandler)
 		RegisterCategoryRoutes(api, categoryHandler)
 		RegisterOrderRoutes(api, orderHandler)
+		RegisterCartRoutes(api, cartHandler)
 		RegisterPaymentRoutes(api, paymentHandler)
 	}
 

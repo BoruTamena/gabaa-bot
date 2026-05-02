@@ -80,3 +80,15 @@ func (m *AuthMiddleware) JWTAuth() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func (m *AuthMiddleware) TelegramWebhookSecret() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		token := c.GetHeader("X-Telegram-Bot-Api-Secret-Token")
+		expectedToken := viper.GetString("tg.webhook.secret")
+		if expectedToken != "" && token != expectedToken {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		c.Next()
+	}
+}

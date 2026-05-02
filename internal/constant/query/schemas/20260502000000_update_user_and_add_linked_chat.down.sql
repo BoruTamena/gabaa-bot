@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS linked_chats;
+ALTER TABLE users DROP COLUMN IF EXISTS email;
+ALTER TABLE users DROP COLUMN IF EXISTS password_hash;
+ALTER TABLE users ALTER COLUMN telegram_user_id SET NOT NULL;

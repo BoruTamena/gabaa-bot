@@ -9,6 +9,7 @@ import (
 type UserStorage interface {
 	CreateUser(ctx context.Context, user *db.User) error
 	GetUserByTelegramID(ctx context.Context, telegramID int64) (*db.User, error)
+	GetUserByID(ctx context.Context, id int64) (*db.User, error)
 	UpdateUser(ctx context.Context, user *db.User) error
 }
 
@@ -49,6 +50,8 @@ type WalletStorage interface {
 type CartStorage interface {
 	GetCart(ctx context.Context, userID int64) (map[string]int, error)
 	AddToCart(ctx context.Context, userID int64, productID int64, quantity int) error
+	UpdateCartItem(ctx context.Context, userID int64, productID int64, quantity int) error
+	RemoveFromCart(ctx context.Context, userID int64, productID int64) error
 	ClearCart(ctx context.Context, userID int64) error
 }
 

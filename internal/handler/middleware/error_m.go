@@ -20,7 +20,11 @@ func ErrorMiddleware() gin.HandlerFunc {
 			status, appErr := errorx.ErrorResponse(err)
 			
 			// Send the JSON response
-			c.JSON(status, appErr)
+			c.JSON(status, gin.H{
+				"success": false,
+				"data":    nil,
+				"error":   appErr,
+			})
 			c.Abort()
 		}
 	}

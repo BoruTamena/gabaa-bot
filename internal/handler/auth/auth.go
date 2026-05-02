@@ -5,6 +5,7 @@ import (
 
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
+	"github.com/BoruTamena/gabaa-bot/pkg/response"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,9 +20,14 @@ func NewAuthHandler(aModule module.AuthModule) *AuthHandler {
 // TelegramAuth handles Telegram MiniApp authentication
 // @Summary Authenticate via Telegram
 // @Description Validates initData and returns JWT
+// @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body map[string]string true "initData"
+// @Param request body map[string]string true "initData"
+// @Success 200 {object} response.BaseResponse{data=dto.AuthResponse}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /auth/telegram [post]
 func (h *AuthHandler) TelegramAuth(c *gin.Context) {
 	var req struct {
@@ -30,20 +36,19 @@ func (h *AuthHandler) TelegramAuth(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		appErr := errorx.New(errorx.ErrBadRequest, "Missing or invalid request body", http.StatusBadRequest)
-		c.JSON(appErr.Status, appErr)
+		response.CustomError(c, appErr)
 		return
 	}
 
 	resp, err := h.authModule.TelegramAuth(c.Request.Context(), req.InitData)
 	if err != nil {
-		status, appErr := errorx.ErrorResponse(err)
-		if appErr.Code == errorx.ErrInternal {
+		appErr, ok := err.(*errorx.AppError)
+		if !ok || appErr.Code == errorx.ErrInternal {
 			appErr = errorx.New(errorx.ErrUnauthorized, err.Error(), http.StatusUnauthorized)
-			status = http.StatusUnauthorized
 		}
-		c.JSON(status, appErr)
+		response.CustomError(c, appErr)
 		return
 	}
 
-	c.JSON(http.StatusOK, resp)
+	response.Success(c, http.StatusOK, resp)
 }

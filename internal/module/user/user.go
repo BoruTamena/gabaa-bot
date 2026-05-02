@@ -24,7 +24,7 @@ func (m *userModule) GetOrCreateUser(ctx context.Context, telegramID int64, user
 	if err != nil {
 		// If not found, create
 		user = &db.User{
-			TelegramUserID: telegramID,
+			TelegramUserID: &telegramID,
 			Username:       username,
 			Role:           "customer",
 		}

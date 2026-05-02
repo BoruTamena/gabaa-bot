@@ -31,10 +31,18 @@ func InitTelBot() platform.Telegram {
 		Timeout: 30 * time.Second,
 	}
 
-	setting := telebot.Settings{
+	var poller telebot.Poller
+	if viper.GetBool("tg.webhook.enabled") {
+		logger.Info("Telegram bot configured for Webhooks")
+		// We don't use a real poller here because Gin handles the requests
+	} else {
+		logger.Info("Telegram bot configured for Long Polling")
+		poller = &telebot.LongPoller{Timeout: 10 * time.Second}
+	}
 
+	setting := telebot.Settings{
 		Token:  viper.GetString("tg.token"),
-		Poller: &telebot.LongPoller{Timeout: 10 * time.Second},
+		Poller: poller,
 		Client: client,
 	}
 	bot, err := telebot.NewBot(setting)
@@ -51,8 +59,16 @@ func InitTelBot() platform.Telegram {
 }
 
 func (tg *telegram) Start() {
-	logger.Info("starting telegram bot poller")
-	tg.bot.Start()
+	if tg.bot.Poller != nil {
+		logger.Info("starting telegram bot poller")
+		go tg.bot.Start()
+	} else {
+		logger.Info("telegram bot starting in webhook mode (manual processing)")
+	}
+}
+
+func (tg *telegram) ProcessUpdate(u telebot.Update) {
+	tg.bot.ProcessUpdate(u)
 }
 
 func (tg *telegram) GetBot() *telebot.Bot {
@@ -159,8 +175,18 @@ func hmacSHA256(key, data []byte) []byte {
 }
 
 func (tg *telegram) IsChatAdmin(chatID int64, userID int64) (bool, error) {
+	// 1. Handle Private Chat case
+	// In Telegram, chatID == userID for private chats. 
+	// The Bot API 'getChatAdministrators' fails for private chats.
+	if chatID == userID {
+		return true, nil
+	}
+
+	// 2. Handle Group/Channel case
 	admins, err := tg.bot.AdminsOf(&telebot.Chat{ID: chatID})
 	if err != nil {
+		// If it's still a private chat but with different IDs (shouldn't happen for merchants)
+		// or if the bot is not in the chat, we log it and return false.
 		logger.Error("failed to get chat admins", zap.Error(err), zap.Int64("chat_id", chatID))
 		return false, err
 	}

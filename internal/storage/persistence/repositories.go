@@ -38,6 +38,15 @@ func (p *persistence) GetUserByTelegramID(ctx context.Context, telegramID int64)
 	return &user, err
 }
 
+func (p *persistence) GetUserByID(ctx context.Context, id int64) (*db.User, error) {
+	var user db.User
+	err := p.db.WithContext(ctx).First(&user, id).Error
+	if err != nil {
+		p.logger.Error("Failed to get user by ID", "error", err, "userID", id)
+	}
+	return &user, err
+}
+
 func (p *persistence) UpdateUser(ctx context.Context, user *db.User) error {
 	err := p.db.WithContext(ctx).Save(user).Error
 	if err != nil {
@@ -375,6 +384,25 @@ func (p *cartPersistence) AddToCart(ctx context.Context, userID int64, productID
 
 	// Use OnConflict to handle update if already exists
 	return p.db.WithContext(ctx).Save(&item).Error
+}
+
+func (p *cartPersistence) UpdateCartItem(ctx context.Context, userID int64, productID int64, quantity int) error {
+	if quantity <= 0 {
+		return p.RemoveFromCart(ctx, userID, productID)
+	}
+	
+	// Update existing record, or create if not exists
+	item := db.CartItem{
+		UserID:    userID,
+		ProductID: productID,
+		Quantity:  quantity,
+	}
+
+	return p.db.WithContext(ctx).Save(&item).Error
+}
+
+func (p *cartPersistence) RemoveFromCart(ctx context.Context, userID int64, productID int64) error {
+	return p.db.WithContext(ctx).Where("user_id = ? AND product_id = ?", userID, productID).Delete(&db.CartItem{}).Error
 }
 
 func (p *cartPersistence) ClearCart(ctx context.Context, userID int64) error {

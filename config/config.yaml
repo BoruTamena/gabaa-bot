@@ -2,7 +2,8 @@
 db:
   dbname: botdb
   host: localhost 
-  url: postgresql://botdb_51rx_user:vabKnBBBhgOV4uVRLo6FOoF9eUj7J386@dpg-d7lt0hm7r5hc73airsi0-a.virginia-postgres.render.com/botdb_51rx
+  # url: postgresql://botdb_51rx_user:vabKnBBBhgOV4uVRLo6FOoF9eUj7J386@dpg-d7lt0hm7r5hc73airsi0-a.virginia-postgres.render.com/botdb_51rx
+  url: postgres://postgres:password@localhost:5430/botdb?sslmode=disable
 migiration:
   path: internal/constant/query/schemas
 
