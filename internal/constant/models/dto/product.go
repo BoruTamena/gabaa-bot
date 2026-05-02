@@ -14,6 +14,7 @@ type Product struct {
 	Stock       int      `json:"stock"`
 	Category    string   `json:"category"`
 	Images      []string `json:"images"`
+	Status      string   `json:"status"`
 	IsPosted    bool     `json:"is_posted"`
 	IsBoosted   bool     `json:"is_boosted"`
 }
@@ -43,12 +44,16 @@ type UpdateProductRequest struct {
 	Stock       int      `json:"stock"`
 	Category    string   `json:"category"`
 	Images      []string `json:"images"`
+	Status      string   `json:"status"`
 }
 
 type ProductFilterParams struct {
 	PaginationParams
 	Category string `form:"category"`
 	Query    string `form:"query"`
+	Status   string `form:"status"`
+	MinStock *int   `form:"min_stock"`
+	MaxStock *int   `form:"max_stock"`
 }
 
 func (r UpdateProductRequest) Validate() error {

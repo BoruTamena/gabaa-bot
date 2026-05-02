@@ -10,6 +10,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/handler/product"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/store"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/telegram"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/upload"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -25,6 +26,7 @@ func NewGinRouter(
 	categoryHandler *product.CategoryHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	webhookHandler *telegram.WebhookHandler,
+	uploadHandler *upload.UploadHandler,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -40,6 +42,10 @@ func NewGinRouter(
 	RegisterAuthRoutes(r, authHandler)
 	RegisterPublicProductRoutes(r, productHandler)
 	RegisterPublicCategoryRoutes(r, categoryHandler)
+	
+	// Image Upload (Public as requested)
+	uploadGroup := r.Group("/")
+	RegisterUploadRoutes(uploadGroup, uploadHandler)
 
 	// Telegram Webhook
 	r.POST("/api/v1/webhook/telegram", authMiddleware.TelegramWebhookSecret(), webhookHandler.HandleUpdate)

@@ -11,6 +11,7 @@ type Product struct {
 	Stock       int     `gorm:"column:stock;not null" json:"stock"`
 	Category    string  `gorm:"column:category" json:"category"`
 	Images      string  `gorm:"column:images;type:jsonb" json:"images"`
+	Status      string  `gorm:"column:status;default:draft" json:"status"` // draft, published, archived
 	IsPosted    bool    `gorm:"column:is_posted;default:false" json:"is_posted"`
 	IsBoosted   bool    `gorm:"column:is_boosted;default:false" json:"is_boosted"`
 }

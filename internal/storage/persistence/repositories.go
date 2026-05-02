@@ -108,6 +108,26 @@ func (p *storePersistence) UpdateStore(ctx context.Context, store *db.Store) err
 	return err
 }
 
+func (p *storePersistence) IncrementStoreViews(ctx context.Context, storeIDs []int64) error {
+	if len(storeIDs) == 0 {
+		return nil
+	}
+
+	// Use raw SQL for high performance batch upsert
+	query := `
+		INSERT INTO store_stats (store_id, views, updated_at)
+		SELECT unnest(?::bigint[]), 1, NOW()
+		ON CONFLICT (store_id) 
+		DO UPDATE SET views = store_stats.views + 1, updated_at = EXCLUDED.updated_at
+	`
+	
+	err := p.db.WithContext(ctx).Exec(query, storeIDs).Error
+	if err != nil {
+		p.logger.Error("Failed to increment store views", "error", err, "count", len(storeIDs))
+	}
+	return err
+}
+
 // ProductStorage
 type productPersistence struct {
 	db     *gorm.DB
@@ -166,6 +186,18 @@ func (p *productPersistence) ListAllProducts(ctx context.Context, filter dto.Pro
 	if filter.Query != "" {
 		searchTerm := "%" + filter.Query + "%"
 		query = query.Where("name ILIKE ? OR description ILIKE ?", searchTerm, searchTerm)
+	}
+
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+
+	if filter.MinStock != nil {
+		query = query.Where("stock >= ?", *filter.MinStock)
+	}
+
+	if filter.MaxStock != nil {
+		query = query.Where("stock <= ?", *filter.MaxStock)
 	}
 
 	err := query.Count(&count).Error
@@ -390,7 +422,7 @@ func (p *cartPersistence) UpdateCartItem(ctx context.Context, userID int64, prod
 	if quantity <= 0 {
 		return p.RemoveFromCart(ctx, userID, productID)
 	}
-	
+
 	// Update existing record, or create if not exists
 	item := db.CartItem{
 		UserID:    userID,
@@ -408,4 +440,3 @@ func (p *cartPersistence) RemoveFromCart(ctx context.Context, userID int64, prod
 func (p *cartPersistence) ClearCart(ctx context.Context, userID int64) error {
 	return p.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&db.CartItem{}).Error
 }
-

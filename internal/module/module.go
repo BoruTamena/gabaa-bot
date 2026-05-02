@@ -17,6 +17,7 @@ type StoreModule interface {
 	CreateStore(ctx context.Context, userID int64, req dto.CreateStoreRequest) (*dto.Store, error)
 	GetAdminDashboard(ctx context.Context, userID int64, chatID int64) (string, *dto.Store, error)
 	GetStore(ctx context.Context, id int64) (*dto.Store, error)
+	GetStoreStatus(ctx context.Context, id int64) (string, error)
 	UpdateStore(ctx context.Context, id int64, req dto.UpdateStoreRequest) (*dto.Store, error)
 }
 
@@ -61,4 +62,8 @@ type CategoryModule interface {
 
 type BotModule interface {
 	// Any specific bot-related methods can go here
+}
+
+type UploadModule interface {
+	UploadImages(ctx context.Context, files []interface{}, fileNames []string) ([]string, error)
 }

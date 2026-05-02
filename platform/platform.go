@@ -57,10 +57,9 @@ type Redis interface {
 	HGet(ctx context.Context, key string, field string) (string, error)
 
 	HKeys(ctx context.Context, key string) ([]string, error)
+}
 
-	// Add other methods as needed
-	// Example: Get(key string) (string, error)
-	// Example: Delete(key string) error
-	// Example: Expire(key string, duration time.Duration) error
-	// Example: Keys(pattern string) ([]string, error)
+type FileUploader interface {
+	UploadFile(ctx context.Context, file interface{}, fileName string) (string, error)
+	UploadMultiple(ctx context.Context, files []interface{}, fileNames []string) ([]string, error)
 }

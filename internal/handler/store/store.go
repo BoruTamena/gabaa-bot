@@ -78,6 +78,31 @@ func (h *StoreHandler) GetStore(c *gin.Context) {
 	response.Success(c, http.StatusOK, store)
 }
 
+// GetStoreStatus retrieves store status
+// @Summary Get store status
+// @Description Returns store status: 'pending' or 'launched'
+// @Tags Store
+// @Produce json
+// @Param store_id path int true "Store ID"
+// @Success 200 {object} response.BaseResponse{data=string}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /store/:store_id/status [get]
+func (h *StoreHandler) GetStoreStatus(c *gin.Context) {
+	idStr := c.Param("store_id")
+	id, _ := strconv.ParseInt(idStr, 10, 64)
+
+	status, err := h.storeModule.GetStoreStatus(c.Request.Context(), id)
+	if err != nil {
+		appErr := errorx.New(errorx.ErrNotFound, "Store not found", http.StatusNotFound)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, status)
+}
+
 // UpdateStore updates store profile
 // @Summary Update store
 // @Description Update store details. Admin only.

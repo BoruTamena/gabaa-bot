@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/BoruTamena/gabaa-bot/internal/constant"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/pkg/logger"
@@ -80,10 +81,15 @@ func (m *botModule) handleMyChatMember(c telebot.Context) error {
 			zap.Int64("chat_id", chatID), 
 			zap.String("chat_title", chatTitle))
 		
-		// TODO: Update storage to save the linked chat
 		// For now, we update the store's TelegramChatID (legacy mapping)
 		store.TelegramChatID = chatID
-		m.storeStorage.UpdateStore(ctx, &store)
+		store.TelegramChatTitle = chatTitle
+		store.Status = constant.StoreStatusLaunched
+		
+		if err := m.storeStorage.UpdateStore(ctx, &store); err != nil {
+			logger.Error("failed to update store after linking", zap.Error(err), zap.Int64("store_id", store.ID))
+			return nil
+		}
 
 		// Send PRIVATE confirmation to merchant
 		m.tele.GetBot().Send(&telebot.User{ID: merchantTGID}, 

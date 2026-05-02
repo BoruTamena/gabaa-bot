@@ -126,6 +126,7 @@ func Init() {
 		handlerLayer.CategoryHandler,
 		handlerLayer.AuthMiddleware,
 		handlerLayer.WebhookHandler,
+		handlerLayer.UploadHandler,
 	)
 
 	port := os.Getenv("PORT")

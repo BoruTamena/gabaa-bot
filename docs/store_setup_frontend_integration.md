@@ -96,5 +96,32 @@ graph TD
     E -- manage --> G[Show Admin Dashboard]
     E -- storefront --> H[Show Buyer Catalog]
     F --> I[POST /store/from-chat]
-    I -- Success --> G
+    I -- Success --> J{Status?}
+    J -- pending --> K[Show 'Connect Bot' Banner]
+    J -- launched --> G
+
+---
+
+## 6. Differentiating Setup Completion
+
+While `dashboard_type === "manage"` tells you the user is an admin, the `status` field in the store object tells you if the **Telegram integration** is complete.
+
+| `status` | Meaning | UI Action Required |
+| :--- | :--- | :--- |
+| `pending` | Profile exists, but Bot is **NOT** in the group yet. | Show a "Finish Setup: Add Bot to Group" banner/modal. |
+| `launched` | Bot is an admin in the group. Store is live. | Show the full management dashboard (Products, Orders, etc). |
+
+**Check logic:**
+```javascript
+const { dashboard_type, store } = response.data;
+
+if (dashboard_type === "manage") {
+  if (store.status === "pending") {
+     // Show "Your store is almost ready! Add the bot to your group to launch."
+     showBotLinkingInstructions();
+  } else {
+     // Show full dashboard
+     showAnalyticsAndProducts();
+  }
+}
 ```

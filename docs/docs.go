@@ -15,6 +15,40 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/webhook/telegram": {
+            "post": {
+                "description": "Handle incoming updates from Telegram via webhook",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Telegram"
+                ],
+                "summary": "Telegram Webhook",
+                "parameters": [
+                    {
+                        "description": "Telegram Update",
+                        "name": "update",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/telegram": {
             "post": {
                 "description": "Validates initData and returns JWT",
@@ -1751,6 +1785,101 @@ const docTemplate = `{
                 }
             }
         },
+        "/store/:store_id/status": {
+            "get": {
+                "description": "Returns store status: 'pending' or 'launched'",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Store"
+                ],
+                "summary": "Get store status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Store ID",
+                        "name": "store_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/store/:store_id/wallet": {
             "get": {
                 "description": "Retrieve the wallet balance for a given store",
@@ -1990,6 +2119,89 @@ const docTemplate = `{
                     },
                     "422": {
                         "description": "Unprocessable Entity",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/upload/images": {
+            "post": {
+                "description": "Upload multiple images to Cloudinary and get public URLs",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Upload"
+                ],
+                "summary": "Upload multiple images",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "Images to upload",
+                        "name": "files",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "allOf": [
                                 {
@@ -2370,9 +2582,9 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "type": "integer",
-                        "description": "New Quantity",
-                        "name": "quantity",
+                        "type": "string",
+                        "description": "Action (increment or decrement)",
+                        "name": "action",
                         "in": "query",
                         "required": true
                     }
@@ -2650,6 +2862,9 @@ const docTemplate = `{
                 "storeId": {
                     "type": "integer"
                 },
+                "telegramUserId": {
+                    "type": "integer"
+                },
                 "token": {
                     "type": "string"
                 },
@@ -2860,6 +3075,9 @@ const docTemplate = `{
                 "seller_id": {
                     "type": "integer"
                 },
+                "status": {
+                    "type": "string"
+                },
                 "stock": {
                     "type": "integer"
                 },
@@ -2901,8 +3119,14 @@ const docTemplate = `{
                 "seller_id": {
                     "type": "integer"
                 },
+                "status": {
+                    "type": "string"
+                },
                 "telegram_chat_id": {
                     "type": "integer"
+                },
+                "telegram_chat_title": {
+                    "type": "string"
                 }
             }
         },
@@ -2926,6 +3150,9 @@ const docTemplate = `{
                 },
                 "price": {
                     "type": "number"
+                },
+                "status": {
+                    "type": "string"
                 },
                 "stock": {
                     "type": "integer"

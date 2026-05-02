@@ -7,6 +7,8 @@ definitions:
         type: string
       storeId:
         type: integer
+      telegramUserId:
+        type: integer
       token:
         type: string
       userId:
@@ -144,6 +146,8 @@ definitions:
         type: number
       seller_id:
         type: integer
+      status:
+        type: string
       stock:
         type: integer
       store_id:
@@ -171,8 +175,12 @@ definitions:
         type: string
       seller_id:
         type: integer
+      status:
+        type: string
       telegram_chat_id:
         type: integer
+      telegram_chat_title:
+        type: string
     type: object
   dto.UpdateProductRequest:
     properties:
@@ -188,6 +196,8 @@ definitions:
         type: string
       price:
         type: number
+      status:
+        type: string
       stock:
         type: integer
     type: object
@@ -248,6 +258,28 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/v1/webhook/telegram:
+    post:
+      consumes:
+      - application/json
+      description: Handle incoming updates from Telegram via webhook
+      parameters:
+      - description: Telegram Update
+        in: body
+        name: update
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Telegram Webhook
+      tags:
+      - Telegram
   /auth/telegram:
     post:
       consumes:
@@ -1200,6 +1232,57 @@ paths:
       summary: List products
       tags:
       - Product
+  /store/:store_id/status:
+    get:
+      description: 'Returns store status: ''pending'' or ''launched'''
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get store status
+      tags:
+      - Store
   /store/:store_id/wallet:
     get:
       description: Retrieve the wallet balance for a given store
@@ -1350,6 +1433,52 @@ paths:
       summary: Create store
       tags:
       - Store
+  /upload/images:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload multiple images to Cloudinary and get public URLs
+      parameters:
+      - description: Images to upload
+        in: formData
+        name: files
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  items:
+                    type: string
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Upload multiple images
+      tags:
+      - Upload
   /user/cart:
     get:
       description: Fetch the active user's cart including product details and total
@@ -1536,11 +1665,11 @@ paths:
         name: product_id
         required: true
         type: integer
-      - description: New Quantity
+      - description: Action (increment or decrement)
         in: query
-        name: quantity
+        name: action
         required: true
-        type: integer
+        type: string
       produces:
       - application/json
       responses:

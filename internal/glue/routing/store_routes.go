@@ -9,6 +9,7 @@ import (
 func RegisterStoreRoutes(api *gin.RouterGroup, storeHandler *store.StoreHandler) {
 	api.POST("/store/from-chat", storeHandler.CreateStore)
 	api.GET("/store/:store_id", storeHandler.GetStore)
+	api.GET("/store/:store_id/status", storeHandler.GetStoreStatus)
 	api.PUT("/store/:store_id", storeHandler.UpdateStore)
 	api.GET("/store/dashboard/:chat_id", storeHandler.GetDashboard)
 }

@@ -9,6 +9,8 @@ type Store struct {
 	ID             int64  `json:"id"`
 	SellerID       int64  `json:"seller_id"`
 	TelegramChatID int64  `json:"telegram_chat_id"`
+	TelegramChatTitle string `json:"telegram_chat_title"`
+	Status         string `json:"status"`
 	Name           string `json:"name"`
 	Category       string `json:"category"`
 	Description    string `json:"description"`

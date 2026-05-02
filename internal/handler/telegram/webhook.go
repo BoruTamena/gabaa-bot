@@ -22,7 +22,7 @@ func NewWebhookHandler(tg platform.Telegram) *WebhookHandler {
 // @Tags Telegram
 // @Accept json
 // @Produce json
-// @Param update body telebot.Update true "Telegram Update"
+// @Param update body object true "Telegram Update"
 // @Success 200 {string} string "OK"
 // @Router /api/v1/webhook/telegram [post]
 func (h *WebhookHandler) HandleUpdate(c *gin.Context) {

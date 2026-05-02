@@ -72,17 +72,19 @@ func (m *storeModule) CreateStore(ctx context.Context, userID int64, req dto.Cre
 	logger.Info("store created successfully", zap.Int64("store_id", store.ID), zap.Int64("seller_id", userID))
 
 	return &dto.Store{
-		ID:             store.ID,
-		SellerID:       store.SellerID,
-		TelegramChatID: store.TelegramChatID,
-		Name:           store.Name,
-		Category:       store.Category,
-		Description:    store.Description,
-		LogoImage:      store.LogoImage,
-		CoverImage:     store.CoverImage,
-		Phone:          store.Phone,
-		Email:          store.Email,
-		Location:       store.Location,
+		ID:                store.ID,
+		SellerID:          store.SellerID,
+		TelegramChatID:    store.TelegramChatID,
+		TelegramChatTitle: store.TelegramChatTitle,
+		Status:            store.Status,
+		Name:              store.Name,
+		Category:          store.Category,
+		Description:       store.Description,
+		LogoImage:         store.LogoImage,
+		CoverImage:        store.CoverImage,
+		Phone:             store.Phone,
+		Email:             store.Email,
+		Location:          store.Location,
 	}, nil
 }
 
@@ -122,6 +124,14 @@ func (m *storeModule) GetStore(ctx context.Context, id int64) (*dto.Store, error
 		return nil, err
 	}
 	return m.mapToDTO(store), nil
+}
+
+func (m *storeModule) GetStoreStatus(ctx context.Context, id int64) (string, error) {
+	store, err := m.storeStorage.GetStoreByID(ctx, id)
+	if err != nil {
+		return "", err
+	}
+	return store.Status, nil
 }
 
 func (m *storeModule) UpdateStore(ctx context.Context, id int64, req dto.UpdateStoreRequest) (*dto.Store, error) {
@@ -171,16 +181,18 @@ func (m *storeModule) UpdateStore(ctx context.Context, id int64, req dto.UpdateS
 
 func (m *storeModule) mapToDTO(store *db.Store) *dto.Store {
 	return &dto.Store{
-		ID:             store.ID,
-		SellerID:       store.SellerID,
-		TelegramChatID: store.TelegramChatID,
-		Name:           store.Name,
-		Category:       store.Category,
-		Description:    store.Description,
-		LogoImage:      store.LogoImage,
-		CoverImage:     store.CoverImage,
-		Phone:          store.Phone,
-		Email:          store.Email,
-		Location:       store.Location,
+		ID:                store.ID,
+		SellerID:          store.SellerID,
+		TelegramChatID:    store.TelegramChatID,
+		TelegramChatTitle: store.TelegramChatTitle,
+		Status:            store.Status,
+		Name:              store.Name,
+		Category:          store.Category,
+		Description:       store.Description,
+		LogoImage:         store.LogoImage,
+		CoverImage:        store.CoverImage,
+		Phone:             store.Phone,
+		Email:             store.Email,
+		Location:          store.Location,
 	}
 }

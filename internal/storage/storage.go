@@ -19,6 +19,7 @@ type StoreStorage interface {
 	GetStoreByChatID(ctx context.Context, chatID int64) (*db.Store, error)
 	GetStoresBySellerID(ctx context.Context, sellerID int64) ([]db.Store, error)
 	UpdateStore(ctx context.Context, store *db.Store) error
+	IncrementStoreViews(ctx context.Context, storeIDs []int64) error
 }
 
 type ProductStorage interface {
