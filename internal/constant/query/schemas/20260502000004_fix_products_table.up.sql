@@ -1,6 +1,8 @@
 -- Add seller_id and category to products table
 ALTER TABLE products ADD COLUMN IF NOT EXISTS seller_id BIGINT REFERENCES users(id);
 ALTER TABLE products ADD COLUMN IF NOT EXISTS category VARCHAR(100);
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_posted BOOLEAN DEFAULT FALSE;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS is_boosted BOOLEAN DEFAULT FALSE;
 
 -- Update existing products to have a valid seller_id (from their store)
 UPDATE products p

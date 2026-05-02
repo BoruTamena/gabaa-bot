@@ -1,2 +1,4 @@
 ALTER TABLE products DROP COLUMN IF EXISTS seller_id;
 ALTER TABLE products DROP COLUMN IF EXISTS category;
+ALTER TABLE products DROP COLUMN IF EXISTS is_posted;
+ALTER TABLE products DROP COLUMN IF EXISTS is_boosted;
