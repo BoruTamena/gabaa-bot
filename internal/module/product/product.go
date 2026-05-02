@@ -280,10 +280,12 @@ func (m *productModule) pushProductToTelegram(p *db.Product) {
 
 	// Use Telegram direct link to open Mini App if bot username is available
 	if bot.Me != nil && bot.Me.Username != "" {
-		productURL = fmt.Sprintf("https://t.me/%s/app?startapp=product_%d", bot.Me.Username, p.ID)
+		// Using the "Main Mini App" direct link format (without /app)
+		productURL = fmt.Sprintf("https://t.me/%s?startapp=product_%d", bot.Me.Username, p.ID)
 	}
 
 	selector := &telebot.ReplyMarkup{}
+	// NOTE: We MUST use selector.URL because WebApp buttons are not allowed in channels.
 	btn := selector.URL("🛒 Order Now", productURL)
 	selector.Inline(selector.Row(btn))
 
