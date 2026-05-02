@@ -13,6 +13,15 @@ type UserModule interface {
 	GetOrCreateUser(ctx context.Context, telegramID int64, username string) (*dto.User, error)
 }
 
+type AddressModule interface {
+	CreateAddress(ctx context.Context, userID int64, req dto.CreateAddressRequest) (*dto.Address, error)
+	GetAddress(ctx context.Context, id int64) (*dto.Address, error)
+	GetAddressesByUser(ctx context.Context, userID int64) ([]dto.Address, error)
+	UpdateAddress(ctx context.Context, userID int64, id int64, req dto.UpdateAddressRequest) (*dto.Address, error)
+	DeleteAddress(ctx context.Context, userID int64, id int64) error
+	SetDefaultAddress(ctx context.Context, userID int64, id int64) error
+}
+
 type StoreModule interface {
 	CreateStore(ctx context.Context, userID int64, req dto.CreateStoreRequest) (*dto.Store, error)
 	GetAdminDashboard(ctx context.Context, userID int64, chatID int64) (string, *dto.Store, error)
@@ -41,12 +50,16 @@ type CartModule interface {
 }
 
 type OrderModule interface {
-	Checkout(ctx context.Context, userID int64, storeID int64) (*dto.Order, error)
+	Checkout(ctx context.Context, userID int64, storeID int64, addressID int64) (*dto.Order, error)
 	GetOrder(ctx context.Context, orderID int64) (*dto.Order, error)
 	ListOrders(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
 	GetUserOrders(ctx context.Context, userID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
 	UpdateOrderStatus(ctx context.Context, orderID int64, status string) error
 	CancelOrder(ctx context.Context, userID int64, orderID int64) error
+	// Merchant-scoped:
+	GetMyStoreOrders(ctx context.Context, filter dto.OrderFilterParams) (*dto.PaginatedResponse, error)
+	GetMyStoreOrder(ctx context.Context, storeID int64, orderID int64) (*dto.Order, error)
+	UpdateMyStoreOrderStatus(ctx context.Context, storeID int64, orderID int64, status string) error
 }
 
 type WalletModule interface {

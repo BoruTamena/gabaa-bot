@@ -16,17 +16,19 @@ type Persistence struct {
 	WalletStorage  storage.WalletStorage
 	CartStorage    storage.CartStorage
 	CategoryStorage storage.CategoryStorage
+	AddressStorage  storage.AddressStorage
 }
 
 func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logger platform.Logger) Persistence {
 	return Persistence{
-		UserStorage:    persistence.NewPersistence(db.DB, logger),
-		StoreStorage:   persistence.NewStorePersistence(db.DB, logger),
-		ProductStorage: persistence.NewProductPersistence(db.DB, logger),
-		OrderStorage:   persistence.NewOrderPersistence(db.DB, logger),
-		WalletStorage:  persistence.NewWalletPersistence(db.DB, logger),
-		CartStorage:    persistence.NewCartPersistence(db.DB, logger),
+		UserStorage:     persistence.NewPersistence(db.DB, logger),
+		StoreStorage:    persistence.NewStorePersistence(db.DB, logger),
+		ProductStorage:  persistence.NewProductPersistence(db.DB, logger),
+		OrderStorage:    persistence.NewOrderPersistence(db.DB, logger),
+		WalletStorage:   persistence.NewWalletPersistence(db.DB, logger),
+		CartStorage:     persistence.NewCartPersistence(db.DB, logger),
 		CategoryStorage: persistence.NewCategoryPersistence(db.DB, logger),
+		AddressStorage:  persistence.NewAddressPersistence(db.DB, logger),
 	}
 }
 

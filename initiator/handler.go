@@ -1,6 +1,7 @@
 package initiator
 
 import (
+	"github.com/BoruTamena/gabaa-bot/internal/handler/address"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/cart"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/middleware"
@@ -13,9 +14,9 @@ import (
 )
 
 type Handler struct {
-	AuthHandler    *auth.AuthHandler
-	StoreHandler   *store.StoreHandler
-	ProductHandler *product.ProductHandler
+	AuthHandler     *auth.AuthHandler
+	StoreHandler    *store.StoreHandler
+	ProductHandler  *product.ProductHandler
 	OrderHandler    *order.OrderHandler
 	CartHandler     *cart.CartHandler
 	PaymentHandler  *payment.PaymentHandler
@@ -23,13 +24,14 @@ type Handler struct {
 	AuthMiddleware  *middleware.AuthMiddleware
 	WebhookHandler  *telegram.WebhookHandler
 	UploadHandler   *upload.UploadHandler
+	AddressHandler  *address.AddressHandler
 }
 
 func InitHandler(module Module, platform PlatFormLayer) Handler {
 	return Handler{
-		AuthHandler:    auth.NewAuthHandler(module.AuthModule),
-		StoreHandler:   store.NewStoreHandler(module.StoreModule),
-		ProductHandler: product.NewProductHandler(module.ProductModule),
+		AuthHandler:     auth.NewAuthHandler(module.AuthModule),
+		StoreHandler:    store.NewStoreHandler(module.StoreModule),
+		ProductHandler:  product.NewProductHandler(module.ProductModule),
 		OrderHandler:    order.NewOrderHandler(module.OrderModule),
 		CartHandler:     cart.NewCartHandler(module.CartModule),
 		PaymentHandler:  payment.NewPaymentHandler(module.OrderModule, module.WalletModule),
@@ -37,5 +39,7 @@ func InitHandler(module Module, platform PlatFormLayer) Handler {
 		AuthMiddleware:  middleware.NewAuthMiddleware(platform.tg),
 		WebhookHandler:  telegram.NewWebhookHandler(platform.tg),
 		UploadHandler:   upload.NewUploadHandler(module.UploadModule),
+		AddressHandler:  address.NewAddressHandler(module.AddressModule),
 	}
 }
+

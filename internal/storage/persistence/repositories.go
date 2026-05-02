@@ -180,6 +180,10 @@ func (p *productPersistence) ListAllProducts(ctx context.Context, filter dto.Pro
 
 	query := p.db.WithContext(ctx).Model(&db.Product{})
 
+	if filter.StoreID != 0 {
+		query = query.Where("store_id = ?", filter.StoreID)
+	}
+
 	if filter.Category != "" {
 		query = query.Where("category = ?", filter.Category)
 	}
@@ -256,7 +260,7 @@ func (p *orderPersistence) CreateOrder(ctx context.Context, order *db.Order) err
 
 func (p *orderPersistence) GetOrderByID(ctx context.Context, id int64) (*db.Order, error) {
 	var order db.Order
-	err := p.db.WithContext(ctx).Preload("Items.Product").First(&order, id).Error
+	err := p.db.WithContext(ctx).Preload("Items.Product").Preload("ShippingAddress").First(&order, id).Error
 	if err != nil {
 		p.logger.Error("Failed to get order by ID", "error", err, "orderID", id)
 	}
@@ -265,7 +269,7 @@ func (p *orderPersistence) GetOrderByID(ctx context.Context, id int64) (*db.Orde
 
 func (p *orderPersistence) GetOrdersByStoreID(ctx context.Context, storeID int64, limit, offset int) ([]db.Order, error) {
 	var orders []db.Order
-	err := p.db.WithContext(ctx).Where("store_id = ?", storeID).Limit(limit).Offset(offset).Find(&orders).Error
+	err := p.db.WithContext(ctx).Preload("ShippingAddress").Where("store_id = ?", storeID).Limit(limit).Offset(offset).Find(&orders).Error
 	if err != nil {
 		p.logger.Error("Failed to get orders by store ID", "error", err, "storeID", storeID)
 	}
@@ -283,7 +287,7 @@ func (p *orderPersistence) GetOrdersTotalByStoreID(ctx context.Context, storeID 
 
 func (p *orderPersistence) GetOrdersByCustomerID(ctx context.Context, customerID int64, limit, offset int) ([]db.Order, error) {
 	var orders []db.Order
-	err := p.db.WithContext(ctx).Where("user_id = ?", customerID).Limit(limit).Offset(offset).Find(&orders).Error
+	err := p.db.WithContext(ctx).Preload("ShippingAddress").Where("user_id = ?", customerID).Limit(limit).Offset(offset).Find(&orders).Error
 	if err != nil {
 		p.logger.Error("Failed to get orders by customer ID", "error", err, "customerID", customerID)
 	}
@@ -305,6 +309,36 @@ func (p *orderPersistence) UpdateOrderStatus(ctx context.Context, orderID int64,
 		p.logger.Error("Failed to update order status", "error", err, "orderID", orderID, "status", status)
 	}
 	return err
+}
+
+func (p *orderPersistence) GetOrdersByFilter(ctx context.Context, filter dto.OrderFilterParams) ([]db.Order, int64, error) {
+	var orders []db.Order
+	var count int64
+
+	query := p.db.WithContext(ctx).Model(&db.Order{}).
+		Preload("User").
+		Preload("Items").
+		Preload("Items.Product").
+		Preload("ShippingAddress").
+		Where("store_id = ?", filter.StoreID)
+
+	if filter.OrderID != nil {
+		query = query.Where("id = ?", *filter.OrderID)
+	}
+
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := query.Limit(filter.GetLimit()).Offset(filter.GetOffset()).Find(&orders).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return orders, count, nil
 }
 
 // WalletStorage
@@ -440,4 +474,45 @@ func (p *cartPersistence) RemoveFromCart(ctx context.Context, userID int64, prod
 
 func (p *cartPersistence) ClearCart(ctx context.Context, userID int64) error {
 	return p.db.WithContext(ctx).Where("user_id = ?", userID).Delete(&db.CartItem{}).Error
+}
+
+// AddressStorage
+type addressPersistence struct {
+	db     *gorm.DB
+	logger platform.Logger
+}
+
+func NewAddressPersistence(db *gorm.DB, logger platform.Logger) storage.AddressStorage {
+	return &addressPersistence{db: db, logger: logger}
+}
+
+func (p *addressPersistence) CreateAddress(ctx context.Context, address *db.Address) error {
+	return p.db.WithContext(ctx).Create(address).Error
+}
+
+func (p *addressPersistence) GetAddressByID(ctx context.Context, id int64) (*db.Address, error) {
+	var address db.Address
+	err := p.db.WithContext(ctx).First(&address, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &address, nil
+}
+
+func (p *addressPersistence) GetAddressesByUserID(ctx context.Context, userID int64) ([]db.Address, error) {
+	var addresses []db.Address
+	err := p.db.WithContext(ctx).Where("user_id = ?", userID).Find(&addresses).Error
+	return addresses, err
+}
+
+func (p *addressPersistence) UpdateAddress(ctx context.Context, address *db.Address) error {
+	return p.db.WithContext(ctx).Save(address).Error
+}
+
+func (p *addressPersistence) DeleteAddress(ctx context.Context, id int64) error {
+	return p.db.WithContext(ctx).Delete(&db.Address{}, id).Error
+}
+
+func (p *addressPersistence) ClearDefaultAddress(ctx context.Context, userID int64) error {
+	return p.db.WithContext(ctx).Model(&db.Address{}).Where("user_id = ?", userID).Update("is_default", false).Error
 }

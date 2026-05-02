@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
@@ -260,31 +261,56 @@ func (m *productModule) pushProductToTelegram(p *db.Product) {
 		return
 	}
 
-	// 2. Construct message
-	caption := fmt.Sprintf("🛍 *New Product Available!*\n\n*Name:* %s\n*Price:* %.2f ETB\n\n%s",
-		p.Name, p.Price, p.Description)
+	// 2. Construct high-end minimalist Spec-Sheet message
+	caption := fmt.Sprintf(
+		"<b>%s</b>\n"+
+			"━━━━━━━━━━━━━━━━━━━━\n"+
+			"<code>PRICE        </code> <b>%s ETB</b>\n"+
+			"<code>AVAILABILITY </code> <b>In Stock (%d units)</b>\n"+
+			"<code>CATEGORY     </code> <b>%s</b>\n\n"+
+			"<b>SPECIFICATIONS</b>\n"+
+			"<blockquote>%s</blockquote>\n\n"+
+			"<b>MERCHANT:</b> %s",
+		strings.ToUpper(p.Name), fmt.Sprintf("%.2f", p.Price), p.Stock, strings.ToUpper(p.Category), p.Description, store.Name,
+	)
 
 	// 3. Construct "Order Now" button
 	productURL := fmt.Sprintf("%s/product/%d", m.appURL, p.ID)
 	selector := &telebot.ReplyMarkup{}
-	btn := selector.URL("🛒 Order Now", productURL)
+	btn := selector.WebApp("🛒 Order Now", &telebot.WebApp{URL: productURL})
 	selector.Inline(selector.Row(btn))
-
-	// 4. Send with image if available
-	var images []string
-	_ = json.Unmarshal([]byte(p.Images), &images)
 
 	bot := m.tele.GetBot()
 	chat := &telebot.Chat{ID: store.TelegramChatID}
 
-	if len(images) > 0 {
+	// 4. Handle Images (Multiple vs Single)
+	var images []string
+	_ = json.Unmarshal([]byte(p.Images), &images)
+
+	if len(images) > 1 {
+		// Multi-image: Send an Album first, then the Action Card
+		album := telebot.Album{}
+		for i, imgURL := range images {
+			if i >= 10 {
+				break // Telegram limit is 10
+			}
+			photo := &telebot.Photo{File: telebot.FromURL(imgURL)}
+			album = append(album, photo)
+		}
+		_, _ = bot.SendAlbum(chat, album)
+
+		// Send the detail card with the button
+		_, err = bot.Send(chat, caption, telebot.ModeHTML, selector)
+	} else if len(images) == 1 {
+		// Single image: Send photo with caption and button
 		photo := &telebot.Photo{
 			File:    telebot.FromURL(images[0]),
 			Caption: caption,
 		}
-		_, err = bot.Send(chat, photo, telebot.ModeMarkdown, selector)
+		_, err = bot.Send(chat, photo, telebot.ModeHTML, selector)
 	} else {
-		_, err = bot.Send(chat, caption, telebot.ModeMarkdown, selector)
+		// No images: Send text only
+		_, err = bot.Send(chat, caption, telebot.ModeHTML, selector)
 	}
 
 	if err != nil {

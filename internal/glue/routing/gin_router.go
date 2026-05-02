@@ -2,6 +2,7 @@ package routing
 
 import (
 	_ "github.com/BoruTamena/gabaa-bot/docs"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/address"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/cart"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/middleware"
@@ -27,6 +28,7 @@ func NewGinRouter(
 	authMiddleware *middleware.AuthMiddleware,
 	webhookHandler *telegram.WebhookHandler,
 	uploadHandler *upload.UploadHandler,
+	addressHandler *address.AddressHandler,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -60,7 +62,9 @@ func NewGinRouter(
 		RegisterOrderRoutes(api, orderHandler)
 		RegisterCartRoutes(api, cartHandler)
 		RegisterPaymentRoutes(api, paymentHandler)
+		RegisterAddressRoutes(api, addressHandler)
 	}
 
 	return r
 }
+

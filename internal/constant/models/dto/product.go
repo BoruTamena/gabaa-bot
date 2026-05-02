@@ -49,6 +49,7 @@ type UpdateProductRequest struct {
 
 type ProductFilterParams struct {
 	PaginationParams
+	StoreID  int64  `form:"-"`      // injected server-side, not from client
 	Category string `form:"category"`
 	Query    string `form:"query"`
 	Status   string `form:"status"`

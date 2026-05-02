@@ -1,6 +1,7 @@
 package order
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -24,18 +25,24 @@ func NewOrderHandler(oModule module.OrderModule) *OrderHandler {
 // @Summary Create order from cart
 // @Description Creates a new order based on the user's current cart items for a specific store
 // @Tags Order
+// @Accept json
 // @Produce json
-// @Param store_id query int true "Store ID"
+// @Param request body dto.CheckoutRequest true "Checkout Data"
 // @Success 200 {object} response.BaseResponse{data=dto.Order}
 // @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /order/create [post]
 func (h *OrderHandler) Checkout(c *gin.Context) {
-	storeID, _ := strconv.ParseInt(c.Query("store_id"), 10, 64)
 	userID := c.GetInt64("user_id")
 
-	order, err := h.orderModule.Checkout(c.Request.Context(), userID, storeID)
+	var req dto.CheckoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, fmt.Errorf("invalid request body: %v", err))
+		return
+	}
+
+	order, err := h.orderModule.Checkout(c.Request.Context(), userID, req.StoreID, req.AddressID)
 	if err != nil {
 		response.Error(c, err)
 		return
@@ -181,4 +188,108 @@ func (h *OrderHandler) GetUserOrders(c *gin.Context) {
 	}
 
 	response.Success(c, http.StatusOK, resp)
+}
+
+// MyStoreListOrders lists all orders for the authenticated merchant's store
+// @Summary List my store orders
+// @Description Retrieve paginated orders scoped to the authenticated merchant's store with optional filtering
+// @Tags Merchant Order
+// @Produce json
+// @Param order_id query int false "Search by exact Order ID"
+// @Param status query string false "Filter by status (pending, shipped, delivered, cancelled)"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /my-store/orders [get]
+func (h *OrderHandler) MyStoreListOrders(c *gin.Context) {
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		response.Error(c, fmt.Errorf("store context missing"))
+		return
+	}
+
+	var filter dto.OrderFilterParams
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.Error(c, fmt.Errorf("invalid query params"))
+		return
+	}
+
+	// Inject store ID from token — never trust client
+	filter.StoreID = storeID
+
+	resp, err := h.orderModule.GetMyStoreOrders(c.Request.Context(), filter)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
+// MyStoreGetOrder returns full order detail for the authenticated merchant
+// @Summary Get my store order detail
+// @Description Retrieve full order detail including items, product info, and customer for a merchant-owned order
+// @Tags Merchant Order
+// @Produce json
+// @Param order_id path int true "Order ID"
+// @Success 200 {object} response.BaseResponse{data=dto.Order}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /my-store/orders/:order_id [get]
+func (h *OrderHandler) MyStoreGetOrder(c *gin.Context) {
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		response.Error(c, fmt.Errorf("store context missing"))
+		return
+	}
+
+	orderID, _ := strconv.ParseInt(c.Param("order_id"), 10, 64)
+
+	order, err := h.orderModule.GetMyStoreOrder(c.Request.Context(), storeID, orderID)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, order)
+}
+
+// MyStoreUpdateOrderStatus updates the status of a merchant's order
+// @Summary Update my store order status
+// @Description Merchant updates an order status to 'shipped' or 'delivered'. Wallet is credited on 'delivered'.
+// @Tags Merchant Order
+// @Produce json
+// @Param order_id path int true "Order ID"
+// @Param status body object true "Status body" SchemaExample({"status": "shipped"})
+// @Success 200 {object} response.BaseResponse{data=map[string]string}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /my-store/orders/:order_id/status [put]
+func (h *OrderHandler) MyStoreUpdateOrderStatus(c *gin.Context) {
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		response.Error(c, fmt.Errorf("store context missing"))
+		return
+	}
+
+	orderID, _ := strconv.ParseInt(c.Param("order_id"), 10, 64)
+
+	var body struct {
+		Status string `json:"status"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.Status == "" {
+		response.Error(c, fmt.Errorf("status is required"))
+		return
+	}
+
+	if err := h.orderModule.UpdateMyStoreOrderStatus(c.Request.Context(), storeID, orderID, body.Status); err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, gin.H{"message": "order status updated to " + body.Status})
 }

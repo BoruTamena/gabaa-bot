@@ -19,6 +19,18 @@ func NewProductHandler(pModule module.ProductModule) *ProductHandler {
 	return &ProductHandler{productModule: pModule}
 }
 
+// ListProducts returns the authenticated merchant's products with filtering support
+// @Summary List my store products
+// @Description Retrieve paginated products for the merchant's own store with optional filters
+// @Tags Product
+// @Produce json
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Param query query string false "Search by name or description"
+// @Param status query string false "Filter by status (draft, published, archived)"
+// @Param category query string false "Filter by category"
+// @Param min_stock query int false "Filter by minimum stock"
+// @Param max_stock query int false "Filter by maximum stock"
 // @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
 // @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
@@ -31,21 +43,66 @@ func (h *ProductHandler) ListProducts(c *gin.Context) {
 		return
 	}
 
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-
-	params := dto.PaginationParams{
-		Page:     page,
-		PageSize: pageSize,
+	var filter dto.ProductFilterParams
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		appErr := errorx.New(errorx.ErrBadRequest, err.Error(), http.StatusBadRequest)
+		c.Error(appErr)
+		return
 	}
 
-	resp, err := h.productModule.ListProducts(c.Request.Context(), storeID, params)
+	// Inject the store ID from the token — never trust client
+	filter.StoreID = storeID
+
+	resp, err := h.productModule.ListAllProducts(c.Request.Context(), filter)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	response.Success(c, http.StatusOK, resp)
+}
+
+// GetMyProduct returns a single product detail for the authenticated merchant
+// @Summary Get my product by ID
+// @Description Fetch full details of a specific product owned by the merchant's store
+// @Tags Product
+// @Produce json
+// @Param id path int true "Product ID"
+// @Success 200 {object} response.BaseResponse{data=dto.Product}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /my-store/product/:id [get]
+func (h *ProductHandler) GetMyProduct(c *gin.Context) {
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		appErr := errorx.New(errorx.ErrUnauthorized, "Store context missing", http.StatusUnauthorized)
+		c.Error(appErr)
+		return
+	}
+
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		appErr := errorx.New(errorx.ErrBadRequest, "Invalid product ID", http.StatusBadRequest)
+		c.Error(appErr)
+		return
+	}
+
+	product, err := h.productModule.GetProduct(c.Request.Context(), id)
+	if err != nil {
+		appErr := errorx.New(errorx.ErrNotFound, "Product not found", http.StatusNotFound)
+		c.Error(appErr)
+		return
+	}
+
+	// Ownership check: ensure the product belongs to this merchant's store
+	if product.StoreID == nil || *product.StoreID != storeID {
+		appErr := errorx.New(errorx.ErrForbidden, "Product does not belong to your store", http.StatusForbidden)
+		c.Error(appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, product)
 }
 
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}

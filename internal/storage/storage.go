@@ -40,6 +40,7 @@ type OrderStorage interface {
 	GetOrdersByCustomerID(ctx context.Context, customerID int64, limit, offset int) ([]db.Order, error)
 	GetOrdersTotalByUserID(ctx context.Context, userID int64) (int64, error)
 	UpdateOrderStatus(ctx context.Context, orderID int64, status string) error
+	GetOrdersByFilter(ctx context.Context, filter dto.OrderFilterParams) ([]db.Order, int64, error)
 }
 
 
@@ -61,5 +62,14 @@ type CategoryStorage interface {
 	GetAllCategories(ctx context.Context, limit, offset int) ([]db.Category, int64, error)
 	GetCategoriesByStoreID(ctx context.Context, storeID int64) ([]db.Category, error)
 	GetCategoryByName(ctx context.Context, name string, storeID int64) (*db.Category, error)
+}
+
+type AddressStorage interface {
+	CreateAddress(ctx context.Context, address *db.Address) error
+	GetAddressByID(ctx context.Context, id int64) (*db.Address, error)
+	GetAddressesByUserID(ctx context.Context, userID int64) ([]db.Address, error)
+	UpdateAddress(ctx context.Context, address *db.Address) error
+	DeleteAddress(ctx context.Context, id int64) error
+	ClearDefaultAddress(ctx context.Context, userID int64) error
 }
 

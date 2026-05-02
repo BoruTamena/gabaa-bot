@@ -2,13 +2,15 @@ package db
 
 type Order struct {
 	BaseModel
-	UserID     int64   `gorm:"column:user_id;not null" json:"user_id"`
-	StoreID    int64   `gorm:"column:store_id;not null" json:"store_id"`
-	Status     string  `gorm:"column:status;not null;default:'pending'" json:"status"`
-	TotalPrice float64 `gorm:"column:total_price;type:numeric;not null" json:"total_price"`
-	User       User    `gorm:"foreignKey:UserID;references:ID" json:"user"`
-	Store      Store   `gorm:"foreignKey:StoreID;references:ID" json:"store"`
-	Items      []OrderItem `gorm:"foreignKey:OrderID" json:"items"`
+	UserID            int64      `gorm:"column:user_id;not null" json:"user_id"`
+	StoreID           int64      `gorm:"column:store_id;not null" json:"store_id"`
+	ShippingAddressID *int64     `gorm:"column:shipping_address_id" json:"shipping_address_id"`
+	Status            string     `gorm:"column:status;not null;default:'pending'" json:"status"`
+	TotalPrice        float64    `gorm:"column:total_price;type:numeric;not null" json:"total_price"`
+	User              User       `gorm:"foreignKey:UserID;references:ID" json:"user"`
+	Store             Store      `gorm:"foreignKey:StoreID;references:ID" json:"store"`
+	ShippingAddress   *Address   `gorm:"foreignKey:ShippingAddressID;references:ID" json:"shipping_address"`
+	Items             []OrderItem `gorm:"foreignKey:OrderID" json:"items"`
 }
 
 type OrderItem struct {
