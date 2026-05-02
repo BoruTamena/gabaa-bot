@@ -89,6 +89,7 @@ func (m *storeModule) CreateStore(ctx context.Context, userID int64, req dto.Cre
 }
 
 func (m *storeModule) GetAdminDashboard(ctx context.Context, userID int64, chatID int64) (string, *dto.Store, error) {
+	// 1. Try to get store by specific chat ID (e.g. Group/Channel)
 	store, err := m.storeStorage.GetStoreByChatID(ctx, chatID)
 	
 	user, userErr := m.userStorage.GetUserByID(ctx, userID)
@@ -97,25 +98,41 @@ func (m *storeModule) GetAdminDashboard(ctx context.Context, userID int64, chatI
 		tgUserID = *user.TelegramUserID
 	}
 
-	if err != nil {
-		// No store associated with this chat yet
+	// 2. If store exists for this chat, check if user is admin
+	if err == nil {
 		if tgUserID != 0 {
 			isAdmin, _ := m.tele.IsChatAdmin(chatID, tgUserID)
 			if isAdmin {
-				return "setup", nil, nil
+				logger.Info("dashboard: manage (group admin)", zap.Int64("chat_id", chatID), zap.Int64("user_id", userID))
+				return "manage", m.mapToDTO(store), nil
 			}
 		}
-		return "storefront", nil, nil
+		logger.Info("dashboard: storefront", zap.Int64("chat_id", chatID), zap.Int64("user_id", userID))
+		return "storefront", m.mapToDTO(store), nil
 	}
 
+	// 3. No store for this chat. Check if the user already HAS any store (Private Chat fallback)
+	stores, _ := m.storeStorage.GetStoresBySellerID(ctx, userID)
+	if len(stores) > 0 {
+		// Merchant already has at least one store. 
+		// If they are in a private chat (chatID > 0), show them their management dashboard.
+		if chatID > 0 {
+			logger.Info("dashboard: manage (private chat fallback)", zap.Int64("chat_id", chatID), zap.Int64("user_id", userID))
+			return "manage", m.mapToDTO(&stores[0]), nil
+		}
+	}
+
+	// 4. Truly no store found. Determine if they should see setup or storefront
 	if tgUserID != 0 {
 		isAdmin, _ := m.tele.IsChatAdmin(chatID, tgUserID)
 		if isAdmin {
-			return "manage", m.mapToDTO(store), nil
+			logger.Info("dashboard: setup", zap.Int64("chat_id", chatID), zap.Int64("user_id", userID))
+			return "setup", nil, nil
 		}
 	}
 
-	return "storefront", m.mapToDTO(store), nil
+	logger.Info("dashboard: storefront (no store)", zap.Int64("chat_id", chatID), zap.Int64("user_id", userID))
+	return "storefront", nil, nil
 }
 
 func (m *storeModule) GetStore(ctx context.Context, id int64) (*dto.Store, error) {

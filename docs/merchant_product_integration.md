@@ -30,8 +30,8 @@ Before creating a product, you must upload its images to Cloudinary to get publi
 ## 2. Creating a Product
 By default, new products are created with the status `draft`. They are **not** pushed to Telegram until published.
 
-**Endpoint:** `POST /store/products` (Note: Ensure your `store_id` is in the context or path depending on your routing)  
-**Auth Required:** Bearer Token
+**Endpoint:** `POST /my-store/product`  
+**Auth Required:** Bearer Token (Store ID is automatically taken from the token)
 
 **Payload:**
 ```json
@@ -51,7 +51,7 @@ By default, new products are created with the status `draft`. They are **not** p
 ## 3. Managing Products (Listing & Filtering)
 Merchants can filter their inventory by status (draft vs published), stock levels, or search by title.
 
-**Endpoint:** `GET /products` (Filter for owner's store)  
+**Endpoint:** `GET /my-store/products`  
 **Query Parameters:**
 - `query`: Search by title/description (e.g., `?query=leather`).
 - `status`: Filter by status (`draft`, `published`, `archived`).
@@ -66,7 +66,7 @@ Includes the `status` field for each product to show in the UI.
 ## 4. Publishing to Telegram
 To push a product to the linked Telegram Group/Channel, update its status to `published`.
 
-**Endpoint:** `PUT /store/products/:product_id`
+**Endpoint:** `PUT /my-store/product/:product_id`
 
 **Payload:**
 ```json
@@ -85,7 +85,14 @@ To push a product to the linked Telegram Group/Channel, update its status to `pu
 
 ---
 
-## 5. Summary of Product Statuses
+## 5. Deleting a Product
+If you need to completely remove a product from your store.
+
+**Endpoint:** `DELETE /my-store/product/:product_id`
+
+---
+
+## 6. Summary of Product Statuses
 
 | Status | Behavior |
 | :--- | :--- |
