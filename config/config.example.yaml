@@ -1,0 +1,26 @@
+
+db:
+  dbname: botdb
+  host: localhost
+  url: postgres://user:password@host:port/dbname?sslmode=disable
+
+# Migration files location
+migiration:
+  path: internal/constant/query/schemas
+
+tg:
+  token: YOUR_TELEGRAM_BOT_TOKEN
+
+server:
+  port: 8085
+
+jwt:
+  secret: YOUR_JWT_SECRET_KEY
+
+app:
+  url: https://your-app-url.com
+
+cloudinary:
+  cloud_name: YOUR_CLOUDINARY_CLOUD_NAME
+  api_key: YOUR_CLOUDINARY_API_KEY
+  api_secret: YOUR_CLOUDINARY_API_SECRET

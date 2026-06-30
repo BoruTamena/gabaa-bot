@@ -20,8 +20,7 @@ WORKDIR /app
 # Copy the binary from the builder stage
 COPY --from=builder /gabaa-bot .
 
-# Copy configuration and migration schemas
-COPY --from=builder /app/config/ ./config/
+# Copy migration schemas (required at runtime for DB migrations)
 COPY --from=builder /app/internal/constant/query/schemas/ ./internal/constant/query/schemas/
 
 # Expose port (default 8085 as per config)
