@@ -30,6 +30,7 @@ func NewGinRouter(
 	uploadHandler *upload.UploadHandler,
 	addressHandler *address.AddressHandler,
 	storyHandler *product.StoryHandler,
+	favoriteHandler *product.FavoriteHandler,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -66,6 +67,7 @@ func NewGinRouter(
 		RegisterPaymentRoutes(api, paymentHandler)
 		RegisterAddressRoutes(api, addressHandler)
 		RegisterStoryRoutes(api, storyHandler)
+		RegisterFavoriteRoutes(api, favoriteHandler)
 	}
 
 	return r

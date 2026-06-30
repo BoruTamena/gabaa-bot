@@ -26,6 +26,7 @@ type Handler struct {
 	UploadHandler   *upload.UploadHandler
 	AddressHandler  *address.AddressHandler
 	StoryHandler    *product.StoryHandler
+	FavoriteHandler *product.FavoriteHandler
 }
 
 func InitHandler(module Module, platform PlatFormLayer) Handler {
@@ -42,5 +43,6 @@ func InitHandler(module Module, platform PlatFormLayer) Handler {
 		UploadHandler:   upload.NewUploadHandler(module.UploadModule),
 		AddressHandler:  address.NewAddressHandler(module.AddressModule),
 		StoryHandler:    product.NewStoryHandler(module.StoryModule),
+		FavoriteHandler: product.NewFavoriteHandler(module.FavoriteModule),
 	}
 }

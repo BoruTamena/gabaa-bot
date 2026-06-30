@@ -18,6 +18,7 @@ type Persistence struct {
 	CategoryStorage storage.CategoryStorage
 	AddressStorage  storage.AddressStorage
 	StoryStorage    storage.StoryStorage
+	FavoriteStorage storage.FavoriteStorage
 }
 
 func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logger platform.Logger) Persistence {
@@ -31,6 +32,7 @@ func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logge
 		CategoryStorage: persistence.NewCategoryPersistence(db.DB, logger),
 		AddressStorage:  persistence.NewAddressPersistence(db.DB, logger),
 		StoryStorage:    persistence.NewStoryPersistence(db.DB, logger),
+		FavoriteStorage: persistence.NewFavoritePersistence(db.DB, logger),
 	}
 }
 
