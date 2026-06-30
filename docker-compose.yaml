@@ -9,7 +9,7 @@ services:
       - "8085:8085"
     depends_on:
       - db
-      - redis
+      # - redis
     networks:
       - bot_network
     environment:
@@ -19,7 +19,7 @@ services:
 
   db:
     container_name: botdb
-    image: postgres
+    image: postgres:16-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
@@ -34,13 +34,13 @@ services:
       POSTGRES_PASSWORD: password
 
 
-  redis:
-    container_name: rd
-    image: redis
-    ports:
-      - 7979:6379
-    networks:
-      - bot_network
+  # redis:
+  #   container_name: rd
+  #   image: redis
+  #   ports:
+  #     - 7979:6379
+  #   networks:
+  #     - bot_network
 
 networks:
   bot_network:
