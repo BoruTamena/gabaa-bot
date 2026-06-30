@@ -29,6 +29,7 @@ func NewGinRouter(
 	webhookHandler *telegram.WebhookHandler,
 	uploadHandler *upload.UploadHandler,
 	addressHandler *address.AddressHandler,
+	storyHandler *product.StoryHandler,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -44,6 +45,7 @@ func NewGinRouter(
 	RegisterAuthRoutes(r, authHandler)
 	RegisterPublicProductRoutes(r, productHandler)
 	RegisterPublicCategoryRoutes(r, categoryHandler)
+	RegisterPublicStoryRoutes(r, storyHandler)
 
 	// Image Upload (Public as requested)
 	uploadGroup := r.Group("/")
@@ -63,6 +65,7 @@ func NewGinRouter(
 		RegisterCartRoutes(api, cartHandler)
 		RegisterPaymentRoutes(api, paymentHandler)
 		RegisterAddressRoutes(api, addressHandler)
+		RegisterStoryRoutes(api, storyHandler)
 	}
 
 	return r

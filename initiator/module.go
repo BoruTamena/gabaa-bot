@@ -27,6 +27,7 @@ type Module struct {
 	BotModule      module.BotModule
 	UploadModule   module.UploadModule
 	AddressModule  module.AddressModule
+	StoryModule    module.StoryModule
 }
 
 func InitModule(persistence Persistence, platform PlatFormLayer) Module {
@@ -42,6 +43,7 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 		BotModule:      telegram.NewBotModule(persistence.UserStorage, persistence.StoreStorage, platform.tg),
 		UploadModule:   upload.NewUploadModule(platform.uploader),
 		AddressModule:  address.NewAddressModule(persistence.AddressStorage),
+		StoryModule:    product.NewStoryModule(persistence.StoryStorage, persistence.ProductStorage),
 	}
 }
 

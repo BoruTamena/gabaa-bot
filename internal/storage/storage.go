@@ -73,3 +73,14 @@ type AddressStorage interface {
 	ClearDefaultAddress(ctx context.Context, userID int64) error
 }
 
+type StoryStorage interface {
+	CreateStory(ctx context.Context, story *db.ProductStory) error
+	GetStoryByID(ctx context.Context, id int64) (*db.ProductStory, error)
+	ListStoriesByStore(ctx context.Context, filter dto.ProductStoryFilterParams) ([]db.ProductStory, int64, error)
+	ListActiveStories(ctx context.Context, params dto.PaginationParams) ([]db.ProductStory, int64, error)
+	UpdateStory(ctx context.Context, story *db.ProductStory) error
+	DeleteStory(ctx context.Context, id int64) error
+	IncrementStoryViews(ctx context.Context, id int64) error
+}
+
+

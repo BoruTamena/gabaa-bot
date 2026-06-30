@@ -80,3 +80,13 @@ type BotModule interface {
 type UploadModule interface {
 	UploadImages(ctx context.Context, files []interface{}, fileNames []string) ([]string, error)
 }
+
+type StoryModule interface {
+	CreateStory(ctx context.Context, storeID int64, req dto.CreateProductStoryRequest) (*dto.ProductStory, error)
+	GetStory(ctx context.Context, id int64) (*dto.ProductStory, error)
+	ListMyStories(ctx context.Context, filter dto.ProductStoryFilterParams) (*dto.PaginatedResponse, error)
+	UpdateStory(ctx context.Context, storeID int64, storyID int64, req dto.UpdateProductStoryRequest) (*dto.ProductStory, error)
+	DeleteStory(ctx context.Context, storeID int64, storyID int64) error
+	ListActiveStories(ctx context.Context, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+}
+

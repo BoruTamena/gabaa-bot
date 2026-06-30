@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/BoruTamena/gabaa-bot/pkg/logger"
 	"github.com/spf13/viper"
 )
 
@@ -25,6 +26,8 @@ func InitViper(currentDir string) error {
 			return err
 		}
 	}
+
+	logger.Info("config file is configured successfully")
 
 	return nil
 
