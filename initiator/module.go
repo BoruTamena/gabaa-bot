@@ -28,6 +28,7 @@ type Module struct {
 	UploadModule   module.UploadModule
 	AddressModule  module.AddressModule
 	StoryModule    module.StoryModule
+	FavoriteModule module.FavoriteModule
 }
 
 func InitModule(persistence Persistence, platform PlatFormLayer) Module {
@@ -44,6 +45,7 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 		UploadModule:   upload.NewUploadModule(platform.uploader),
 		AddressModule:  address.NewAddressModule(persistence.AddressStorage),
 		StoryModule:    product.NewStoryModule(persistence.StoryStorage, persistence.ProductStorage),
+		FavoriteModule: product.NewFavoriteModule(persistence.FavoriteStorage),
 	}
 }
 

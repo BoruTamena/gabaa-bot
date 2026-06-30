@@ -629,3 +629,63 @@ func (p *storyPersistence) IncrementStoryViews(ctx context.Context, id int64) er
 	return err
 }
 
+// FavoriteStorage
+type favoritePersistence struct {
+	db     *gorm.DB
+	logger platform.Logger
+}
+
+func NewFavoritePersistence(db *gorm.DB, logger platform.Logger) storage.FavoriteStorage {
+	return &favoritePersistence{db: db, logger: logger}
+}
+
+func (p *favoritePersistence) AddFavorite(ctx context.Context, favorite *db.Favorite) error {
+	err := p.db.WithContext(ctx).Create(favorite).Error
+	if err != nil {
+		p.logger.Error("Failed to add favorite", "error", err, "userID", favorite.UserID, "productID", favorite.ProductID)
+	}
+	return err
+}
+
+func (p *favoritePersistence) RemoveFavorite(ctx context.Context, userID, productID int64) error {
+	err := p.db.WithContext(ctx).Where("user_id = ? AND product_id = ?", userID, productID).Delete(&db.Favorite{}).Error
+	if err != nil {
+		p.logger.Error("Failed to remove favorite", "error", err, "userID", userID, "productID", productID)
+	}
+	return err
+}
+
+func (p *favoritePersistence) ListUserFavorites(ctx context.Context, userID int64, params dto.PaginationParams) ([]db.Favorite, int64, error) {
+	var favorites []db.Favorite
+	var count int64
+
+	query := p.db.WithContext(ctx).Model(&db.Favorite{}).Where("user_id = ?", userID)
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := query.
+		Preload("Product").
+		Limit(params.GetLimit()).
+		Offset(params.GetOffset()).
+		Order("created_at DESC").
+		Find(&favorites).Error
+	if err != nil {
+		p.logger.Error("Failed to list user favorites", "error", err, "userID", userID)
+	}
+
+	return favorites, count, err
+}
+
+func (p *favoritePersistence) IsFavorite(ctx context.Context, userID, productID int64) (bool, error) {
+	var count int64
+	err := p.db.WithContext(ctx).Model(&db.Favorite{}).Where("user_id = ? AND product_id = ?", userID, productID).Count(&count).Error
+	if err != nil {
+		p.logger.Error("Failed to check if favorite", "error", err, "userID", userID, "productID", productID)
+		return false, err
+	}
+	return count > 0, nil
+}
+
+

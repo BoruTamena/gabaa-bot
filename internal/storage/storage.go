@@ -83,4 +83,12 @@ type StoryStorage interface {
 	IncrementStoryViews(ctx context.Context, id int64) error
 }
 
+type FavoriteStorage interface {
+	AddFavorite(ctx context.Context, favorite *db.Favorite) error
+	RemoveFavorite(ctx context.Context, userID, productID int64) error
+	ListUserFavorites(ctx context.Context, userID int64, params dto.PaginationParams) ([]db.Favorite, int64, error)
+	IsFavorite(ctx context.Context, userID, productID int64) (bool, error)
+}
+
+
 

@@ -90,3 +90,10 @@ type StoryModule interface {
 	ListActiveStories(ctx context.Context, params dto.PaginationParams) (*dto.PaginatedResponse, error)
 }
 
+type FavoriteModule interface {
+	AddFavorite(ctx context.Context, userID, productID int64) error
+	RemoveFavorite(ctx context.Context, userID, productID int64) error
+	ListUserFavorites(ctx context.Context, userID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+}
+
+
