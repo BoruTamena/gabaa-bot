@@ -128,6 +128,7 @@ func Init() {
 		handlerLayer.WebhookHandler,
 		handlerLayer.UploadHandler,
 		handlerLayer.AddressHandler,
+		handlerLayer.StoryHandler,
 	)
 
 	port := os.Getenv("PORT")

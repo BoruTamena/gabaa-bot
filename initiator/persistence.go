@@ -9,14 +9,15 @@ import (
 
 
 type Persistence struct {
-	UserStorage    storage.UserStorage
-	StoreStorage   storage.StoreStorage
-	ProductStorage storage.ProductStorage
-	OrderStorage   storage.OrderStorage
-	WalletStorage  storage.WalletStorage
-	CartStorage    storage.CartStorage
+	UserStorage     storage.UserStorage
+	StoreStorage    storage.StoreStorage
+	ProductStorage  storage.ProductStorage
+	OrderStorage    storage.OrderStorage
+	WalletStorage   storage.WalletStorage
+	CartStorage     storage.CartStorage
 	CategoryStorage storage.CategoryStorage
 	AddressStorage  storage.AddressStorage
+	StoryStorage    storage.StoryStorage
 }
 
 func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logger platform.Logger) Persistence {
@@ -29,6 +30,7 @@ func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logge
 		CartStorage:     persistence.NewCartPersistence(db.DB, logger),
 		CategoryStorage: persistence.NewCategoryPersistence(db.DB, logger),
 		AddressStorage:  persistence.NewAddressPersistence(db.DB, logger),
+		StoryStorage:    persistence.NewStoryPersistence(db.DB, logger),
 	}
 }
 

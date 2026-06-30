@@ -25,6 +25,7 @@ type Handler struct {
 	WebhookHandler  *telegram.WebhookHandler
 	UploadHandler   *upload.UploadHandler
 	AddressHandler  *address.AddressHandler
+	StoryHandler    *product.StoryHandler
 }
 
 func InitHandler(module Module, platform PlatFormLayer) Handler {
@@ -40,6 +41,6 @@ func InitHandler(module Module, platform PlatFormLayer) Handler {
 		WebhookHandler:  telegram.NewWebhookHandler(platform.tg),
 		UploadHandler:   upload.NewUploadHandler(module.UploadModule),
 		AddressHandler:  address.NewAddressHandler(module.AddressModule),
+		StoryHandler:    product.NewStoryHandler(module.StoryModule),
 	}
 }
-

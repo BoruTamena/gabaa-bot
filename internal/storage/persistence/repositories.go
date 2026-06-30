@@ -516,3 +516,116 @@ func (p *addressPersistence) DeleteAddress(ctx context.Context, id int64) error 
 func (p *addressPersistence) ClearDefaultAddress(ctx context.Context, userID int64) error {
 	return p.db.WithContext(ctx).Model(&db.Address{}).Where("user_id = ?", userID).Update("is_default", false).Error
 }
+
+// StoryStorage
+type storyPersistence struct {
+	db     *gorm.DB
+	logger platform.Logger
+}
+
+func NewStoryPersistence(db *gorm.DB, logger platform.Logger) storage.StoryStorage {
+	return &storyPersistence{db: db, logger: logger}
+}
+
+func (p *storyPersistence) CreateStory(ctx context.Context, story *db.ProductStory) error {
+	err := p.db.WithContext(ctx).Create(story).Error
+	if err != nil {
+		p.logger.Error("Failed to create story", "error", err, "productID", story.ProductID)
+	}
+	return err
+}
+
+func (p *storyPersistence) GetStoryByID(ctx context.Context, id int64) (*db.ProductStory, error) {
+	var story db.ProductStory
+	err := p.db.WithContext(ctx).
+		Preload("Product").
+		First(&story, id).Error
+	if err != nil {
+		p.logger.Error("Failed to get story by ID", "error", err, "storyID", id)
+	}
+	return &story, err
+}
+
+func (p *storyPersistence) ListStoriesByStore(ctx context.Context, filter dto.ProductStoryFilterParams) ([]db.ProductStory, int64, error) {
+	var stories []db.ProductStory
+	var count int64
+
+	query := p.db.WithContext(ctx).Model(&db.ProductStory{}).
+		Where("store_id = ?", filter.StoreID)
+
+	if filter.ProductID != nil {
+		query = query.Where("product_id = ?", *filter.ProductID)
+	}
+
+	if filter.IsActive != nil {
+		query = query.Where("is_active = ?", *filter.IsActive)
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := query.
+		Preload("Product").
+		Limit(filter.GetLimit()).
+		Offset(filter.GetOffset()).
+		Order("created_at DESC").
+		Find(&stories).Error
+	if err != nil {
+		p.logger.Error("Failed to list stories by store", "error", err, "storeID", filter.StoreID)
+	}
+
+	return stories, count, err
+}
+
+func (p *storyPersistence) ListActiveStories(ctx context.Context, params dto.PaginationParams) ([]db.ProductStory, int64, error) {
+	var stories []db.ProductStory
+	var count int64
+
+	query := p.db.WithContext(ctx).Model(&db.ProductStory{}).
+		Where("is_active = true AND starts_at <= NOW() AND ends_at >= NOW()")
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := query.
+		Preload("Product").
+		Limit(params.GetLimit()).
+		Offset(params.GetOffset()).
+		Order("created_at DESC").
+		Find(&stories).Error
+	if err != nil {
+		p.logger.Error("Failed to list active stories", "error", err)
+	}
+
+	return stories, count, err
+}
+
+func (p *storyPersistence) UpdateStory(ctx context.Context, story *db.ProductStory) error {
+	err := p.db.WithContext(ctx).Save(story).Error
+	if err != nil {
+		p.logger.Error("Failed to update story", "error", err, "storyID", story.ID)
+	}
+	return err
+}
+
+func (p *storyPersistence) DeleteStory(ctx context.Context, id int64) error {
+	err := p.db.WithContext(ctx).Delete(&db.ProductStory{}, id).Error
+	if err != nil {
+		p.logger.Error("Failed to delete story", "error", err, "storyID", id)
+	}
+	return err
+}
+
+func (p *storyPersistence) IncrementStoryViews(ctx context.Context, id int64) error {
+	err := p.db.WithContext(ctx).
+		Model(&db.ProductStory{}).
+		Where("id = ?", id).
+		UpdateColumn("views", gorm.Expr("views + 1")).Error
+	if err != nil {
+		p.logger.Error("Failed to increment story views", "error", err, "storyID", id)
+	}
+	return err
+}
+
