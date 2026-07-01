@@ -10,24 +10,26 @@ import (
 
 func InitViper(currentDir string) error {
 
-	viper.AddConfigPath(currentDir + "/config")
-	// viper.AddConfigPath("config/")
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
+	// Read from .env file in the project root
+	viper.SetConfigName(".env")
+	viper.SetConfigType("env")
+	viper.AddConfigPath(currentDir)
 
+	// Map dot-separated viper keys (e.g. "db.url") to
+	// underscore-separated env vars (e.g. DB_URL)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			log.Print("config file not found, using environment variables")
+			log.Print(".env file not found, falling back to environment variables only")
 		} else {
-			log.Print("failed to read config", err)
+			log.Printf("failed to read .env file: %v", err)
 			return err
 		}
 	}
 
-	logger.Info("config file is configured successfully")
+	logger.Info("config loaded successfully")
 
 	return nil
 
