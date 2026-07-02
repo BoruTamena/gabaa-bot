@@ -62,6 +62,7 @@ type CategoryStorage interface {
 	GetAllCategories(ctx context.Context, limit, offset int) ([]db.Category, int64, error)
 	GetCategoriesByStoreID(ctx context.Context, storeID int64) ([]db.Category, error)
 	GetCategoryByName(ctx context.Context, name string, storeID int64) (*db.Category, error)
+	GetCategoryByID(ctx context.Context, id int64) (*db.Category, error)
 }
 
 type AddressStorage interface {
@@ -88,6 +89,18 @@ type FavoriteStorage interface {
 	RemoveFavorite(ctx context.Context, userID, productID int64) error
 	ListUserFavorites(ctx context.Context, userID int64, params dto.PaginationParams) ([]db.Favorite, int64, error)
 	IsFavorite(ctx context.Context, userID, productID int64) (bool, error)
+}
+
+type PreferenceStorage interface {
+	GetUserPreferences(ctx context.Context, userID int64) ([]string, error)
+	SetUserPreferences(ctx context.Context, userID int64, categories []string) error
+	ToggleUserCategory(ctx context.Context, userID int64, category string) (added bool, err error)
+	GetUsersByCategories(ctx context.Context, categories []string) ([]db.User, error)
+}
+
+type RecommendationStorage interface {
+	WasNotified(ctx context.Context, userID, productID int64) (bool, error)
+	RecordNotification(ctx context.Context, userID, productID int64) error
 }
 
 

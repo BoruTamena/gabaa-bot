@@ -16,16 +16,26 @@ import (
 )
 
 type botModule struct {
-	userStorage  storage.UserStorage
-	storeStorage storage.StoreStorage
-	tele         platform.Telegram
+	userStorage          storage.UserStorage
+	storeStorage         storage.StoreStorage
+	categoryStorage      storage.CategoryStorage
+	recommendationModule module.RecommendationModule
+	tele                 platform.Telegram
 }
 
-func NewBotModule(uStorage storage.UserStorage, sStorage storage.StoreStorage, tele platform.Telegram) module.BotModule {
+func NewBotModule(
+	uStorage storage.UserStorage,
+	sStorage storage.StoreStorage,
+	cStorage storage.CategoryStorage,
+	rModule module.RecommendationModule,
+	tele platform.Telegram,
+) module.BotModule {
 	m := &botModule{
-		userStorage:  uStorage,
-		storeStorage: sStorage,
-		tele:         tele,
+		userStorage:          uStorage,
+		storeStorage:         sStorage,
+		categoryStorage:      cStorage,
+		recommendationModule: rModule,
+		tele:                 tele,
 	}
 	m.registerHandlers()
 	return m
@@ -34,14 +44,24 @@ func NewBotModule(uStorage storage.UserStorage, sStorage storage.StoreStorage, t
 func (m *botModule) registerHandlers() {
 	bot := m.tele.GetBot()
 
-	// Handle /start command
 	bot.Handle("/start", m.handleStart)
-
-	// Handle my_chat_member updates
+	bot.Handle("/preferences", m.handlePreferences)
+	bot.Handle("/recommendations", m.handleRecommendations)
+	bot.Handle(&telebot.Btn{Unique: "pref_toggle"}, m.handlePreferenceToggle)
 	bot.Handle(telebot.OnMyChatMember, m.handleMyChatMember)
 }
 
 func (m *botModule) handleStart(c telebot.Context) error {
+	ctx := context.Background()
+	username := ""
+	if c.Sender() != nil {
+		username = c.Sender().Username
+	}
+
+	if err := m.recommendationModule.SetBotStarted(ctx, c.Sender().ID, username); err != nil {
+		logger.Error("failed to mark bot started for user", zap.Error(err), zap.Int64("telegram_id", c.Sender().ID))
+	}
+
 	payload := c.Message().Payload
 	if strings.HasPrefix(payload, "link_store_") {
 		storeIDStr := strings.TrimPrefix(payload, "link_store_")
@@ -50,13 +70,11 @@ func (m *botModule) handleStart(c telebot.Context) error {
 			return c.Send("❌ Invalid store ID.")
 		}
 
-		ctx := context.Background()
 		user, err := m.userStorage.GetUserByTelegramID(ctx, c.Sender().ID)
 		if err != nil {
 			return c.Send("❌ User record not found. Please ensure you are logged in to the web app.")
 		}
 
-		// Save the store we are currently trying to link
 		user.PendingStoreID = &storeID
 		if err := m.userStorage.UpdateUser(ctx, user); err != nil {
 			logger.Error("failed to update user pending store", zap.Error(err))
@@ -65,13 +83,169 @@ func (m *botModule) handleStart(c telebot.Context) error {
 
 		return c.Send("🚀 *Store linking initiated!*\n\nNow, add me to your Group or Channel as an *Administrator* to complete the setup.")
 	}
-	return c.Send("Welcome to Gabaa Bot! 🛍️\n\nUse our web dashboard to manage your store.")
+
+	return c.Send("Welcome to Gabaa Bot! 🛍️\n\nUse /preferences to choose product categories and /recommendations on to get new product alerts in this chat.")
+}
+
+func (m *botModule) handlePreferences(c telebot.Context) error {
+	ctx := context.Background()
+	if err := m.recommendationModule.SetBotStarted(ctx, c.Sender().ID, c.Sender().Username); err != nil {
+		logger.Error("failed to mark bot started for user", zap.Error(err))
+	}
+
+	user, err := m.userStorage.GetUserByTelegramID(ctx, c.Sender().ID)
+	if err != nil {
+		return c.Send("❌ Please open the Gabaa Mini App first so we can create your account, then try /preferences again.")
+	}
+
+	prefs, err := m.recommendationModule.GetPreferences(ctx, user.ID)
+	if err != nil {
+		return c.Send("❌ Failed to load your preferences. Please try again.")
+	}
+
+	markup, err := m.buildPreferencesKeyboard(ctx, prefs.Categories)
+	if err != nil {
+		return c.Send("❌ Failed to load categories. Please try again.")
+	}
+
+	message := m.preferencesMessage(prefs.Enabled, prefs.Categories)
+
+	return c.Send(message, markup, telebot.ModeMarkdown)
+}
+
+func (m *botModule) preferencesMessage(enabled bool, selected []string) string {
+	status := "off"
+	if enabled {
+		status = "on"
+	}
+
+	selectedLine := "_None selected yet_"
+	if len(selected) > 0 {
+		selectedLine = strings.Join(selected, ", ")
+	}
+
+	return fmt.Sprintf(
+		"🎯 *Product Recommendations*\n\n"+
+			"Status: *%s*\n"+
+			"Selected: %s\n\n"+
+			"Tap categories below to subscribe or unsubscribe.\n"+
+			"✅ = selected\n\n"+
+			"Use /recommendations on or /recommendations off to control alerts.",
+		status,
+		selectedLine,
+	)
+}
+
+func (m *botModule) handleRecommendations(c telebot.Context) error {
+	ctx := context.Background()
+	if err := m.recommendationModule.SetBotStarted(ctx, c.Sender().ID, c.Sender().Username); err != nil {
+		logger.Error("failed to mark bot started for user", zap.Error(err))
+	}
+
+	payload := strings.TrimSpace(strings.ToLower(c.Message().Payload))
+	switch payload {
+	case "on":
+		if err := m.recommendationModule.SetRecommendationsEnabled(ctx, c.Sender().ID, true); err != nil {
+			return c.Send("❌ Failed to enable recommendations. Please open the Mini App first.")
+		}
+		return c.Send("✅ Recommendations are *on*. You'll get new product alerts for your selected categories.\n\nUse /preferences to choose categories.", telebot.ModeMarkdown)
+	case "off":
+		if err := m.recommendationModule.SetRecommendationsEnabled(ctx, c.Sender().ID, false); err != nil {
+			return c.Send("❌ Failed to disable recommendations.")
+		}
+		return c.Send("🔕 Recommendations are *off*. You won't receive product alerts.", telebot.ModeMarkdown)
+	default:
+		return c.Send("Usage:\n/recommendations on\n/recommendations off")
+	}
+}
+
+func (m *botModule) handlePreferenceToggle(c telebot.Context) error {
+	categoryID, err := strconv.ParseInt(strings.TrimSpace(c.Data()), 10, 64)
+	if err != nil {
+		return c.Respond(&telebot.CallbackResponse{Text: "Invalid category"})
+	}
+
+	ctx := context.Background()
+	category, err := m.categoryStorage.GetCategoryByID(ctx, categoryID)
+	if err != nil {
+		return c.Respond(&telebot.CallbackResponse{Text: "Category not found"})
+	}
+
+	added, err := m.recommendationModule.ToggleCategory(ctx, c.Sender().ID, category.Name)
+	if err != nil {
+		logger.Error("failed to toggle preference category", zap.Error(err))
+		return c.Respond(&telebot.CallbackResponse{Text: "Failed to update preference"})
+	}
+
+	user, err := m.userStorage.GetUserByTelegramID(ctx, c.Sender().ID)
+	if err != nil {
+		return c.Respond(&telebot.CallbackResponse{Text: "User not found"})
+	}
+
+	prefs, err := m.recommendationModule.GetPreferences(ctx, user.ID)
+	if err != nil {
+		return c.Respond(&telebot.CallbackResponse{Text: "Failed to refresh preferences"})
+	}
+
+	markup, err := m.buildPreferencesKeyboard(ctx, prefs.Categories)
+	if err != nil {
+		return c.Respond(&telebot.CallbackResponse{Text: "Failed to refresh categories"})
+	}
+
+	message := m.preferencesMessage(prefs.Enabled, prefs.Categories)
+
+	if err := c.Edit(message, markup, telebot.ModeMarkdown); err != nil {
+		if err := c.Edit(markup); err != nil {
+			logger.Error("failed to edit preferences keyboard", zap.Error(err))
+		}
+	}
+
+	action := "removed"
+	if added {
+		action = "selected"
+	}
+	return c.Respond(&telebot.CallbackResponse{Text: fmt.Sprintf("%s %s", category.Name, action)})
+}
+
+func (m *botModule) buildPreferencesKeyboard(ctx context.Context, selected []string) (*telebot.ReplyMarkup, error) {
+	categories, _, err := m.categoryStorage.GetAllCategories(ctx, 100, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	selectedMap := make(map[string]bool)
+	for _, category := range selected {
+		selectedMap[strings.ToLower(strings.TrimSpace(category))] = true
+	}
+
+	markup := &telebot.ReplyMarkup{}
+	var rows []telebot.Row
+
+	for _, category := range categories {
+		if category.StoreID != 0 {
+			continue
+		}
+
+		label := category.Name
+		if selectedMap[strings.ToLower(category.Name)] {
+			label = "✅ " + category.Name
+		}
+
+		btn := markup.Data(label, "pref_toggle", strconv.FormatInt(category.ID, 10))
+		rows = append(rows, markup.Row(btn))
+	}
+
+	if len(rows) == 0 {
+		return markup, nil
+	}
+
+	markup.Inline(rows...)
+	return markup, nil
 }
 
 func (m *botModule) handleMyChatMember(c telebot.Context) error {
 	update := c.ChatMember()
 
-	// Check if the bot was added as an administrator
 	if update.NewChatMember.Role == telebot.Administrator {
 		merchantTGID := update.Sender.ID
 		chatID := c.Chat().ID
@@ -84,7 +258,6 @@ func (m *botModule) handleMyChatMember(c telebot.Context) error {
 			return nil
 		}
 
-		// Check if the chat is already linked to ANOTHER store
 		existing, err := m.storeStorage.GetStoreByChatID(ctx, chatID)
 		if err == nil && existing.ID != 0 {
 			m.tele.GetBot().Send(&telebot.User{ID: merchantTGID},
@@ -92,12 +265,10 @@ func (m *botModule) handleMyChatMember(c telebot.Context) error {
 			return nil
 		}
 
-		// Determine which store to link
 		var targetStoreID int64
 		if user.PendingStoreID != nil {
 			targetStoreID = *user.PendingStoreID
 		} else {
-			// Fallback: If merchant has only one store, link that one
 			stores, _ := m.storeStorage.GetStoresBySellerID(ctx, user.ID)
 			if len(stores) == 1 {
 				targetStoreID = stores[0].ID
@@ -129,11 +300,9 @@ func (m *botModule) handleMyChatMember(c telebot.Context) error {
 			return nil
 		}
 
-		// Reset pending store
 		user.PendingStoreID = nil
 		m.userStorage.UpdateUser(ctx, user)
 
-		// Send PRIVATE confirmation to merchant
 		m.tele.GetBot().Send(&telebot.User{ID: merchantTGID},
 			fmt.Sprintf("✅ Success! Store '%s' is now linked to '%s' and is live! 🚀", store.Name, chatTitle))
 	}

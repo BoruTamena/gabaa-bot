@@ -7,6 +7,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/handler/middleware"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/order"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/payment"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/preference"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/product"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/store"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/telegram"
@@ -25,8 +26,9 @@ type Handler struct {
 	WebhookHandler  *telegram.WebhookHandler
 	UploadHandler   *upload.UploadHandler
 	AddressHandler  *address.AddressHandler
-	StoryHandler    *product.StoryHandler
-	FavoriteHandler *product.FavoriteHandler
+	StoryHandler       *product.StoryHandler
+	FavoriteHandler    *product.FavoriteHandler
+	PreferenceHandler  *preference.PreferenceHandler
 }
 
 func InitHandler(module Module, platform PlatFormLayer) Handler {
@@ -42,7 +44,8 @@ func InitHandler(module Module, platform PlatFormLayer) Handler {
 		WebhookHandler:  telegram.NewWebhookHandler(platform.tg),
 		UploadHandler:   upload.NewUploadHandler(module.UploadModule),
 		AddressHandler:  address.NewAddressHandler(module.AddressModule),
-		StoryHandler:    product.NewStoryHandler(module.StoryModule),
-		FavoriteHandler: product.NewFavoriteHandler(module.FavoriteModule),
+		StoryHandler:      product.NewStoryHandler(module.StoryModule),
+		FavoriteHandler:   product.NewFavoriteHandler(module.FavoriteModule),
+		PreferenceHandler: preference.NewPreferenceHandler(module.RecommendationModule),
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/handler/middleware"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/order"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/payment"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/preference"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/product"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/store"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/telegram"
@@ -31,6 +32,7 @@ func NewGinRouter(
 	addressHandler *address.AddressHandler,
 	storyHandler *product.StoryHandler,
 	favoriteHandler *product.FavoriteHandler,
+	preferenceHandler *preference.PreferenceHandler,
 ) *gin.Engine {
 
 	r := gin.Default()
@@ -68,6 +70,7 @@ func NewGinRouter(
 		RegisterAddressRoutes(api, addressHandler)
 		RegisterStoryRoutes(api, storyHandler)
 		RegisterFavoriteRoutes(api, favoriteHandler)
+		RegisterPreferenceRoutes(api, preferenceHandler)
 	}
 
 	return r

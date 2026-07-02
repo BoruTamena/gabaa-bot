@@ -7,6 +7,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/module/cart"
 	"github.com/BoruTamena/gabaa-bot/internal/module/order"
 	"github.com/BoruTamena/gabaa-bot/internal/module/product"
+	"github.com/BoruTamena/gabaa-bot/internal/module/recommendation"
 	"github.com/BoruTamena/gabaa-bot/internal/module/store"
 	"github.com/BoruTamena/gabaa-bot/internal/module/telegram"
 	"github.com/BoruTamena/gabaa-bot/internal/module/user"
@@ -27,25 +28,41 @@ type Module struct {
 	BotModule      module.BotModule
 	UploadModule   module.UploadModule
 	AddressModule  module.AddressModule
-	StoryModule    module.StoryModule
-	FavoriteModule module.FavoriteModule
+	StoryModule          module.StoryModule
+	FavoriteModule       module.FavoriteModule
+	RecommendationModule module.RecommendationModule
 }
 
 func InitModule(persistence Persistence, platform PlatFormLayer) Module {
+	recommendationModule := recommendation.NewRecommendationModule(
+		persistence.PreferenceStorage,
+		persistence.RecommendationStorage,
+		persistence.UserStorage,
+		persistence.StoreStorage,
+		platform.tg,
+	)
+
 	return Module{
 		AuthModule:     auth.NewAuthModule(persistence.UserStorage, persistence.StoreStorage, platform.tg),
 		StoreModule:    store.NewStoreModule(persistence.StoreStorage, persistence.UserStorage, platform.tg),
-		ProductModule:  product.NewProductModule(persistence.ProductStorage, persistence.StoreStorage, platform.tg, viper.GetString("app.url")),
+		ProductModule:  product.NewProductModule(persistence.ProductStorage, persistence.StoreStorage, platform.tg, viper.GetString("app.url"), recommendationModule),
 		OrderModule:    order.NewOrderModule(persistence.OrderStorage, persistence.ProductStorage, persistence.CartStorage, persistence.WalletStorage, persistence.AddressStorage),
 		CartModule:     cart.NewCartModule(persistence.CartStorage, persistence.ProductStorage),
 		WalletModule:   wallet.NewWalletModule(persistence.WalletStorage),
 		UserModule:     user.NewUserModule(persistence.UserStorage),
 		CategoryModule: product.NewCategoryModule(persistence.CategoryStorage),
-		BotModule:      telegram.NewBotModule(persistence.UserStorage, persistence.StoreStorage, platform.tg),
-		UploadModule:   upload.NewUploadModule(platform.uploader),
-		AddressModule:  address.NewAddressModule(persistence.AddressStorage),
-		StoryModule:    product.NewStoryModule(persistence.StoryStorage, persistence.ProductStorage),
-		FavoriteModule: product.NewFavoriteModule(persistence.FavoriteStorage),
+		BotModule: telegram.NewBotModule(
+			persistence.UserStorage,
+			persistence.StoreStorage,
+			persistence.CategoryStorage,
+			recommendationModule,
+			platform.tg,
+		),
+		UploadModule:         upload.NewUploadModule(platform.uploader),
+		AddressModule:        address.NewAddressModule(persistence.AddressStorage),
+		StoryModule:          product.NewStoryModule(persistence.StoryStorage, persistence.ProductStorage),
+		FavoriteModule:       product.NewFavoriteModule(persistence.FavoriteStorage),
+		RecommendationModule: recommendationModule,
 	}
 }
 

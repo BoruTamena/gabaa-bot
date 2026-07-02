@@ -17,8 +17,10 @@ type Persistence struct {
 	CartStorage     storage.CartStorage
 	CategoryStorage storage.CategoryStorage
 	AddressStorage  storage.AddressStorage
-	StoryStorage    storage.StoryStorage
-	FavoriteStorage storage.FavoriteStorage
+	StoryStorage          storage.StoryStorage
+	FavoriteStorage       storage.FavoriteStorage
+	PreferenceStorage     storage.PreferenceStorage
+	RecommendationStorage storage.RecommendationStorage
 }
 
 func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logger platform.Logger) Persistence {
@@ -31,8 +33,10 @@ func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logge
 		CartStorage:     persistence.NewCartPersistence(db.DB, logger),
 		CategoryStorage: persistence.NewCategoryPersistence(db.DB, logger),
 		AddressStorage:  persistence.NewAddressPersistence(db.DB, logger),
-		StoryStorage:    persistence.NewStoryPersistence(db.DB, logger),
-		FavoriteStorage: persistence.NewFavoritePersistence(db.DB, logger),
+		StoryStorage:          persistence.NewStoryPersistence(db.DB, logger),
+		FavoriteStorage:       persistence.NewFavoritePersistence(db.DB, logger),
+		PreferenceStorage:     persistence.NewPreferencePersistence(db.DB, logger),
+		RecommendationStorage: persistence.NewRecommendationPersistence(db.DB, logger),
 	}
 }
 

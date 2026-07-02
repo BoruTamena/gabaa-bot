@@ -33,6 +33,7 @@ type Telegram interface {
 	ParseInitData(initData string) (*dto.TelegramUser, int64, error)
 	IsChatAdmin(chatID int64, userID int64) (bool, error)
 	ProcessUpdate(u telebot.Update)
+	SendProductRecommendation(telegramUserID int64, product dto.Product, storeName string) error
 }
 
 

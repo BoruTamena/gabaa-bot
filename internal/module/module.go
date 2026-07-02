@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 )
 
@@ -94,6 +95,15 @@ type FavoriteModule interface {
 	AddFavorite(ctx context.Context, userID, productID int64) error
 	RemoveFavorite(ctx context.Context, userID, productID int64) error
 	ListUserFavorites(ctx context.Context, userID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+}
+
+type RecommendationModule interface {
+	GetPreferences(ctx context.Context, userID int64) (*dto.UserPreferences, error)
+	SetPreferences(ctx context.Context, userID int64, req dto.UpdateUserPreferencesRequest) (*dto.UserPreferences, error)
+	SetBotStarted(ctx context.Context, telegramUserID int64, username string) error
+	SetRecommendationsEnabled(ctx context.Context, telegramUserID int64, enabled bool) error
+	ToggleCategory(ctx context.Context, telegramUserID int64, category string) (added bool, err error)
+	NotifyMatchingUsers(ctx context.Context, product *db.Product, sellerUserID int64)
 }
 
 

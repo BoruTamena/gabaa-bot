@@ -18,18 +18,26 @@ import (
 )
 
 type productModule struct {
-	productStorage storage.ProductStorage
-	storeStorage   storage.StoreStorage
-	tele           platform.Telegram
-	appURL         string
+	productStorage       storage.ProductStorage
+	storeStorage         storage.StoreStorage
+	tele                 platform.Telegram
+	appURL               string
+	recommendationModule module.RecommendationModule
 }
 
-func NewProductModule(pStorage storage.ProductStorage, sStorage storage.StoreStorage, tele platform.Telegram, appURL string) module.ProductModule {
+func NewProductModule(
+	pStorage storage.ProductStorage,
+	sStorage storage.StoreStorage,
+	tele platform.Telegram,
+	appURL string,
+	rModule module.RecommendationModule,
+) module.ProductModule {
 	return &productModule{
-		productStorage: pStorage,
-		storeStorage:   sStorage,
-		tele:           tele,
-		appURL:         appURL,
+		productStorage:       pStorage,
+		storeStorage:         sStorage,
+		tele:                 tele,
+		appURL:               appURL,
+		recommendationModule: rModule,
 	}
 }
 
@@ -198,7 +206,10 @@ func (m *productModule) UpdateProduct(ctx context.Context, id int64, req dto.Upd
 	if req.Status != "" {
 		// If transitioning to 'published' for the first time
 		if product.Status != constant.ProductStatusPublished && req.Status == constant.ProductStatusPublished {
-			go m.pushProductToTelegram(product)
+			publishedProduct := *product
+			publishedProduct.Status = constant.ProductStatusPublished
+			go m.pushProductToTelegram(&publishedProduct)
+			go m.recommendationModule.NotifyMatchingUsers(context.Background(), &publishedProduct, product.SellerID)
 		}
 		product.Status = req.Status
 	}

@@ -2,7 +2,10 @@ package persistence
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
@@ -121,7 +124,7 @@ func (p *storePersistence) IncrementStoreViews(ctx context.Context, storeIDs []i
 		ON CONFLICT (store_id) 
 		DO UPDATE SET views = store_stats.views + 1, updated_at = EXCLUDED.updated_at
 	`
-	
+
 	err := p.db.WithContext(ctx).Exec(query, pq.Array(storeIDs)).Error
 	if err != nil {
 		p.logger.Error("Failed to increment store views", "error", err, "count", len(storeIDs))
@@ -413,6 +416,15 @@ func (p *categoryPersistence) GetCategoryByName(ctx context.Context, name string
 	return &category, nil
 }
 
+func (p *categoryPersistence) GetCategoryByID(ctx context.Context, id int64) (*db.Category, error) {
+	var category db.Category
+	err := p.db.WithContext(ctx).First(&category, id).Error
+	if err != nil {
+		return nil, err
+	}
+	return &category, nil
+}
+
 // CartStorage
 type cartPersistence struct {
 	db     *gorm.DB
@@ -688,4 +700,220 @@ func (p *favoritePersistence) IsFavorite(ctx context.Context, userID, productID 
 	return count > 0, nil
 }
 
+// PreferenceStorage
+type preferencePersistence struct {
+	db     *gorm.DB
+	logger platform.Logger
+}
 
+func NewPreferencePersistence(db *gorm.DB, logger platform.Logger) storage.PreferenceStorage {
+	return &preferencePersistence{db: db, logger: logger}
+}
+
+func (p *preferencePersistence) GetUserPreferences(ctx context.Context, userID int64) ([]string, error) {
+	pref, err := p.getPreferenceRow(ctx, userID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return []string{}, nil
+		}
+		p.logger.Error("Failed to get user preferences", "error", err, "userID", userID)
+		return nil, err
+	}
+
+	return categoriesFromJSON(pref.Categories), nil
+}
+
+func (p *preferencePersistence) SetUserPreferences(ctx context.Context, userID int64, categories []string) error {
+	normalized := normalizeCategories(categories)
+	categoriesJSON, err := categoriesToJSON(normalized)
+	if err != nil {
+		return err
+	}
+
+	pref, err := p.getPreferenceRow(ctx, userID)
+	if err != nil {
+		if err != gorm.ErrRecordNotFound {
+			p.logger.Error("Failed to load user preferences for update", "error", err, "userID", userID)
+			return err
+		}
+
+		pref = &db.UserCategoryPreference{
+			UserID:     userID,
+			Categories: categoriesJSON,
+		}
+		if err := p.db.WithContext(ctx).Create(pref).Error; err != nil {
+			p.logger.Error("Failed to create user preferences", "error", err, "userID", userID)
+			return err
+		}
+		return nil
+	}
+
+	pref.Categories = categoriesJSON
+	if err := p.db.WithContext(ctx).Save(pref).Error; err != nil {
+		p.logger.Error("Failed to update user preferences", "error", err, "userID", userID)
+		return err
+	}
+	return nil
+}
+
+func (p *preferencePersistence) ToggleUserCategory(ctx context.Context, userID int64, category string) (bool, error) {
+	normalized := stringsTrimSpace(category)
+	if normalized == "" {
+		return false, fmt.Errorf("category cannot be empty")
+	}
+
+	current, err := p.GetUserPreferences(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	updated, added := toggleCategoryInList(current, normalized)
+	if err := p.SetUserPreferences(ctx, userID, updated); err != nil {
+		return false, err
+	}
+	return added, nil
+}
+
+func (p *preferencePersistence) GetUsersByCategories(ctx context.Context, categories []string) ([]db.User, error) {
+	normalized := normalizeCategories(categories)
+	if len(normalized) == 0 {
+		return nil, nil
+	}
+
+	lowered := make([]string, len(normalized))
+	for i, category := range normalized {
+		lowered[i] = stringsToLower(category)
+	}
+
+	var users []db.User
+	err := p.db.WithContext(ctx).
+		Table("users").
+		Select("DISTINCT users.*").
+		Joins("JOIN user_category_preferences ON user_category_preferences.user_id = users.id AND user_category_preferences.deleted_at IS NULL").
+		Where("users.recommendations_enabled = ?", true).
+		Where("users.bot_started = ?", true).
+		Where("users.telegram_user_id IS NOT NULL").
+		Where(`EXISTS (
+			SELECT 1
+			FROM jsonb_array_elements_text(user_category_preferences.categories) AS cat
+			WHERE lower(cat) IN ?
+		)`, lowered).
+		Find(&users).Error
+	if err != nil {
+		p.logger.Error("Failed to get users by categories", "error", err)
+	}
+	return users, err
+}
+
+func (p *preferencePersistence) getPreferenceRow(ctx context.Context, userID int64) (*db.UserCategoryPreference, error) {
+	var pref db.UserCategoryPreference
+	err := p.db.WithContext(ctx).Where("user_id = ?", userID).First(&pref).Error
+	if err != nil {
+		return nil, err
+	}
+	return &pref, nil
+}
+
+func normalizeCategories(categories []string) []string {
+	seen := make(map[string]bool)
+	normalized := make([]string, 0, len(categories))
+	for _, category := range categories {
+		value := stringsTrimSpace(category)
+		if value == "" {
+			continue
+		}
+		key := stringsToLower(value)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		normalized = append(normalized, value)
+	}
+	return normalized
+}
+
+func categoriesToJSON(categories []string) (string, error) {
+	if categories == nil {
+		categories = []string{}
+	}
+	bytes, err := json.Marshal(categories)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+func categoriesFromJSON(raw string) []string {
+	if raw == "" {
+		return []string{}
+	}
+
+	var categories []string
+	if err := json.Unmarshal([]byte(raw), &categories); err != nil {
+		return []string{}
+	}
+	if categories == nil {
+		return []string{}
+	}
+	return categories
+}
+
+func toggleCategoryInList(categories []string, category string) ([]string, bool) {
+	target := stringsToLower(category)
+	for i, existing := range categories {
+		if stringsToLower(existing) == target {
+			updated := append([]string{}, categories[:i]...)
+			updated = append(updated, categories[i+1:]...)
+			return updated, false
+		}
+	}
+	return append(categories, category), true
+}
+
+// RecommendationStorage
+type recommendationPersistence struct {
+	db     *gorm.DB
+	logger platform.Logger
+}
+
+func NewRecommendationPersistence(db *gorm.DB, logger platform.Logger) storage.RecommendationStorage {
+	return &recommendationPersistence{db: db, logger: logger}
+}
+
+func (p *recommendationPersistence) WasNotified(ctx context.Context, userID, productID int64) (bool, error) {
+	var count int64
+	err := p.db.WithContext(ctx).
+		Model(&db.ProductRecommendation{}).
+		Where("user_id = ? AND product_id = ?", userID, productID).
+		Count(&count).Error
+	if err != nil {
+		p.logger.Error("Failed to check recommendation notification", "error", err, "userID", userID, "productID", productID)
+		return false, err
+	}
+	return count > 0, nil
+}
+
+func (p *recommendationPersistence) RecordNotification(ctx context.Context, userID, productID int64) error {
+	rec := &db.ProductRecommendation{
+		UserID:    userID,
+		ProductID: productID,
+		SentAt:    timeNow(),
+	}
+	err := p.db.WithContext(ctx).Create(rec).Error
+	if err != nil {
+		p.logger.Error("Failed to record recommendation notification", "error", err, "userID", userID, "productID", productID)
+	}
+	return err
+}
+
+func stringsTrimSpace(s string) string {
+	return strings.TrimSpace(s)
+}
+
+func stringsToLower(s string) string {
+	return strings.ToLower(s)
+}
+
+func timeNow() time.Time {
+	return time.Now()
+}

@@ -198,3 +198,44 @@ func (tg *telegram) IsChatAdmin(chatID int64, userID int64) (bool, error) {
 	}
 	return false, nil
 }
+
+func (tg *telegram) SendProductRecommendation(telegramUserID int64, product dto.Product, storeName string) error {
+	caption := fmt.Sprintf(
+		"<b>New in %s</b>\n"+
+			"━━━━━━━━━━━━━━━━━━━━\n"+
+			"<b>%s</b>\n\n"+
+			"<code>PRICE   </code> <b>%.2f ETB</b>\n"+
+			"<code>STORE   </code> <b>%s</b>\n\n"+
+			"<blockquote>%s</blockquote>\n\n"+
+			"<i>You're receiving this because you subscribed to %s. Use /preferences to manage.</i>",
+		strings.ToUpper(product.Category),
+		product.Name,
+		product.Price,
+		storeName,
+		product.Description,
+		product.Category,
+	)
+
+	productURL := fmt.Sprintf("%s/product/%d", viper.GetString("app.url"), product.ID)
+	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
+		productURL = fmt.Sprintf("https://t.me/%s?startapp=product_%d", tg.bot.Me.Username, product.ID)
+	}
+
+	selector := &telebot.ReplyMarkup{}
+	btn := selector.URL("🛒 Order Now", productURL)
+	selector.Inline(selector.Row(btn))
+
+	recipient := &telebot.User{ID: telegramUserID}
+
+	if len(product.Images) > 0 {
+		photo := &telebot.Photo{
+			File:    telebot.FromURL(product.Images[0]),
+			Caption: caption,
+		}
+		_, err := tg.bot.Send(recipient, photo, telebot.ModeHTML, selector)
+		return err
+	}
+
+	_, err := tg.bot.Send(recipient, caption, telebot.ModeHTML, selector)
+	return err
+}

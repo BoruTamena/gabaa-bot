@@ -101,6 +101,26 @@ definitions:
       name:
         type: string
     type: object
+  dto.CreateProductStoryRequest:
+    properties:
+      caption:
+        type: string
+      ends_at:
+        description: RFC3339
+        type: string
+      media_type:
+        description: '"image" | "video"'
+        type: string
+      media_urls:
+        items:
+          type: string
+        type: array
+      product_id:
+        type: integer
+      starts_at:
+        description: RFC3339
+        type: string
+    type: object
   dto.CreateStoreRequest:
     properties:
       category:
@@ -215,6 +235,39 @@ definitions:
       store_id:
         type: integer
     type: object
+  dto.ProductStory:
+    properties:
+      caption:
+        type: string
+      created_at:
+        type: string
+      ends_at:
+        description: RFC3339
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      media_type:
+        type: string
+      media_urls:
+        items:
+          type: string
+        type: array
+      product:
+        allOf:
+        - $ref: '#/definitions/dto.Product'
+        description: Product detail is populated only on single-story fetch (GetStory)
+      product_id:
+        type: integer
+      starts_at:
+        description: RFC3339
+        type: string
+      store_id:
+        type: integer
+      views:
+        type: integer
+    type: object
   dto.Store:
     properties:
       category:
@@ -263,6 +316,23 @@ definitions:
       street:
         type: string
     type: object
+  dto.UpdateProductStoryRequest:
+    properties:
+      caption:
+        type: string
+      ends_at:
+        type: string
+      is_active:
+        type: boolean
+      media_type:
+        type: string
+      media_urls:
+        items:
+          type: string
+        type: array
+      starts_at:
+        type: string
+    type: object
   dto.UpdateStoreRequest:
     properties:
       category:
@@ -281,6 +351,24 @@ definitions:
         type: string
       phone:
         type: string
+    type: object
+  dto.UpdateUserPreferencesRequest:
+    properties:
+      categories:
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
+    type: object
+  dto.UserPreferences:
+    properties:
+      categories:
+        items:
+          type: string
+        type: array
+      enabled:
+        type: boolean
     type: object
   errorx.AppError:
     properties:
@@ -434,6 +522,143 @@ paths:
       summary: List all categories
       tags:
       - Category
+  /favorites:
+    get:
+      description: Returns a paginated list of the authenticated user's favorite products
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List user's favorite products
+      tags:
+      - Favorite
+  /favorites/{product_id}:
+    delete:
+      description: Removes a specific product from the authenticated user's favorites
+        list
+      parameters:
+      - description: Product ID
+        in: path
+        name: product_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Remove a product from favorites
+      tags:
+      - Favorite
+    post:
+      description: Adds a specific product to the authenticated user's favorites list
+      parameters:
+      - description: Product ID
+        in: path
+        name: product_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Add a product to favorites
+      tags:
+      - Favorite
   /my-store/orders:
     get:
       description: Retrieve paginated orders scoped to the authenticated merchant's
@@ -797,6 +1022,322 @@ paths:
       summary: List my store products
       tags:
       - Product
+  /my-store/stories:
+    get:
+      description: Returns paginated story ads for the authenticated merchant's store
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by product ID
+        in: query
+        name: product_id
+        type: integer
+      - description: Filter by active status
+        in: query
+        name: is_active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List my store's story ads
+      tags:
+      - Story
+    post:
+      consumes:
+      - application/json
+      description: Store owner creates a new story ad (image/video) for a specific
+        product within a date range
+      parameters:
+      - description: Story ad data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductStoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductStory'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Create a product story ad
+      tags:
+      - Story
+  /my-store/stories/:id:
+    delete:
+      description: Soft-delete a story ad (admin only, store-scoped)
+      parameters:
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.BaseResponse'
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Delete a story ad
+      tags:
+      - Story
+    get:
+      description: Returns one story ad belonging to the authenticated merchant's
+        store
+      parameters:
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductStory'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get a single story ad (merchant)
+      tags:
+      - Story
+    put:
+      consumes:
+      - application/json
+      description: Partially update an existing story ad (admin only, store-scoped)
+      parameters:
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update story data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateProductStoryRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductStory'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Update a story ad
+      tags:
+      - Story
   /order/create:
     post:
       consumes:
@@ -915,6 +1456,7 @@ paths:
         required: true
         schema:
           additionalProperties:
+            format: int64
             type: integer
           type: object
       produces:
@@ -1474,6 +2016,7 @@ paths:
             - properties:
                 data:
                   additionalProperties:
+                    format: float64
                     type: number
                   type: object
               type: object
@@ -1604,6 +2147,94 @@ paths:
       summary: Create store
       tags:
       - Store
+  /stories:
+    get:
+      description: Returns all currently active story ads ordered by recency (date-range
+        enforced)
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List active story ads (public)
+      tags:
+      - Story
+  /stories/:id:
+    get:
+      description: Returns one story with full product details; increments view count
+      parameters:
+      - description: Story ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductStory'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get a single story ad (public)
+      tags:
+      - Story
   /upload/images:
     post:
       consumes:
@@ -2248,4 +2879,95 @@ paths:
       summary: Cancel order
       tags:
       - Order
+  /user/preferences:
+    get:
+      description: Returns the authenticated user's recommendation opt-in status and
+        preferred product categories
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserPreferences'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get user category preferences
+      tags:
+      - Preference
+    put:
+      consumes:
+      - application/json
+      description: Replaces the authenticated user's preferred categories and recommendation
+        opt-in status
+      parameters:
+      - description: Preference settings
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserPreferencesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserPreferences'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Update user category preferences
+      tags:
+      - Preference
 swagger: "2.0"
