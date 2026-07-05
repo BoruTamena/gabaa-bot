@@ -9,34 +9,36 @@ import (
 
 
 type Persistence struct {
-	UserStorage     storage.UserStorage
-	StoreStorage    storage.StoreStorage
-	ProductStorage  storage.ProductStorage
-	OrderStorage    storage.OrderStorage
-	WalletStorage   storage.WalletStorage
-	CartStorage     storage.CartStorage
-	CategoryStorage storage.CategoryStorage
-	AddressStorage  storage.AddressStorage
+	UserStorage           storage.UserStorage
+	StoreStorage          storage.StoreStorage
+	ProductStorage        storage.ProductStorage
+	OrderStorage          storage.OrderStorage
+	WalletStorage         storage.WalletStorage
+	CartStorage           storage.CartStorage
+	CategoryStorage       storage.CategoryStorage
+	AddressStorage        storage.AddressStorage
 	StoryStorage          storage.StoryStorage
 	FavoriteStorage       storage.FavoriteStorage
 	PreferenceStorage     storage.PreferenceStorage
 	RecommendationStorage storage.RecommendationStorage
+	AuthSessionStorage    storage.AuthSessionStorage
 }
 
 func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logger platform.Logger) Persistence {
 	return Persistence{
-		UserStorage:     persistence.NewPersistence(db.DB, logger),
-		StoreStorage:    persistence.NewStorePersistence(db.DB, logger),
-		ProductStorage:  persistence.NewProductPersistence(db.DB, logger),
-		OrderStorage:    persistence.NewOrderPersistence(db.DB, logger),
-		WalletStorage:   persistence.NewWalletPersistence(db.DB, logger),
-		CartStorage:     persistence.NewCartPersistence(db.DB, logger),
-		CategoryStorage: persistence.NewCategoryPersistence(db.DB, logger),
-		AddressStorage:  persistence.NewAddressPersistence(db.DB, logger),
+		UserStorage:           persistence.NewPersistence(db.DB, logger),
+		StoreStorage:          persistence.NewStorePersistence(db.DB, logger),
+		ProductStorage:        persistence.NewProductPersistence(db.DB, logger),
+		OrderStorage:          persistence.NewOrderPersistence(db.DB, logger),
+		WalletStorage:         persistence.NewWalletPersistence(db.DB, logger),
+		CartStorage:           persistence.NewCartPersistence(db.DB, logger),
+		CategoryStorage:       persistence.NewCategoryPersistence(db.DB, logger),
+		AddressStorage:        persistence.NewAddressPersistence(db.DB, logger),
 		StoryStorage:          persistence.NewStoryPersistence(db.DB, logger),
 		FavoriteStorage:       persistence.NewFavoritePersistence(db.DB, logger),
 		PreferenceStorage:     persistence.NewPreferencePersistence(db.DB, logger),
 		RecommendationStorage: persistence.NewRecommendationPersistence(db.DB, logger),
+		AuthSessionStorage:    persistence.NewAuthSessionPersistence(db.DB, logger),
 	}
 }
 

@@ -272,28 +272,21 @@ func (m *productModule) pushProductToTelegram(p *db.Product) {
 		return
 	}
 
-	// 2. Construct high-end minimalist Spec-Sheet message
 	caption := fmt.Sprintf(
-		"<b>%s</b>\n"+
-			"━━━━━━━━━━━━━━━━━━━━\n"+
-			"<code>PRICE        </code> <b>%s ETB</b>\n"+
-			"<code>AVAILABILITY </code> <b>In Stock (%d units)</b>\n"+
-			"<code>CATEGORY     </code> <b>%s</b>\n\n"+
-			"<b>SPECIFICATIONS</b>\n"+
-			"<blockquote>%s</blockquote>\n\n"+
-			"<b>MERCHANT:</b> %s",
-		strings.ToUpper(p.Name), fmt.Sprintf("%.2f", p.Price), p.Stock, strings.ToUpper(p.Category), p.Description, store.Name,
+		"<b>%s</b>\n\n"+
+			"💰 <b>%s ETB</b>\n"+
+			"📦 <b>%d in stock</b>\n"+
+			"🏷️ <b>%s</b>\n\n"+
+			"<blockquote>%s</blockquote>",
+		p.Name, fmt.Sprintf("%.2f", p.Price), p.Stock, p.Category, p.Description,
 	)
 
-	// 3. Construct "Order Now" button
 	bot := m.tele.GetBot()
-	productURL := fmt.Sprintf("%s/product/%d", m.appURL, p.ID)
-
-	// Use Telegram direct link to open Mini App if bot username is available
-	if bot.Me != nil && bot.Me.Username != "" {
-		// Using the "Main Mini App" direct link format (without /app)
-		productURL = fmt.Sprintf("https://t.me/%s?startapp=product_%d", bot.Me.Username, p.ID)
+	baseURL := strings.TrimRight(m.appURL, "/")
+	if baseURL == "" {
+		baseURL = "https://gabaa-web.vercel.app"
 	}
+	productURL := fmt.Sprintf("%s/product/%d", baseURL, p.ID)
 
 	selector := &telebot.ReplyMarkup{}
 	// NOTE: We MUST use selector.URL because WebApp buttons are not allowed in channels.

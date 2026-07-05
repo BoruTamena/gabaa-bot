@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 
+	authmod "github.com/BoruTamena/gabaa-bot/internal/module/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
 	"github.com/BoruTamena/gabaa-bot/pkg/response"
@@ -46,6 +47,42 @@ func (h *AuthHandler) TelegramAuth(c *gin.Context) {
 		if !ok || appErr.Code == errorx.ErrInternal {
 			appErr = errorx.New(errorx.ErrUnauthorized, err.Error(), http.StatusUnauthorized)
 		}
+		response.CustomError(c, appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
+// StartTelegramLoginSession starts a bot-mediated login session for web/mobile clients.
+func (h *AuthHandler) StartTelegramLoginSession(c *gin.Context) {
+	resp, err := h.authModule.StartBotLoginSession(c.Request.Context())
+	if err != nil {
+		appErr := errorx.New(errorx.ErrInternal, err.Error(), http.StatusInternalServerError)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
+// PollTelegramLoginSession polls a bot login session and returns a JWT when completed.
+func (h *AuthHandler) PollTelegramLoginSession(c *gin.Context) {
+	sessionID := c.Param("sessionId")
+	if sessionID == "" {
+		appErr := errorx.New(errorx.ErrBadRequest, "Missing session id", http.StatusBadRequest)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	resp, err := h.authModule.PollBotLoginSession(c.Request.Context(), sessionID)
+	if err != nil {
+		if authmod.IsSessionNotFound(err) {
+			appErr := errorx.New(errorx.ErrNotFound, "Session not found or expired", http.StatusNotFound)
+			response.CustomError(c, appErr)
+			return
+		}
+		appErr := errorx.New(errorx.ErrInternal, err.Error(), http.StatusInternalServerError)
 		response.CustomError(c, appErr)
 		return
 	}

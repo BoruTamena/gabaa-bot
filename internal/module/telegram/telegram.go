@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
+	authmod "github.com/BoruTamena/gabaa-bot/internal/module/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/pkg/logger"
 	"github.com/BoruTamena/gabaa-bot/platform"
@@ -20,6 +22,7 @@ type botModule struct {
 	storeStorage         storage.StoreStorage
 	categoryStorage      storage.CategoryStorage
 	recommendationModule module.RecommendationModule
+	authModule           module.AuthModule
 	tele                 platform.Telegram
 }
 
@@ -28,6 +31,7 @@ func NewBotModule(
 	sStorage storage.StoreStorage,
 	cStorage storage.CategoryStorage,
 	rModule module.RecommendationModule,
+	aModule module.AuthModule,
 	tele platform.Telegram,
 ) module.BotModule {
 	m := &botModule{
@@ -35,6 +39,7 @@ func NewBotModule(
 		storeStorage:         sStorage,
 		categoryStorage:      cStorage,
 		recommendationModule: rModule,
+		authModule:           aModule,
 		tele:                 tele,
 	}
 	m.registerHandlers()
@@ -63,6 +68,22 @@ func (m *botModule) handleStart(c telebot.Context) error {
 	}
 
 	payload := c.Message().Payload
+	if strings.HasPrefix(payload, "login_") {
+		sessionID := strings.TrimPrefix(payload, "login_")
+		tgUser := &dto.TelegramUser{
+			ID:       c.Sender().ID,
+			Username: username,
+		}
+		if err := m.authModule.CompleteBotLoginSession(ctx, sessionID, tgUser); err != nil {
+			if authmod.IsSessionNotFound(err) {
+				return c.Send("❌ This login link is invalid or has expired. Please request a new one from the app.")
+			}
+			logger.Error("failed to complete bot login session", zap.Error(err), zap.String("session_id", sessionID))
+			return c.Send("❌ Failed to complete login. Please try again from the app.")
+		}
+		return c.Send("✅ You're logged in to Gabaa! Return to the app to continue.")
+	}
+
 	if strings.HasPrefix(payload, "link_store_") {
 		storeIDStr := strings.TrimPrefix(payload, "link_store_")
 		storeID, err := strconv.ParseInt(storeIDStr, 10, 64)

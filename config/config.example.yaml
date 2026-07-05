@@ -10,6 +10,7 @@ migiration:
 
 tg:
   token: YOUR_TELEGRAM_BOT_TOKEN
+  bot_username: gabaaBot
 
 server:
   port: 8085

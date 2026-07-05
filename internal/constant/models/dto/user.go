@@ -1,5 +1,6 @@
 package dto
 
+import "time"
 
 type User struct {
 	ID             int64  `json:"id"`
@@ -29,5 +30,38 @@ type AuthResponse struct {
 
 type UserList struct {
 	Users []User `json:"users"`
+}
+
+type TelegramLoginSessionResponse struct {
+	SessionID string    `json:"sessionId"`
+	BotURL    string    `json:"botUrl"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+type TelegramLoginPollResponse struct {
+	Status         string `json:"status"`
+	Token          string `json:"token,omitempty"`
+	UserID         int64  `json:"userId,omitempty"`
+	TelegramUserID int64  `json:"telegramUserId,omitempty"`
+	Username       string `json:"username,omitempty"`
+	Role           string `json:"role,omitempty"`
+	HasStore       bool   `json:"hasStore,omitempty"`
+	StoreID        int64  `json:"storeId,omitempty"`
+}
+
+func NewTelegramLoginPollResponseFromAuth(status string, auth *AuthResponse) *TelegramLoginPollResponse {
+	if auth == nil {
+		return &TelegramLoginPollResponse{Status: status}
+	}
+	return &TelegramLoginPollResponse{
+		Status:         status,
+		Token:          auth.Token,
+		UserID:         auth.UserID,
+		TelegramUserID: auth.TelegramUserID,
+		Username:       auth.Username,
+		Role:           auth.Role,
+		HasStore:       auth.HasStore,
+		StoreID:        auth.StoreID,
+	}
 }
 

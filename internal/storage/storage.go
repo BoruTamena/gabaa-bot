@@ -2,9 +2,27 @@ package storage
 
 import (
 	"context"
+	"time"
+
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 )
+
+type AuthSession struct {
+	ID             string
+	Status         string
+	TelegramUserID int64
+	Username       string
+	ExpiresAt      time.Time
+	CompletedAt    *time.Time
+}
+
+type AuthSessionStorage interface {
+	CreateSession(ctx context.Context, sessionID string, expiresAt time.Time) error
+	CompleteSession(ctx context.Context, sessionID string, telegramUserID int64, username string) error
+	GetSession(ctx context.Context, sessionID string) (*AuthSession, error)
+	DeleteSession(ctx context.Context, sessionID string) error
+}
 
 type UserStorage interface {
 	CreateUser(ctx context.Context, user *db.User) error

@@ -8,6 +8,9 @@ import (
 
 type AuthModule interface {
 	TelegramAuth(ctx context.Context, initData string) (*dto.AuthResponse, error)
+	StartBotLoginSession(ctx context.Context) (*dto.TelegramLoginSessionResponse, error)
+	CompleteBotLoginSession(ctx context.Context, sessionID string, tgUser *dto.TelegramUser) error
+	PollBotLoginSession(ctx context.Context, sessionID string) (*dto.TelegramLoginPollResponse, error)
 }
 
 type UserModule interface {
