@@ -276,6 +276,7 @@ func (p *orderPersistence) GetOrdersByStoreID(ctx context.Context, storeID int64
 		Preload("Items.Product").
 		Preload("ShippingAddress").
 		Where("store_id = ?", storeID).
+		Order("created_at DESC").
 		Limit(limit).Offset(offset).
 		Find(&orders).Error
 	if err != nil {
@@ -299,6 +300,7 @@ func (p *orderPersistence) GetOrdersByCustomerID(ctx context.Context, customerID
 		Preload("Items.Product").
 		Preload("ShippingAddress").
 		Where("user_id = ?", customerID).
+		Order("created_at DESC").
 		Limit(limit).Offset(offset).
 		Find(&orders).Error
 	if err != nil {
@@ -347,7 +349,7 @@ func (p *orderPersistence) GetOrdersByFilter(ctx context.Context, filter dto.Ord
 		return nil, 0, err
 	}
 
-	if err := query.Limit(filter.GetLimit()).Offset(filter.GetOffset()).Find(&orders).Error; err != nil {
+	if err := query.Order("created_at DESC").Limit(filter.GetLimit()).Offset(filter.GetOffset()).Find(&orders).Error; err != nil {
 		return nil, 0, err
 	}
 

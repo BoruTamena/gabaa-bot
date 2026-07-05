@@ -122,10 +122,7 @@ func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64,
 
 	logger.Info("checkout completed successfully", zap.Int64("order_id", order.ID), zap.Int64("user_id", userID), zap.Float64("total_price", order.TotalPrice))
 
-	orderDTO := m.mapOrderToDTO(order)
-	go m.notifyStoreOwner(context.Background(), order.ID, storeID)
-
-	return orderDTO, nil
+	return m.mapOrderToDTO(order), nil
 }
 
 func (m *orderModule) ListOrders(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
@@ -165,13 +162,30 @@ func (m *orderModule) UpdateOrderStatus(ctx context.Context, orderID int64, stat
 			return err
 		}
 	}
+
+	var storeID int64
+	if status == "paid" {
+		order, err := m.orderStorage.GetOrderByID(ctx, orderID)
+		if err != nil {
+			logger.Error("failed to get order for payment notification", zap.Error(err), zap.Int64("order_id", orderID))
+			return err
+		}
+		storeID = order.StoreID
+	}
+
 	err := m.orderStorage.UpdateOrderStatus(ctx, orderID, status)
 	if err != nil {
 		logger.Error("failed to update order status", zap.Error(err), zap.Int64("order_id", orderID), zap.String("status", status))
-	} else {
-		logger.Info("order status updated successfully", zap.Int64("order_id", orderID), zap.String("status", status))
+		return err
 	}
-	return err
+
+	logger.Info("order status updated successfully", zap.Int64("order_id", orderID), zap.String("status", status))
+
+	if status == "paid" {
+		go m.notifyStoreOwner(context.Background(), orderID, storeID)
+	}
+
+	return nil
 }
 
 func (m *orderModule) GetUserOrders(ctx context.Context, userID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
