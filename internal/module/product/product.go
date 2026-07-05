@@ -258,14 +258,6 @@ func (m *productModule) mapToDTO(p *db.Product) *dto.Product {
 	}
 }
 
-func (m *productModule) miniAppProductURL(bot *telebot.Bot, productID int64) string {
-	username := "gabaaBot"
-	if bot != nil && bot.Me != nil && bot.Me.Username != "" {
-		username = bot.Me.Username
-	}
-	return fmt.Sprintf("https://t.me/%s?startapp=product_%d", username, productID)
-}
-
 func (m *productModule) pushProductToTelegram(p *db.Product) {
 	if p.StoreID == nil {
 		return
@@ -289,24 +281,14 @@ func (m *productModule) pushProductToTelegram(p *db.Product) {
 	)
 
 	bot := m.tele.GetBot()
-	// productURL := m.miniAppProductURL(bot, p.ID)
-
-	selector := &telebot.ReplyMarkup{}
-	// NOTE: We MUST use selector.URL because WebApp buttons are not allowed in channels.
-	// btn := selector.URL("🛒 Order Now", productURL)
-	// selector.Inline(selector.Row(btn))
-
 	if m.appURL == "" {
 		m.appURL = "https://gabaa-web.vercel.app"
 	}
 
-	btn := selector.WebApp(
-		"🛒 Order Now",
-		&telebot.WebApp{
-			URL: fmt.Sprintf("%s/product/%d", m.appURL, p.ID),
-		},
-	)
-
+	selector := &telebot.ReplyMarkup{}
+	btn := selector.WebApp("🛒 Order Now", &telebot.WebApp{
+		URL: fmt.Sprintf("%s/product/%d", m.appURL, p.ID),
+	})
 	selector.Inline(selector.Row(btn))
 	chat := &telebot.Chat{ID: store.TelegramChatID}
 
