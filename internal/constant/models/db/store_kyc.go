@@ -3,7 +3,7 @@ package db
 import "time"
 
 type StoreKYC struct {
-	BaseModel
+	ID                         int64      `gorm:"primaryKey;autoIncrement" json:"id"`
 	StoreID                    int64      `gorm:"column:store_id;not null;uniqueIndex" json:"store_id"`
 	TINNumber                  string     `gorm:"column:tin_number;not null" json:"tin_number"`
 	BusinessRegistrationNumber string     `gorm:"column:business_registration_number;not null" json:"business_registration_number"`
@@ -12,6 +12,8 @@ type StoreKYC struct {
 	ReviewNote                 string     `gorm:"column:review_note" json:"review_note"`
 	SubmittedAt                time.Time  `gorm:"column:submitted_at;not null" json:"submitted_at"`
 	ReviewedAt                 *time.Time `gorm:"column:reviewed_at" json:"reviewed_at"`
+	CreatedAt                  time.Time  `gorm:"column:created_at;autoCreateTime" json:"created_at"`
+	UpdatedAt                  time.Time  `gorm:"column:updated_at;autoUpdateTime" json:"updated_at"`
 	Store                      Store      `gorm:"foreignKey:StoreID;references:ID" json:"store,omitempty"`
 }
 

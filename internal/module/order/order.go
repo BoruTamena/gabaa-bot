@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/pkg/logger"
+	"github.com/BoruTamena/gabaa-bot/platform"
 	"go.uber.org/zap"
 )
 
@@ -20,15 +22,30 @@ type orderModule struct {
 	cartStorage    storage.CartStorage
 	walletStorage  storage.WalletStorage
 	addressStorage storage.AddressStorage
+	storeStorage   storage.StoreStorage
+	userStorage    storage.UserStorage
+	tele           platform.Telegram
 }
 
-func NewOrderModule(oStorage storage.OrderStorage, pStorage storage.ProductStorage, cStorage storage.CartStorage, wStorage storage.WalletStorage, aStorage storage.AddressStorage) module.OrderModule {
+func NewOrderModule(
+	oStorage storage.OrderStorage,
+	pStorage storage.ProductStorage,
+	cStorage storage.CartStorage,
+	wStorage storage.WalletStorage,
+	aStorage storage.AddressStorage,
+	sStorage storage.StoreStorage,
+	uStorage storage.UserStorage,
+	tele platform.Telegram,
+) module.OrderModule {
 	return &orderModule{
 		orderStorage:   oStorage,
 		productStorage: pStorage,
 		cartStorage:    cStorage,
 		walletStorage:  wStorage,
 		addressStorage: aStorage,
+		storeStorage:   sStorage,
+		userStorage:    uStorage,
+		tele:           tele,
 	}
 }
 
@@ -105,7 +122,10 @@ func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64,
 
 	logger.Info("checkout completed successfully", zap.Int64("order_id", order.ID), zap.Int64("user_id", userID), zap.Float64("total_price", order.TotalPrice))
 
-	return m.mapOrderToDTO(order), nil
+	orderDTO := m.mapOrderToDTO(order)
+	go m.notifyStoreOwner(context.Background(), order.ID, storeID)
+
+	return orderDTO, nil
 }
 
 func (m *orderModule) ListOrders(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
@@ -342,4 +362,63 @@ func (m *orderModule) mapOrderToDTO(o *db.Order) *dto.Order {
 	}
 
 	return order
+}
+
+func (m *orderModule) notifyStoreOwner(ctx context.Context, orderID, storeID int64) {
+	store, err := m.storeStorage.GetStoreByID(ctx, storeID)
+	if err != nil {
+		logger.Error("failed to load store for order notification", zap.Error(err), zap.Int64("store_id", storeID))
+		return
+	}
+
+	seller, err := m.userStorage.GetUserByID(ctx, store.SellerID)
+	if err != nil || seller.TelegramUserID == nil {
+		logger.Warn("skipping order notification: seller has no telegram id",
+			zap.Int64("order_id", orderID),
+			zap.Int64("store_id", storeID),
+			zap.Int64("seller_id", store.SellerID),
+		)
+		return
+	}
+
+	order, err := m.orderStorage.GetOrderByID(ctx, orderID)
+	if err != nil {
+		logger.Error("failed to load order for notification", zap.Error(err), zap.Int64("order_id", orderID))
+		return
+	}
+
+	orderDTO := m.mapOrderToDTO(order)
+	if err := m.tele.SendNewOrderNotification(*seller.TelegramUserID, *orderDTO, store.Name); err != nil {
+		if isTelegramBlockedError(err) {
+			logger.Warn("skipping order notification: seller cannot receive bot messages",
+				zap.Int64("order_id", orderID),
+				zap.Int64("telegram_user_id", *seller.TelegramUserID),
+			)
+			return
+		}
+		logger.Error("failed to send new order notification",
+			zap.Error(err),
+			zap.Int64("order_id", orderID),
+			zap.Int64("telegram_user_id", *seller.TelegramUserID),
+		)
+		return
+	}
+
+	logger.Info("new order notification sent to store owner",
+		zap.Int64("order_id", orderID),
+		zap.Int64("store_id", storeID),
+		zap.Int64("telegram_user_id", *seller.TelegramUserID),
+	)
+}
+
+func isTelegramBlockedError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "403") ||
+		strings.Contains(msg, "blocked") ||
+		strings.Contains(msg, "bot was blocked") ||
+		strings.Contains(msg, "user is deactivated") ||
+		strings.Contains(msg, "chat not found")
 }

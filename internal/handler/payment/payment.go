@@ -43,7 +43,7 @@ func (h *PaymentHandler) VerifyPayment(c *gin.Context) {
 	}
 
 	// 1. Mark order as completed/confirmed
-	err := h.orderModule.UpdateOrderStatus(c.Request.Context(), req.OrderID, "completed")
+	err := h.orderModule.UpdateOrderStatus(c.Request.Context(), req.OrderID, "paid")
 	if err != nil {
 		response.Error(c, err)
 		return

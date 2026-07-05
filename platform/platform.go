@@ -34,6 +34,7 @@ type Telegram interface {
 	IsChatAdmin(chatID int64, userID int64) (bool, error)
 	ProcessUpdate(u telebot.Update)
 	SendProductRecommendation(telegramUserID int64, product dto.Product, storeName string) error
+	SendNewOrderNotification(telegramUserID int64, order dto.Order, storeName string) error
 }
 
 

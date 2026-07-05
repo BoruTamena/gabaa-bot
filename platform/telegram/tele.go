@@ -102,7 +102,7 @@ func (tg *telegram) ValidateInitData(initData string) (bool, error) {
 	if err != nil {
 
 		// log the error
-		
+
 		logger.Error("failed to parse init data", zap.Error(err))
 		return false, err
 	}
@@ -176,7 +176,7 @@ func hmacSHA256(key, data []byte) []byte {
 
 func (tg *telegram) IsChatAdmin(chatID int64, userID int64) (bool, error) {
 	// 1. Handle Private Chat case
-	// In Telegram, chatID == userID for private chats. 
+	// In Telegram, chatID == userID for private chats.
 	// The Bot API 'getChatAdministrators' fails for private chats.
 	if chatID == userID {
 		return true, nil
@@ -238,4 +238,71 @@ func (tg *telegram) SendProductRecommendation(telegramUserID int64, product dto.
 
 	_, err := tg.bot.Send(recipient, caption, telebot.ModeHTML, selector)
 	return err
+}
+
+func (tg *telegram) SendNewOrderNotification(telegramUserID int64, order dto.Order, storeName string) error {
+	itemCount := 0
+	var itemLines strings.Builder
+	for _, item := range order.OrderItems {
+		itemCount += item.Quantity
+		name := fmt.Sprintf("Product #%d", item.ProductID)
+		if item.Product != nil && item.Product.Name != "" {
+			name = item.Product.Name
+		}
+		itemLines.WriteString(fmt.Sprintf("• %d× %s\n", item.Quantity, name))
+	}
+
+	customerLine := "Customer"
+	phoneLine := ""
+	if order.ShippingAddress != nil {
+		if order.ShippingAddress.RecipientName != "" {
+			customerLine = order.ShippingAddress.RecipientName
+		}
+		if order.ShippingAddress.Phone != "" {
+			phoneLine = order.ShippingAddress.Phone
+		}
+		if order.ShippingAddress.City != "" {
+			customerLine += ", " + order.ShippingAddress.City
+		}
+	}
+
+	caption := fmt.Sprintf(
+		"<b>🛍️ New Order #%d</b>\n\n"+
+			"<b>Store:</b> %s\n"+
+			"<b>Total:</b> %.2f ETB\n"+
+			"<b>Items:</b> %d\n\n"+
+			"%s\n"+
+			"<b>Ship to:</b> %s",
+		order.ID,
+		storeName,
+		order.TotalPrice,
+		itemCount,
+		strings.TrimSpace(itemLines.String()),
+		customerLine,
+	)
+	if phoneLine != "" {
+		caption += fmt.Sprintf("\n<b>Phone:</b> %s", phoneLine)
+	}
+	caption += "\n\n<i>Confirm and ship this order from your dashboard.</i>"
+
+	orderURL := tg.merchantOrderURL(order.ID)
+
+	selector := &telebot.ReplyMarkup{}
+	btn := selector.URL("📋 Manage Order", orderURL)
+	selector.Inline(selector.Row(btn))
+
+	recipient := &telebot.User{ID: telegramUserID}
+	_, err := tg.bot.Send(recipient, caption, telebot.ModeHTML, selector)
+	return err
+}
+
+func (tg *telegram) merchantOrderURL(orderID int64) string {
+	username := viper.GetString("tg.bot_username")
+	if username == "" {
+		username = "gabaaBot"
+	}
+	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
+		username = tg.bot.Me.Username
+	}
+	return fmt.Sprintf("https://t.me/%s?startapp=merchant_order_%d", username, orderID)
 }
