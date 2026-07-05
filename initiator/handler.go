@@ -40,7 +40,7 @@ func InitHandler(module Module, platform PlatFormLayer) Handler {
 		CartHandler:     cart.NewCartHandler(module.CartModule),
 		PaymentHandler:  payment.NewPaymentHandler(module.OrderModule, module.WalletModule),
 		CategoryHandler: product.NewCategoryHandler(module.CategoryModule),
-		AuthMiddleware:  middleware.NewAuthMiddleware(platform.tg),
+		AuthMiddleware:  middleware.NewAuthMiddleware(platform.tg, module.StoreModule),
 		WebhookHandler:  telegram.NewWebhookHandler(platform.tg),
 		UploadHandler:   upload.NewUploadHandler(module.UploadModule),
 		AddressHandler:  address.NewAddressHandler(module.AddressModule),

@@ -32,6 +32,12 @@ type StoreModule interface {
 	GetStore(ctx context.Context, id int64) (*dto.Store, error)
 	GetStoreStatus(ctx context.Context, id int64) (string, error)
 	UpdateStore(ctx context.Context, id int64, req dto.UpdateStoreRequest) (*dto.Store, error)
+	SubmitStoreKYC(ctx context.Context, storeID, sellerID int64, req dto.SubmitStoreKYCRequest) (*dto.StoreKYCResponse, error)
+	GetStoreKYC(ctx context.Context, storeID, sellerID int64) (*dto.StoreKYCResponse, error)
+	ListStoreVerifications(ctx context.Context, status string) ([]dto.StoreKYCResponse, error)
+	ApproveStoreKYC(ctx context.Context, storeID int64) (*dto.StoreKYCResponse, error)
+	RejectStoreKYC(ctx context.Context, storeID int64, req dto.RejectStoreKYCRequest) (*dto.StoreKYCResponse, error)
+	IsStoreVerified(ctx context.Context, storeID int64) (bool, error)
 }
 
 type ProductModule interface {
@@ -83,6 +89,7 @@ type BotModule interface {
 
 type UploadModule interface {
 	UploadImages(ctx context.Context, files []interface{}, fileNames []string) ([]string, error)
+	UploadDocuments(ctx context.Context, files []interface{}, fileNames []string) ([]string, error)
 }
 
 type StoryModule interface {

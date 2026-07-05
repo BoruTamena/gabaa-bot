@@ -63,4 +63,5 @@ type Redis interface {
 type FileUploader interface {
 	UploadFile(ctx context.Context, file interface{}, fileName string) (string, error)
 	UploadMultiple(ctx context.Context, files []interface{}, fileNames []string) ([]string, error)
+	UploadMultipleToFolder(ctx context.Context, files []interface{}, fileNames []string, folder string) ([]string, error)
 }

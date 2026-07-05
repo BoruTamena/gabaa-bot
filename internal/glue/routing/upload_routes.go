@@ -8,3 +8,7 @@ import (
 func RegisterUploadRoutes(api *gin.RouterGroup, uploadHandler *upload.UploadHandler) {
 	api.POST("/upload/images", uploadHandler.UploadImages)
 }
+
+func RegisterProtectedUploadRoutes(api *gin.RouterGroup, uploadHandler *upload.UploadHandler) {
+	api.POST("/upload/documents", uploadHandler.UploadDocuments)
+}

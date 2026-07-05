@@ -174,3 +174,109 @@ func (h *StoreHandler) GetDashboard(c *gin.Context) {
 		"store":          store,
 	})
 }
+
+func merchantStoreID(c *gin.Context) (int64, error) {
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		return 0, errorx.New(errorx.ErrForbidden, "Store context missing", http.StatusForbidden)
+	}
+	return storeID, nil
+}
+
+func (h *StoreHandler) SubmitStoreVerification(c *gin.Context) {
+	var req dto.SubmitStoreKYCRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := errorx.New(errorx.ErrBadRequest, err.Error(), http.StatusBadRequest)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	role := c.GetString("role")
+	if role != "admin" {
+		appErr := errorx.New(errorx.ErrForbidden, "Merchant access required", http.StatusForbidden)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	storeID, err := merchantStoreID(c)
+	if err != nil {
+		response.CustomError(c, err.(*errorx.AppError))
+		return
+	}
+
+	resp, err := h.storeModule.SubmitStoreKYC(c.Request.Context(), storeID, c.GetInt64("user_id"), req)
+	if err != nil {
+		appErr := errorx.New(errorx.ErrValidation, err.Error(), http.StatusUnprocessableEntity)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
+func (h *StoreHandler) GetStoreVerification(c *gin.Context) {
+	role := c.GetString("role")
+	if role != "admin" {
+		appErr := errorx.New(errorx.ErrForbidden, "Merchant access required", http.StatusForbidden)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	storeID, err := merchantStoreID(c)
+	if err != nil {
+		response.CustomError(c, err.(*errorx.AppError))
+		return
+	}
+
+	resp, err := h.storeModule.GetStoreKYC(c.Request.Context(), storeID, c.GetInt64("user_id"))
+	if err != nil {
+		appErr := errorx.New(errorx.ErrNotFound, err.Error(), http.StatusNotFound)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
+func (h *StoreHandler) ListStoreVerifications(c *gin.Context) {
+	status := c.DefaultQuery("status", "pending_review")
+	resp, err := h.storeModule.ListStoreVerifications(c.Request.Context(), status)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
+func (h *StoreHandler) ApproveStoreVerification(c *gin.Context) {
+	storeID, _ := strconv.ParseInt(c.Param("store_id"), 10, 64)
+	resp, err := h.storeModule.ApproveStoreKYC(c.Request.Context(), storeID)
+	if err != nil {
+		appErr := errorx.New(errorx.ErrValidation, err.Error(), http.StatusUnprocessableEntity)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
+func (h *StoreHandler) RejectStoreVerification(c *gin.Context) {
+	storeID, _ := strconv.ParseInt(c.Param("store_id"), 10, 64)
+
+	var req dto.RejectStoreKYCRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := errorx.New(errorx.ErrBadRequest, err.Error(), http.StatusBadRequest)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	resp, err := h.storeModule.RejectStoreKYC(c.Request.Context(), storeID, req)
+	if err != nil {
+		appErr := errorx.New(errorx.ErrValidation, err.Error(), http.StatusUnprocessableEntity)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}

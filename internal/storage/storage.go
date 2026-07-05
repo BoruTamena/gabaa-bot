@@ -38,6 +38,14 @@ type StoreStorage interface {
 	GetStoresBySellerID(ctx context.Context, sellerID int64) ([]db.Store, error)
 	UpdateStore(ctx context.Context, store *db.Store) error
 	IncrementStoreViews(ctx context.Context, storeIDs []int64) error
+	UpdateStoreVerificationStatus(ctx context.Context, storeID int64, status string) error
+}
+
+type StoreKYCStorage interface {
+	UpsertStoreKYC(ctx context.Context, kyc *db.StoreKYC) error
+	GetStoreKYCByStoreID(ctx context.Context, storeID int64) (*db.StoreKYC, error)
+	ListStoreKYCByVerificationStatus(ctx context.Context, status string) ([]db.StoreKYC, error)
+	UpdateStoreKYCReview(ctx context.Context, storeID int64, reviewNote string, reviewedAt time.Time) error
 }
 
 type ProductStorage interface {

@@ -272,7 +272,12 @@ func (p *orderPersistence) GetOrderByID(ctx context.Context, id int64) (*db.Orde
 
 func (p *orderPersistence) GetOrdersByStoreID(ctx context.Context, storeID int64, limit, offset int) ([]db.Order, error) {
 	var orders []db.Order
-	err := p.db.WithContext(ctx).Preload("ShippingAddress").Where("store_id = ?", storeID).Limit(limit).Offset(offset).Find(&orders).Error
+	err := p.db.WithContext(ctx).
+		Preload("Items.Product").
+		Preload("ShippingAddress").
+		Where("store_id = ?", storeID).
+		Limit(limit).Offset(offset).
+		Find(&orders).Error
 	if err != nil {
 		p.logger.Error("Failed to get orders by store ID", "error", err, "storeID", storeID)
 	}
@@ -290,7 +295,12 @@ func (p *orderPersistence) GetOrdersTotalByStoreID(ctx context.Context, storeID 
 
 func (p *orderPersistence) GetOrdersByCustomerID(ctx context.Context, customerID int64, limit, offset int) ([]db.Order, error) {
 	var orders []db.Order
-	err := p.db.WithContext(ctx).Preload("ShippingAddress").Where("user_id = ?", customerID).Limit(limit).Offset(offset).Find(&orders).Error
+	err := p.db.WithContext(ctx).
+		Preload("Items.Product").
+		Preload("ShippingAddress").
+		Where("user_id = ?", customerID).
+		Limit(limit).Offset(offset).
+		Find(&orders).Error
 	if err != nil {
 		p.logger.Error("Failed to get orders by customer ID", "error", err, "customerID", customerID)
 	}

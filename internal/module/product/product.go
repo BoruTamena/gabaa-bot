@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
@@ -259,6 +258,14 @@ func (m *productModule) mapToDTO(p *db.Product) *dto.Product {
 	}
 }
 
+func (m *productModule) miniAppProductURL(bot *telebot.Bot, productID int64) string {
+	username := "gabaaBot"
+	if bot != nil && bot.Me != nil && bot.Me.Username != "" {
+		username = bot.Me.Username
+	}
+	return fmt.Sprintf("https://t.me/%s?startapp=product_%d", username, productID)
+}
+
 func (m *productModule) pushProductToTelegram(p *db.Product) {
 	if p.StoreID == nil {
 		return
@@ -282,11 +289,7 @@ func (m *productModule) pushProductToTelegram(p *db.Product) {
 	)
 
 	bot := m.tele.GetBot()
-	baseURL := strings.TrimRight(m.appURL, "/")
-	if baseURL == "" {
-		baseURL = "https://gabaa-web.vercel.app"
-	}
-	productURL := fmt.Sprintf("%s/product/%d", baseURL, p.ID)
+	productURL := m.miniAppProductURL(bot, p.ID)
 
 	selector := &telebot.ReplyMarkup{}
 	// NOTE: We MUST use selector.URL because WebApp buttons are not allowed in channels.

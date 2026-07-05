@@ -7,8 +7,9 @@ type Store struct {
 	SellerID       int64  `gorm:"column:seller_id;not null" json:"seller_id"`
 	TelegramChatID int64  `gorm:"column:telegram_chat_id;index" json:"telegram_chat_id"`
 	TelegramChatTitle string `gorm:"column:telegram_chat_title" json:"telegram_chat_title"`
-	Status         string `gorm:"column:status;default:pending" json:"status"`
-	Name           string `gorm:"column:name;not null" json:"name"`
+	Status             string `gorm:"column:status;default:pending" json:"status"`
+	VerificationStatus string `gorm:"column:verification_status;not null;default:unverified" json:"verification_status"`
+	Name               string `gorm:"column:name;not null" json:"name"`
 	Category       string `gorm:"column:category;not null" json:"category"`
 	Description    string `gorm:"column:description" json:"description"`
 	LogoImage      string `gorm:"column:logo_image" json:"logo_image"`

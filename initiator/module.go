@@ -51,7 +51,7 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 
 	return Module{
 		AuthModule: authModule,
-		StoreModule:    store.NewStoreModule(persistence.StoreStorage, persistence.UserStorage, platform.tg),
+		StoreModule:    store.NewStoreModule(persistence.StoreStorage, persistence.StoreKYCStorage, persistence.UserStorage, platform.tg),
 		ProductModule:  product.NewProductModule(persistence.ProductStorage, persistence.StoreStorage, platform.tg, viper.GetString("app.url"), recommendationModule),
 		OrderModule:    order.NewOrderModule(persistence.OrderStorage, persistence.ProductStorage, persistence.CartStorage, persistence.WalletStorage, persistence.AddressStorage),
 		CartModule:     cart.NewCartModule(persistence.CartStorage, persistence.ProductStorage),

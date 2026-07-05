@@ -2,8 +2,11 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/BoruTamena/gabaa-bot/internal/constant"
+	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"github.com/gin-gonic/gin"
@@ -12,11 +15,12 @@ import (
 )
 
 type AuthMiddleware struct {
-	tele platform.Telegram
+	tele        platform.Telegram
+	storeModule module.StoreModule
 }
 
-func NewAuthMiddleware(tele platform.Telegram) *AuthMiddleware {
-	return &AuthMiddleware{tele: tele}
+func NewAuthMiddleware(tele platform.Telegram, storeModule module.StoreModule) *AuthMiddleware {
+	return &AuthMiddleware{tele: tele, storeModule: storeModule}
 }
 
 func (m *AuthMiddleware) TelegramAuth() gin.HandlerFunc {
@@ -89,6 +93,54 @@ func (m *AuthMiddleware) TelegramWebhookSecret() gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
+		c.Next()
+	}
+}
+
+func (m *AuthMiddleware) PlatformAdminAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetString("role") != constant.RolePlatformAdmin {
+			appErr := errorx.New(errorx.ErrForbidden, "Platform admin access required", http.StatusForbidden)
+			c.JSON(appErr.Status, appErr)
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
+func (m *AuthMiddleware) RequireStoreVerified() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		storeID := c.GetInt64("store_id")
+		if storeID == 0 {
+			if paramID := c.Param("store_id"); paramID != "" {
+				if parsed, err := strconv.ParseInt(paramID, 10, 64); err == nil {
+					storeID = parsed
+				}
+			}
+		}
+
+		if storeID == 0 {
+			appErr := errorx.New(errorx.ErrForbidden, "Store context required", http.StatusForbidden)
+			c.JSON(appErr.Status, appErr)
+			c.Abort()
+			return
+		}
+
+		verified, err := m.storeModule.IsStoreVerified(c.Request.Context(), storeID)
+		if err != nil {
+			appErr := errorx.New(errorx.ErrNotFound, "Store not found", http.StatusNotFound)
+			c.JSON(appErr.Status, appErr)
+			c.Abort()
+			return
+		}
+		if !verified {
+			appErr := errorx.New(errorx.ErrForbidden, "Store is not verified for payments", http.StatusForbidden)
+			c.JSON(appErr.Status, appErr)
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }

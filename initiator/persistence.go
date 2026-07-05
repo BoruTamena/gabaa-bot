@@ -22,6 +22,7 @@ type Persistence struct {
 	PreferenceStorage     storage.PreferenceStorage
 	RecommendationStorage storage.RecommendationStorage
 	AuthSessionStorage    storage.AuthSessionStorage
+	StoreKYCStorage       storage.StoreKYCStorage
 }
 
 func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logger platform.Logger) Persistence {
@@ -39,6 +40,7 @@ func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logge
 		PreferenceStorage:     persistence.NewPreferencePersistence(db.DB, logger),
 		RecommendationStorage: persistence.NewRecommendationPersistence(db.DB, logger),
 		AuthSessionStorage:    persistence.NewAuthSessionPersistence(db.DB, logger),
+		StoreKYCStorage:       persistence.NewStoreKYCPersistence(db.DB, logger),
 	}
 }
 
