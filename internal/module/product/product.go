@@ -289,13 +289,25 @@ func (m *productModule) pushProductToTelegram(p *db.Product) {
 	)
 
 	bot := m.tele.GetBot()
-	productURL := m.miniAppProductURL(bot, p.ID)
+	// productURL := m.miniAppProductURL(bot, p.ID)
 
 	selector := &telebot.ReplyMarkup{}
 	// NOTE: We MUST use selector.URL because WebApp buttons are not allowed in channels.
-	btn := selector.URL("🛒 Order Now", productURL)
-	selector.Inline(selector.Row(btn))
+	// btn := selector.URL("🛒 Order Now", productURL)
+	// selector.Inline(selector.Row(btn))
 
+	if m.appURL == "" {
+		m.appURL = "https://gabaa-web.vercel.app"
+	}
+
+	btn := selector.WebApp(
+		"🛒 Order Now",
+		&telebot.WebApp{
+			URL: fmt.Sprintf("%s/product/%d", m.appURL, p.ID),
+		},
+	)
+
+	selector.Inline(selector.Row(btn))
 	chat := &telebot.Chat{ID: store.TelegramChatID}
 
 	// 4. Handle Images (Multiple vs Single)

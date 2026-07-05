@@ -200,29 +200,32 @@ func (tg *telegram) IsChatAdmin(chatID int64, userID int64) (bool, error) {
 }
 
 func (tg *telegram) SendProductRecommendation(telegramUserID int64, product dto.Product, storeName string) error {
+	_ = storeName
+
 	caption := fmt.Sprintf(
-		"<b>New in %s</b>\n"+
-			"━━━━━━━━━━━━━━━━━━━━\n"+
-			"<b>%s</b>\n\n"+
-			"<code>PRICE   </code> <b>%.2f ETB</b>\n"+
-			"<code>STORE   </code> <b>%s</b>\n\n"+
+		"<b>%s</b>\n\n"+
+			"💰 <b>%s ETB</b>\n"+
+			"📦 <b>%d in stock</b>\n"+
+			"🏷️ <b>%s</b>\n\n"+
 			"<blockquote>%s</blockquote>\n\n"+
-			"<i>You're receiving this because you subscribed to %s. Use /preferences to manage.</i>",
-		strings.ToUpper(product.Category),
+			"<i>Subscribed to %s · /preferences to manage</i>",
 		product.Name,
-		product.Price,
-		storeName,
+		fmt.Sprintf("%.2f", product.Price),
+		product.Stock,
+		product.Category,
 		product.Description,
 		product.Category,
 	)
 
-	productURL := fmt.Sprintf("%s/product/%d", viper.GetString("app.url"), product.ID)
-	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
-		productURL = fmt.Sprintf("https://t.me/%s?startapp=product_%d", tg.bot.Me.Username, product.ID)
+	baseURL := strings.TrimRight(viper.GetString("app.url"), "/")
+	if baseURL == "" {
+		baseURL = "https://gabaa-web.vercel.app"
 	}
 
 	selector := &telebot.ReplyMarkup{}
-	btn := selector.URL("🛒 Order Now", productURL)
+	btn := selector.WebApp("🛒 Order Now", &telebot.WebApp{
+		URL: fmt.Sprintf("%s/product/%d", baseURL, product.ID),
+	})
 	selector.Inline(selector.Row(btn))
 
 	recipient := &telebot.User{ID: telegramUserID}
@@ -288,7 +291,10 @@ func (tg *telegram) SendNewOrderNotification(telegramUserID int64, order dto.Ord
 	orderURL := tg.merchantOrderURL(order.ID)
 
 	selector := &telebot.ReplyMarkup{}
-	btn := selector.URL("📋 Manage Order", orderURL)
+	// btn := selector.URL("📋 Manage Order", orderURL)
+	btn := selector.WebApp("📋 Manage Order", &telebot.WebApp{
+		URL: orderURL,
+	})
 	selector.Inline(selector.Row(btn))
 
 	recipient := &telebot.User{ID: telegramUserID}
