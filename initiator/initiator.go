@@ -115,6 +115,7 @@ func Init() {
 	r := routing.NewGinRouter(
 		handlerLayer.AuthHandler,
 		handlerLayer.StoreHandler,
+		handlerLayer.AnalyticsHandler,
 		handlerLayer.ProductHandler,
 		handlerLayer.OrderHandler,
 		handlerLayer.CartHandler,

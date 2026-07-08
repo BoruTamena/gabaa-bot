@@ -116,4 +116,12 @@ type RecommendationModule interface {
 	NotifyMatchingUsers(ctx context.Context, product *db.Product, sellerUserID int64)
 }
 
+type AnalyticsModule interface {
+	GetSalesAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.SalesAnalytics, error)
+	GetOrderAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.OrderAnalytics, error)
+	GetProductAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.ProductAnalytics, error)
+	GetStoryAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.StoryAnalytics, error)
+}
+
+
 

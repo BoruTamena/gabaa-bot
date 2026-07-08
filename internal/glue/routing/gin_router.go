@@ -21,6 +21,7 @@ import (
 func NewGinRouter(
 	authHandler *auth.AuthHandler,
 	storeHandler *store.StoreHandler,
+	analyticsHandler *store.AnalyticsHandler,
 	productHandler *product.ProductHandler,
 	orderHandler *order.OrderHandler,
 	cartHandler *cart.CartHandler,
@@ -61,7 +62,7 @@ func NewGinRouter(
 	api := r.Group("/")
 	api.Use(authMiddleware.JWTAuth())
 	{
-		RegisterStoreRoutes(api, storeHandler, authMiddleware)
+		RegisterStoreRoutes(api, storeHandler, analyticsHandler, authMiddleware)
 		RegisterProductRoutes(api, productHandler)
 		RegisterCategoryRoutes(api, categoryHandler)
 		RegisterOrderRoutes(api, orderHandler)
@@ -73,6 +74,7 @@ func NewGinRouter(
 		RegisterPreferenceRoutes(api, preferenceHandler)
 		RegisterProtectedUploadRoutes(api, uploadHandler)
 	}
+
 
 	return r
 }

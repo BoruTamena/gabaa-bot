@@ -15,37 +15,40 @@ import (
 )
 
 type Handler struct {
-	AuthHandler     *auth.AuthHandler
-	StoreHandler    *store.StoreHandler
-	ProductHandler  *product.ProductHandler
-	OrderHandler    *order.OrderHandler
-	CartHandler     *cart.CartHandler
-	PaymentHandler  *payment.PaymentHandler
-	CategoryHandler *product.CategoryHandler
-	AuthMiddleware  *middleware.AuthMiddleware
-	WebhookHandler  *telegram.WebhookHandler
-	UploadHandler   *upload.UploadHandler
-	AddressHandler  *address.AddressHandler
-	StoryHandler       *product.StoryHandler
-	FavoriteHandler    *product.FavoriteHandler
-	PreferenceHandler  *preference.PreferenceHandler
+	AuthHandler      *auth.AuthHandler
+	StoreHandler     *store.StoreHandler
+	AnalyticsHandler *store.AnalyticsHandler
+	ProductHandler   *product.ProductHandler
+	OrderHandler     *order.OrderHandler
+	CartHandler      *cart.CartHandler
+	PaymentHandler   *payment.PaymentHandler
+	CategoryHandler  *product.CategoryHandler
+	AuthMiddleware   *middleware.AuthMiddleware
+	WebhookHandler   *telegram.WebhookHandler
+	UploadHandler    *upload.UploadHandler
+	AddressHandler   *address.AddressHandler
+	StoryHandler     *product.StoryHandler
+	FavoriteHandler  *product.FavoriteHandler
+	PreferenceHandler *preference.PreferenceHandler
 }
 
 func InitHandler(module Module, platform PlatFormLayer) Handler {
 	return Handler{
-		AuthHandler:     auth.NewAuthHandler(module.AuthModule),
-		StoreHandler:    store.NewStoreHandler(module.StoreModule),
-		ProductHandler:  product.NewProductHandler(module.ProductModule),
-		OrderHandler:    order.NewOrderHandler(module.OrderModule),
-		CartHandler:     cart.NewCartHandler(module.CartModule),
-		PaymentHandler:  payment.NewPaymentHandler(module.OrderModule, module.WalletModule),
-		CategoryHandler: product.NewCategoryHandler(module.CategoryModule),
-		AuthMiddleware:  middleware.NewAuthMiddleware(platform.tg, module.StoreModule),
-		WebhookHandler:  telegram.NewWebhookHandler(platform.tg),
-		UploadHandler:   upload.NewUploadHandler(module.UploadModule),
-		AddressHandler:  address.NewAddressHandler(module.AddressModule),
-		StoryHandler:      product.NewStoryHandler(module.StoryModule),
-		FavoriteHandler:   product.NewFavoriteHandler(module.FavoriteModule),
+		AuthHandler:      auth.NewAuthHandler(module.AuthModule),
+		StoreHandler:     store.NewStoreHandler(module.StoreModule),
+		AnalyticsHandler:  store.NewAnalyticsHandler(module.AnalyticsModule),
+		ProductHandler:   product.NewProductHandler(module.ProductModule),
+		OrderHandler:     order.NewOrderHandler(module.OrderModule),
+		CartHandler:      cart.NewCartHandler(module.CartModule),
+		PaymentHandler:   payment.NewPaymentHandler(module.OrderModule, module.WalletModule),
+		CategoryHandler:  product.NewCategoryHandler(module.CategoryModule),
+		AuthMiddleware:   middleware.NewAuthMiddleware(platform.tg, module.StoreModule),
+		WebhookHandler:   telegram.NewWebhookHandler(platform.tg),
+		UploadHandler:    upload.NewUploadHandler(module.UploadModule),
+		AddressHandler:   address.NewAddressHandler(module.AddressModule),
+		StoryHandler:     product.NewStoryHandler(module.StoryModule),
+		FavoriteHandler:  product.NewFavoriteHandler(module.FavoriteModule),
 		PreferenceHandler: preference.NewPreferenceHandler(module.RecommendationModule),
 	}
 }
+

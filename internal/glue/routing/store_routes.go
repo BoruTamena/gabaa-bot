@@ -7,7 +7,12 @@ import (
 )
 
 // RegisterStoreRoutes registers all store-related routes under the protected API group.
-func RegisterStoreRoutes(api *gin.RouterGroup, storeHandler *store.StoreHandler, authMiddleware *middleware.AuthMiddleware) {
+func RegisterStoreRoutes(
+	api *gin.RouterGroup,
+	storeHandler *store.StoreHandler,
+	analyticsHandler *store.AnalyticsHandler,
+	authMiddleware *middleware.AuthMiddleware,
+) {
 	api.POST("/store/from-chat", storeHandler.CreateStore)
 	api.GET("/store/:store_id", storeHandler.GetStore)
 	api.GET("/store/:store_id/status", storeHandler.GetStoreStatus)
@@ -17,6 +22,15 @@ func RegisterStoreRoutes(api *gin.RouterGroup, storeHandler *store.StoreHandler,
 	api.POST("/store/verification", storeHandler.SubmitStoreVerification)
 	api.GET("/store/verification", storeHandler.GetStoreVerification)
 
+	// Analytics routes
+	analytics := api.Group("/store/analytics")
+	{
+		analytics.GET("/sales", analyticsHandler.GetSalesAnalytics)
+		analytics.GET("/orders", analyticsHandler.GetOrderAnalytics)
+		analytics.GET("/products", analyticsHandler.GetProductAnalytics)
+		analytics.GET("/stories", analyticsHandler.GetStoryAnalytics)
+	}
+
 	admin := api.Group("/admin")
 	admin.Use(authMiddleware.PlatformAdminAuth())
 	{
@@ -25,3 +39,4 @@ func RegisterStoreRoutes(api *gin.RouterGroup, storeHandler *store.StoreHandler,
 		admin.POST("/store-verifications/:store_id/reject", storeHandler.RejectStoreVerification)
 	}
 }
+

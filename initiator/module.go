@@ -3,6 +3,7 @@ package initiator
 import (
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/internal/module/address"
+	"github.com/BoruTamena/gabaa-bot/internal/module/analytics"
 	"github.com/BoruTamena/gabaa-bot/internal/module/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/module/cart"
 	"github.com/BoruTamena/gabaa-bot/internal/module/order"
@@ -10,27 +11,28 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/module/recommendation"
 	"github.com/BoruTamena/gabaa-bot/internal/module/store"
 	"github.com/BoruTamena/gabaa-bot/internal/module/telegram"
-	"github.com/BoruTamena/gabaa-bot/internal/module/user"
 	"github.com/BoruTamena/gabaa-bot/internal/module/upload"
+	"github.com/BoruTamena/gabaa-bot/internal/module/user"
 	"github.com/BoruTamena/gabaa-bot/internal/module/wallet"
 	"github.com/spf13/viper"
 )
 
 type Module struct {
-	AuthModule     module.AuthModule
-	StoreModule    module.StoreModule
-	ProductModule  module.ProductModule
-	OrderModule    module.OrderModule
-	CartModule     module.CartModule
-	WalletModule   module.WalletModule
-	UserModule     module.UserModule
-	CategoryModule module.CategoryModule
-	BotModule      module.BotModule
-	UploadModule   module.UploadModule
-	AddressModule  module.AddressModule
+	AuthModule           module.AuthModule
+	StoreModule          module.StoreModule
+	ProductModule        module.ProductModule
+	OrderModule          module.OrderModule
+	CartModule           module.CartModule
+	WalletModule         module.WalletModule
+	UserModule           module.UserModule
+	CategoryModule       module.CategoryModule
+	BotModule            module.BotModule
+	UploadModule         module.UploadModule
+	AddressModule        module.AddressModule
 	StoryModule          module.StoryModule
 	FavoriteModule       module.FavoriteModule
 	RecommendationModule module.RecommendationModule
+	AnalyticsModule      module.AnalyticsModule
 }
 
 func InitModule(persistence Persistence, platform PlatFormLayer) Module {
@@ -50,7 +52,7 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 	)
 
 	return Module{
-		AuthModule: authModule,
+		AuthModule:     authModule,
 		StoreModule:    store.NewStoreModule(persistence.StoreStorage, persistence.StoreKYCStorage, persistence.UserStorage, platform.tg),
 		ProductModule:  product.NewProductModule(persistence.ProductStorage, persistence.StoreStorage, platform.tg, viper.GetString("app.url"), recommendationModule),
 		OrderModule: order.NewOrderModule(
@@ -80,6 +82,8 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 		StoryModule:          product.NewStoryModule(persistence.StoryStorage, persistence.ProductStorage),
 		FavoriteModule:       product.NewFavoriteModule(persistence.FavoriteStorage),
 		RecommendationModule: recommendationModule,
+		AnalyticsModule:      analytics.NewAnalyticsModule(persistence.AnalyticsStorage),
 	}
 }
+
 
