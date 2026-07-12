@@ -216,6 +216,52 @@ func (m *storyModule) DeleteStory(ctx context.Context, storeID int64, storyID in
 	return nil
 }
 
+// StartExpiryJob runs a background scheduler that deactivates stories whose ends_at has passed.
+// It runs once on startup, then twice daily at midnight and noon (server local time).
+func (m *storyModule) StartExpiryJob(ctx context.Context) {
+	go func() {
+		m.runStoryExpiry(ctx)
+
+		for {
+			wait := durationUntilNextStoryExpiryRun(time.Now())
+			timer := time.NewTimer(wait)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return
+			case <-timer.C:
+				m.runStoryExpiry(ctx)
+			}
+		}
+	}()
+}
+
+func durationUntilNextStoryExpiryRun(now time.Time) time.Duration {
+	loc := now.Location()
+	midnight := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	noon := midnight.Add(12 * time.Hour)
+	midnightNext := midnight.Add(24 * time.Hour)
+
+	var next time.Time
+	if now.Before(noon) {
+		next = noon
+	} else {
+		next = midnightNext
+	}
+	return next.Sub(now)
+}
+
+func (m *storyModule) runStoryExpiry(ctx context.Context) {
+	count, err := m.storyStorage.ExpireEndedStories(ctx)
+	if err != nil {
+		logger.Error("story expiry job failed", zap.Error(err))
+		return
+	}
+	if count > 0 {
+		logger.Info("expired stories deactivated", zap.Int64("count", count))
+	}
+}
+
 // ListActiveStories returns publicly visible, currently-active stories with pagination.
 func (m *storyModule) ListActiveStories(ctx context.Context, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
 	stories, total, err := m.storyStorage.ListActiveStories(ctx, params)

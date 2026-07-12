@@ -1,18 +1,32 @@
 package dto
 
-type PaymentWebHook struct {
-	Id                string          `json:"uuid" `
-	Nonce             string          `json:"nonce "`
-	Phone             string          `json:"phone"`
-	PaymentMethod     string          `json:"paymentMethod"`
-	TotalAmount       int             `json:"totalAmount"`
-	TransactionStatus string          `json:"transactionStatus"`
-	Transaction       TransactionInfo `json:"transaction"`
-	NotificationUrl   string          `json:"notificationUrl"`
-	SessionId         string          `json:"sessionId"`
+import (
+	"time"
+
+	"github.com/BoruTamena/gabaa-bot/internal/constant"
+)
+
+type Payment struct {
+	ID            int64                         `json:"id"`
+	OrderID       int64                         `json:"order_id"`
+	Status        constant.PaymentStatus        `json:"status"`
+	Method        string                        `json:"method"`
+	Reference     string                        `json:"reference"`
+	TransactionID *string                       `json:"transaction_id,omitempty"`
+	Amount        float64                       `json:"amount"`
+	Currency      string                        `json:"currency"`
+	PhoneNumber   string                        `json:"phone_number"`
+	Medium        string                        `json:"medium"`
+	GatewayStatus constant.GatewayPaymentStatus `json:"gateway_status"`
+	CreatedAt     time.Time                     `json:"created_at"`
 }
 
-type TransactionInfo struct {
-	Id                string `json:"transactionId"`
-	TransactionStatus string `json:"transactionStatus"`
+type CheckoutResponse struct {
+	Order   Order   `json:"order"`
+	Payment Payment `json:"payment"`
+}
+
+type WebhookResult struct {
+	StatusCode int
+	Message    string
 }

@@ -2,6 +2,7 @@ package module
 
 import (
 	"context"
+
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 )
@@ -60,7 +61,7 @@ type CartModule interface {
 }
 
 type OrderModule interface {
-	Checkout(ctx context.Context, userID int64, storeID int64, addressID int64) (*dto.Order, error)
+	Checkout(ctx context.Context, userID int64, storeID int64, addressID int64, medium, phone string) (*dto.CheckoutResponse, error)
 	GetOrder(ctx context.Context, orderID int64) (*dto.Order, error)
 	ListOrders(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
 	GetUserOrders(ctx context.Context, userID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
@@ -70,11 +71,20 @@ type OrderModule interface {
 	GetMyStoreOrders(ctx context.Context, filter dto.OrderFilterParams) (*dto.PaginatedResponse, error)
 	GetMyStoreOrder(ctx context.Context, storeID int64, orderID int64) (*dto.Order, error)
 	UpdateMyStoreOrderStatus(ctx context.Context, storeID int64, orderID int64, status string) error
+	OnPaymentSuccess(ctx context.Context, orderID int64) error
+	OnPaymentFailed(ctx context.Context, orderID int64) error
+	SetPaymentModule(pm PaymentModule)
 }
 
 type WalletModule interface {
-	GetBalance(ctx context.Context, storeID int64) (float64, error)
-	CreditWallet(ctx context.Context, storeID int64, amount float64) error
+	GetWalletSummary(ctx context.Context, storeID int64) (*dto.Wallet, error)
+	RequestWithdrawal(ctx context.Context, storeID int64, req dto.WithdrawalRequest) (*dto.Withdrawal, error)
+	ListWithdrawals(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+}
+
+type PaymentModule interface {
+	InitiateForOrder(ctx context.Context, order *db.Order, medium, phone string) (*dto.Payment, error)
+	HandleWebhook(ctx context.Context, rawBody []byte) dto.WebhookResult
 }
 
 type CategoryModule interface {
@@ -99,6 +109,7 @@ type StoryModule interface {
 	UpdateStory(ctx context.Context, storeID int64, storyID int64, req dto.UpdateProductStoryRequest) (*dto.ProductStory, error)
 	DeleteStory(ctx context.Context, storeID int64, storyID int64) error
 	ListActiveStories(ctx context.Context, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+	StartExpiryJob(ctx context.Context)
 }
 
 type FavoriteModule interface {
@@ -122,6 +133,3 @@ type AnalyticsModule interface {
 	GetProductAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.ProductAnalytics, error)
 	GetStoryAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.StoryAnalytics, error)
 }
-
-
-

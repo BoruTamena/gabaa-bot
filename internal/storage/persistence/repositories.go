@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -375,10 +376,80 @@ func (p *walletPersistence) GetWalletByStoreID(ctx context.Context, storeID int6
 	return &wallet, err
 }
 
-func (p *walletPersistence) UpdateWalletBalance(ctx context.Context, storeID int64, amount float64) error {
-	err := p.db.WithContext(ctx).Model(&db.Wallet{}).Where("store_id = ?", storeID).UpdateColumn("balance", gorm.Expr("balance + ?", amount)).Error
+func (p *walletPersistence) GetOrCreateWallet(ctx context.Context, storeID int64) (*db.Wallet, error) {
+	wallet, err := p.GetWalletByStoreID(ctx, storeID)
+	if err == nil {
+		return wallet, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
+	}
+	wallet = &db.Wallet{StoreID: storeID, Currency: "ETB"}
+	if err := p.db.WithContext(ctx).Create(wallet).Error; err != nil {
+		p.logger.Error("Failed to create wallet", "error", err, "storeID", storeID)
+		return nil, err
+	}
+	return wallet, nil
+}
+
+func (p *walletPersistence) AddPendingBalance(ctx context.Context, storeID int64, amount float64) error {
+	_, err := p.GetOrCreateWallet(ctx, storeID)
 	if err != nil {
-		p.logger.Error("Failed to update wallet balance", "error", err, "storeID", storeID, "amount", amount)
+		return err
+	}
+	err = p.db.WithContext(ctx).Model(&db.Wallet{}).Where("store_id = ?", storeID).
+		UpdateColumn("pending_balance", gorm.Expr("pending_balance + ?", amount)).Error
+	if err != nil {
+		p.logger.Error("Failed to add pending balance", "error", err, "storeID", storeID, "amount", amount)
+	}
+	return err
+}
+
+func (p *walletPersistence) ReleaseEscrowFunds(ctx context.Context, storeID int64, amount float64) error {
+	err := p.db.WithContext(ctx).Model(&db.Wallet{}).Where("store_id = ?", storeID).Updates(map[string]interface{}{
+		"pending_balance":   gorm.Expr("pending_balance - ?", amount),
+		"available_balance": gorm.Expr("available_balance + ?", amount),
+		"total_earned":      gorm.Expr("total_earned + ?", amount),
+	}).Error
+	if err != nil {
+		p.logger.Error("Failed to release escrow funds", "error", err, "storeID", storeID, "amount", amount)
+	}
+	return err
+}
+
+func (p *walletPersistence) LockForWithdrawal(ctx context.Context, storeID int64, amount float64) error {
+	result := p.db.WithContext(ctx).Model(&db.Wallet{}).Where("store_id = ? AND available_balance >= ?", storeID, amount).Updates(map[string]interface{}{
+		"available_balance": gorm.Expr("available_balance - ?", amount),
+		"locked_balance":    gorm.Expr("locked_balance + ?", amount),
+	})
+	if result.Error != nil {
+		p.logger.Error("Failed to lock funds for withdrawal", "error", result.Error, "storeID", storeID, "amount", amount)
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("insufficient available balance")
+	}
+	return nil
+}
+
+func (p *walletPersistence) UnlockWithdrawal(ctx context.Context, storeID int64, amount float64) error {
+	err := p.db.WithContext(ctx).Model(&db.Wallet{}).Where("store_id = ?", storeID).Updates(map[string]interface{}{
+		"locked_balance":    gorm.Expr("locked_balance - ?", amount),
+		"available_balance": gorm.Expr("available_balance + ?", amount),
+	}).Error
+	if err != nil {
+		p.logger.Error("Failed to unlock withdrawal funds", "error", err, "storeID", storeID, "amount", amount)
+	}
+	return err
+}
+
+func (p *walletPersistence) CompleteWithdrawal(ctx context.Context, storeID int64, amount float64) error {
+	err := p.db.WithContext(ctx).Model(&db.Wallet{}).Where("store_id = ?", storeID).Updates(map[string]interface{}{
+		"locked_balance":   gorm.Expr("locked_balance - ?", amount),
+		"total_withdrawn":  gorm.Expr("total_withdrawn + ?", amount),
+	}).Error
+	if err != nil {
+		p.logger.Error("Failed to complete withdrawal", "error", err, "storeID", storeID, "amount", amount)
 	}
 	return err
 }
@@ -651,6 +722,17 @@ func (p *storyPersistence) IncrementStoryViews(ctx context.Context, id int64) er
 		p.logger.Error("Failed to increment story views", "error", err, "storyID", id)
 	}
 	return err
+}
+
+func (p *storyPersistence) ExpireEndedStories(ctx context.Context) (int64, error) {
+	result := p.db.WithContext(ctx).Model(&db.ProductStory{}).
+		Where("is_active = ? AND ends_at < ?", true, time.Now()).
+		Update("is_active", false)
+	if result.Error != nil {
+		p.logger.Error("Failed to expire ended stories", "error", result.Error)
+		return 0, result.Error
+	}
+	return result.RowsAffected, nil
 }
 
 // FavoriteStorage

@@ -10,3 +10,12 @@ migiration:
 tg:
   token: TOKEN_FROM_BOTFATHERS
   bot_username: gabaaBot
+
+lakipay:
+  api_key: your_lakipay_api_key
+  base_url: https://api.lakipay.co
+  callback_url: https://your-api-host/api/v1/webhook/lakipay
+  public_key: |
+    -----BEGIN PUBLIC KEY-----
+    ...
+    -----END PUBLIC KEY-----

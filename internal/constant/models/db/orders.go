@@ -22,11 +22,3 @@ type OrderItem struct {
 	Product   Product `gorm:"foreignKey:ProductID;references:ID" json:"product"`
 }
 
-
-type Payment struct {
-	BaseModel
-	OrderID int64  `gorm:"column:order_id;not null" json:"order_id"`
-	Status  string `gorm:"column:status;not null;default:'pending'" json:"status"` // pending, confirmed
-	Method  string `gorm:"column:method;not null" json:"method"`
-	Order   Order  `gorm:"foreignKey:OrderID;references:ID" json:"order"`
-}

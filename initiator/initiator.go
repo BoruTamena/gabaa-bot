@@ -111,6 +111,9 @@ func Init() {
 	go platformLayer.tg.Start()
 	fmt.Println("Telegram bot started")
 
+	moduleLayer.StoryModule.StartExpiryJob(context.Background())
+	fmt.Println("Story expiry job started")
+
 	// Initialize Gin Router
 	r := routing.NewGinRouter(
 		handlerLayer.AuthHandler,

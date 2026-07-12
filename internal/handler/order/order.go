@@ -21,14 +21,14 @@ func NewOrderHandler(oModule module.OrderModule) *OrderHandler {
 
 // AddToCart and GetUserCart removed
 
-// Checkout creates an order from the user's cart
+// Checkout creates an order from the user's cart and initiates LakiPay payment
 // @Summary Create order from cart
-// @Description Creates a new order based on the user's current cart items for a specific store
+// @Description Creates a new order based on the user's current cart items and initiates payment
 // @Tags Order
 // @Accept json
 // @Produce json
 // @Param request body dto.CheckoutRequest true "Checkout Data"
-// @Success 200 {object} response.BaseResponse{data=dto.Order}
+// @Success 200 {object} response.BaseResponse{data=dto.CheckoutResponse}
 // @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
@@ -42,13 +42,13 @@ func (h *OrderHandler) Checkout(c *gin.Context) {
 		return
 	}
 
-	order, err := h.orderModule.Checkout(c.Request.Context(), userID, req.StoreID, req.AddressID)
+	result, err := h.orderModule.Checkout(c.Request.Context(), userID, req.StoreID, req.AddressID, req.Medium, req.PhoneNumber)
 	if err != nil {
 		response.Error(c, err)
 		return
 	}
 
-	response.Success(c, http.StatusOK, order)
+	response.Success(c, http.StatusOK, result)
 }
 
 // ListOrders returns all orders for a store with pagination
@@ -259,7 +259,7 @@ func (h *OrderHandler) MyStoreGetOrder(c *gin.Context) {
 
 // MyStoreUpdateOrderStatus updates the status of a merchant's order
 // @Summary Update my store order status
-// @Description Merchant updates an order status to 'shipped' or 'delivered'. Wallet is credited on 'delivered'.
+// @Description Merchant updates an order status to 'shipped' or 'delivered'. Escrow is released on 'delivered'.
 // @Tags Merchant Order
 // @Produce json
 // @Param order_id path int true "Order ID"

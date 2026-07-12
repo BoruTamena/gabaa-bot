@@ -22,9 +22,14 @@ type Store struct {
 
 
 type Wallet struct {
-	ID        int64     `gorm:"primaryKey;autoIncrement" json:"id"`
-	StoreID   int64     `gorm:"column:store_id;not null" json:"store_id"`
-	Balance   float64   `gorm:"column:balance;type:numeric;default:0" json:"balance"`
-	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"updated_at"`
-	Store     Store     `gorm:"foreignKey:StoreID;references:ID" json:"store"`
+	ID               int64     `gorm:"primaryKey;autoIncrement" json:"id"`
+	StoreID          int64     `gorm:"column:store_id;not null" json:"store_id"`
+	Currency         string    `gorm:"column:currency;default:'ETB'" json:"currency"`
+	PendingBalance   float64   `gorm:"column:pending_balance;type:numeric;default:0" json:"pending_balance"`
+	AvailableBalance float64   `gorm:"column:available_balance;type:numeric;default:0" json:"available_balance"`
+	LockedBalance    float64   `gorm:"column:locked_balance;type:numeric;default:0" json:"locked_balance"`
+	TotalEarned      float64   `gorm:"column:total_earned;type:numeric;default:0" json:"total_earned"`
+	TotalWithdrawn   float64   `gorm:"column:total_withdrawn;type:numeric;default:0" json:"total_withdrawn"`
+	UpdatedAt        time.Time `gorm:"autoUpdateTime" json:"updated_at"`
+	Store            Store     `gorm:"foreignKey:StoreID;references:ID" json:"store"`
 }

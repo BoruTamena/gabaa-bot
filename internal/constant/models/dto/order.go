@@ -55,6 +55,8 @@ type CartResponse struct {
 }
 
 type CheckoutRequest struct {
-	StoreID   int64 `json:"store_id" binding:"required"`
-	AddressID int64 `json:"address_id" binding:"required"`
+	StoreID     int64  `json:"store_id" binding:"required"`
+	AddressID   int64  `json:"address_id" binding:"required"`
+	Medium      string `json:"medium" binding:"required,oneof=MPESA TELEBIRR CBE ETHSWITCH"`
+	PhoneNumber string `json:"phone_number"`
 }

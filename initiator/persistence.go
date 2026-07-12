@@ -14,6 +14,10 @@ type Persistence struct {
 	ProductStorage        storage.ProductStorage
 	OrderStorage          storage.OrderStorage
 	WalletStorage         storage.WalletStorage
+	PaymentStorage        storage.PaymentStorage
+	PaymentWebhookStorage storage.PaymentWebhookStorage
+	EscrowStorage         storage.EscrowStorage
+	WithdrawalStorage     storage.WithdrawalStorage
 	CartStorage           storage.CartStorage
 	CategoryStorage       storage.CategoryStorage
 	AddressStorage        storage.AddressStorage
@@ -33,6 +37,10 @@ func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logge
 		ProductStorage:        persistence.NewProductPersistence(db.DB, logger),
 		OrderStorage:          persistence.NewOrderPersistence(db.DB, logger),
 		WalletStorage:         persistence.NewWalletPersistence(db.DB, logger),
+		PaymentStorage:        persistence.NewPaymentPersistence(db.DB, logger),
+		PaymentWebhookStorage: persistence.NewPaymentWebhookPersistence(db.DB, logger),
+		EscrowStorage:         persistence.NewEscrowPersistence(db.DB, logger),
+		WithdrawalStorage:     persistence.NewWithdrawalPersistence(db.DB, logger),
 		CartStorage:           persistence.NewCartPersistence(db.DB, logger),
 		CategoryStorage:       persistence.NewCategoryPersistence(db.DB, logger),
 		AddressStorage:        persistence.NewAddressPersistence(db.DB, logger),

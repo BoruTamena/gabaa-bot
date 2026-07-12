@@ -7,6 +7,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/module/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/module/cart"
 	"github.com/BoruTamena/gabaa-bot/internal/module/order"
+	"github.com/BoruTamena/gabaa-bot/internal/module/payment"
 	"github.com/BoruTamena/gabaa-bot/internal/module/product"
 	"github.com/BoruTamena/gabaa-bot/internal/module/recommendation"
 	"github.com/BoruTamena/gabaa-bot/internal/module/store"
@@ -22,6 +23,7 @@ type Module struct {
 	StoreModule          module.StoreModule
 	ProductModule        module.ProductModule
 	OrderModule          module.OrderModule
+	PaymentModule        module.PaymentModule
 	CartModule           module.CartModule
 	WalletModule         module.WalletModule
 	UserModule           module.UserModule
@@ -51,22 +53,43 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 		persistence.AuthSessionStorage,
 	)
 
+	orderMod := order.NewOrderModule(
+		persistence.OrderStorage,
+		persistence.ProductStorage,
+		persistence.CartStorage,
+		persistence.WalletStorage,
+		persistence.EscrowStorage,
+		persistence.AddressStorage,
+		persistence.StoreStorage,
+		persistence.UserStorage,
+		platform.tg,
+	)
+
+	paymentMod := payment.NewPaymentModule(
+		persistence.PaymentStorage,
+		persistence.PaymentWebhookStorage,
+		persistence.EscrowStorage,
+		persistence.WalletStorage,
+		persistence.WithdrawalStorage,
+		persistence.OrderStorage,
+		platform.lakipay,
+		orderMod,
+	)
+	orderMod.SetPaymentModule(paymentMod)
+
 	return Module{
 		AuthModule:     authModule,
 		StoreModule:    store.NewStoreModule(persistence.StoreStorage, persistence.StoreKYCStorage, persistence.UserStorage, platform.tg),
 		ProductModule:  product.NewProductModule(persistence.ProductStorage, persistence.StoreStorage, platform.tg, viper.GetString("app.url"), recommendationModule),
-		OrderModule: order.NewOrderModule(
-			persistence.OrderStorage,
-			persistence.ProductStorage,
-			persistence.CartStorage,
-			persistence.WalletStorage,
-			persistence.AddressStorage,
-			persistence.StoreStorage,
-			persistence.UserStorage,
-			platform.tg,
-		),
+		OrderModule:    orderMod,
+		PaymentModule:  paymentMod,
 		CartModule:     cart.NewCartModule(persistence.CartStorage, persistence.ProductStorage),
-		WalletModule:   wallet.NewWalletModule(persistence.WalletStorage),
+		WalletModule: wallet.NewWalletModule(
+			persistence.WalletStorage,
+			persistence.WithdrawalStorage,
+			persistence.StoreStorage,
+			platform.lakipay,
+		),
 		UserModule:     user.NewUserModule(persistence.UserStorage),
 		CategoryModule: product.NewCategoryModule(persistence.CategoryStorage),
 		BotModule: telegram.NewBotModule(

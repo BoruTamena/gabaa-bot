@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
+	"github.com/BoruTamena/gabaa-bot/platform/lakipay"
 
 	"github.com/go-redis/redis/v8"
 
@@ -21,8 +22,10 @@ type Logger interface {
 	Fatal(msg string, fields ...interface{})
 }
 
-type Payment interface {
-	MakePayment(payload PaymentRequestPayload) (error, PaymentResponse)
+type LakiPay interface {
+	InitiateDirectPayment(ctx context.Context, req lakipay.DirectPaymentRequest) (*lakipay.DirectPaymentResponse, error)
+	InitiateWithdrawal(ctx context.Context, req lakipay.WithdrawalRequest) (*lakipay.WithdrawalResponse, error)
+	VerifyWebhookSignature(payload map[string]string, signature string) (bool, error)
 }
 type Telegram interface {
 	Start()

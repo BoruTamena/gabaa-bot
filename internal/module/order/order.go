@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/BoruTamena/gabaa-bot/internal/constant"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
@@ -21,10 +22,12 @@ type orderModule struct {
 	productStorage storage.ProductStorage
 	cartStorage    storage.CartStorage
 	walletStorage  storage.WalletStorage
+	escrowStorage  storage.EscrowStorage
 	addressStorage storage.AddressStorage
 	storeStorage   storage.StoreStorage
 	userStorage    storage.UserStorage
 	tele           platform.Telegram
+	paymentModule  module.PaymentModule
 }
 
 func NewOrderModule(
@@ -32,6 +35,7 @@ func NewOrderModule(
 	pStorage storage.ProductStorage,
 	cStorage storage.CartStorage,
 	wStorage storage.WalletStorage,
+	eStorage storage.EscrowStorage,
 	aStorage storage.AddressStorage,
 	sStorage storage.StoreStorage,
 	uStorage storage.UserStorage,
@@ -42,11 +46,16 @@ func NewOrderModule(
 		productStorage: pStorage,
 		cartStorage:    cStorage,
 		walletStorage:  wStorage,
+		escrowStorage:  eStorage,
 		addressStorage: aStorage,
 		storeStorage:   sStorage,
 		userStorage:    uStorage,
 		tele:           tele,
 	}
+}
+
+func (m *orderModule) SetPaymentModule(pm module.PaymentModule) {
+	m.paymentModule = pm
 }
 
 func (m *orderModule) getCart(ctx context.Context, userID int64) (map[int64]int, error) {
@@ -62,7 +71,15 @@ func (m *orderModule) getCart(ctx context.Context, userID int64) (map[int64]int,
 	return res, nil
 }
 
-func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64, addressID int64) (*dto.Order, error) {
+func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64, addressID int64, medium, phone string) (*dto.CheckoutResponse, error) {
+	store, err := m.storeStorage.GetStoreByID(ctx, storeID)
+	if err != nil {
+		return nil, fmt.Errorf("store not found: %v", err)
+	}
+	if store.VerificationStatus != constant.StoreVerificationVerified {
+		return nil, fmt.Errorf("store is not verified for payments")
+	}
+
 	// Validate address
 	addr, err := m.addressStorage.GetAddressByID(ctx, addressID)
 	if err != nil {
@@ -70,6 +87,10 @@ func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64,
 	}
 	if addr.UserID != userID {
 		return nil, fmt.Errorf("unauthorized to use this address")
+	}
+
+	if phone == "" {
+		phone = addr.Phone
 	}
 
 	cart, err := m.getCart(ctx, userID)
@@ -122,7 +143,19 @@ func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64,
 
 	logger.Info("checkout completed successfully", zap.Int64("order_id", order.ID), zap.Int64("user_id", userID), zap.Float64("total_price", order.TotalPrice))
 
-	return m.mapOrderToDTO(order), nil
+	if m.paymentModule == nil {
+		return nil, fmt.Errorf("payment module not configured")
+	}
+
+	paymentDTO, err := m.paymentModule.InitiateForOrder(ctx, order, medium, phone)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.CheckoutResponse{
+		Order:   *m.mapOrderToDTO(order),
+		Payment: *paymentDTO,
+	}, nil
 }
 
 func (m *orderModule) ListOrders(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
@@ -151,18 +184,6 @@ func (m *orderModule) ListOrders(ctx context.Context, storeID int64, params dto.
 }
 
 func (m *orderModule) UpdateOrderStatus(ctx context.Context, orderID int64, status string) error {
-	if status == "completed" {
-		order, err := m.orderStorage.GetOrderByID(ctx, orderID)
-		if err != nil {
-			logger.Error("failed to get order for status update", zap.Error(err), zap.Int64("order_id", orderID))
-			return err
-		}
-		if err := m.walletStorage.UpdateWalletBalance(ctx, order.StoreID, order.TotalPrice); err != nil {
-			logger.Error("failed to update wallet balance on order completion", zap.Error(err), zap.Int64("store_id", order.StoreID))
-			return err
-		}
-	}
-
 	var storeID int64
 	if status == "paid" {
 		order, err := m.orderStorage.GetOrderByID(ctx, orderID)
@@ -186,6 +207,35 @@ func (m *orderModule) UpdateOrderStatus(ctx context.Context, orderID int64, stat
 	}
 
 	return nil
+}
+
+func (m *orderModule) OnPaymentSuccess(ctx context.Context, orderID int64) error {
+	order, err := m.orderStorage.GetOrderByID(ctx, orderID)
+	if err != nil {
+		return err
+	}
+	if order.Status == "paid" {
+		go m.notifyStoreOwner(context.Background(), orderID, order.StoreID)
+		return nil
+	}
+	return m.UpdateOrderStatus(ctx, orderID, "paid")
+}
+
+func (m *orderModule) OnPaymentFailed(ctx context.Context, orderID int64) error {
+	order, err := m.orderStorage.GetOrderByID(ctx, orderID)
+	if err != nil {
+		return err
+	}
+
+	for _, item := range order.Items {
+		product, err := m.productStorage.GetProductByID(ctx, item.ProductID)
+		if err == nil {
+			product.Stock += item.Quantity
+			_ = m.productStorage.UpdateProduct(ctx, product)
+		}
+	}
+
+	return m.orderStorage.UpdateOrderStatus(ctx, orderID, "cancelled")
 }
 
 func (m *orderModule) GetUserOrders(ctx context.Context, userID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
@@ -300,11 +350,18 @@ func (m *orderModule) UpdateMyStoreOrderStatus(ctx context.Context, storeID int6
 		return fmt.Errorf("order does not belong to your store")
 	}
 
-	// Credit wallet when order is delivered
+	// Release escrow and move pending -> available on delivery
 	if status == "delivered" {
-		if err := m.walletStorage.UpdateWalletBalance(ctx, storeID, order.TotalPrice); err != nil {
-			logger.Error("failed to credit wallet on delivery", zap.Error(err), zap.Int64("store_id", storeID))
-			return err
+		escrow, err := m.escrowStorage.GetEscrowByOrderID(ctx, orderID)
+		if err == nil && escrow.Status == constant.EscrowStatusHeld {
+			if err := m.escrowStorage.ReleaseEscrow(ctx, orderID); err != nil {
+				logger.Error("failed to release escrow on delivery", zap.Error(err), zap.Int64("order_id", orderID))
+				return err
+			}
+			if err := m.walletStorage.ReleaseEscrowFunds(ctx, storeID, escrow.Amount); err != nil {
+				logger.Error("failed to release escrow funds on delivery", zap.Error(err), zap.Int64("store_id", storeID))
+				return err
+			}
 		}
 	}
 

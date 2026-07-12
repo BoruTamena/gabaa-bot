@@ -58,6 +58,9 @@ func NewGinRouter(
 	// Telegram Webhook
 	r.POST("/api/v1/webhook/telegram", authMiddleware.TelegramWebhookSecret(), webhookHandler.HandleUpdate)
 
+	// LakiPay Webhook (public)
+	RegisterLakiPayWebhook(r, paymentHandler)
+
 	// ── Protected routes (JWT auth required) ──────────────────────────
 	api := r.Group("/")
 	api.Use(authMiddleware.JWTAuth())

@@ -72,7 +72,40 @@ type OrderStorage interface {
 
 type WalletStorage interface {
 	GetWalletByStoreID(ctx context.Context, storeID int64) (*db.Wallet, error)
-	UpdateWalletBalance(ctx context.Context, storeID int64, amount float64) error
+	GetOrCreateWallet(ctx context.Context, storeID int64) (*db.Wallet, error)
+	AddPendingBalance(ctx context.Context, storeID int64, amount float64) error
+	ReleaseEscrowFunds(ctx context.Context, storeID int64, amount float64) error
+	LockForWithdrawal(ctx context.Context, storeID int64, amount float64) error
+	UnlockWithdrawal(ctx context.Context, storeID int64, amount float64) error
+	CompleteWithdrawal(ctx context.Context, storeID int64, amount float64) error
+}
+
+type PaymentStorage interface {
+	CreatePayment(ctx context.Context, payment *db.Payment) error
+	UpdatePayment(ctx context.Context, payment *db.Payment) error
+	GetPaymentByID(ctx context.Context, id int64) (*db.Payment, error)
+	GetPaymentByReference(ctx context.Context, reference string) (*db.Payment, error)
+	GetPaymentByTransactionID(ctx context.Context, transactionID string) (*db.Payment, error)
+}
+
+type PaymentWebhookStorage interface {
+	CreateWebhookEvent(ctx context.Context, event *db.PaymentWebhook) error
+	MarkWebhookProcessed(ctx context.Context, id int64) error
+}
+
+type EscrowStorage interface {
+	CreateEscrow(ctx context.Context, escrow *db.Escrow) error
+	GetEscrowByOrderID(ctx context.Context, orderID int64) (*db.Escrow, error)
+	ReleaseEscrow(ctx context.Context, orderID int64) error
+}
+
+type WithdrawalStorage interface {
+	CreateWithdrawal(ctx context.Context, withdrawal *db.Withdrawal) error
+	UpdateWithdrawal(ctx context.Context, withdrawal *db.Withdrawal) error
+	GetWithdrawalByID(ctx context.Context, id int64) (*db.Withdrawal, error)
+	GetWithdrawalByReference(ctx context.Context, reference string) (*db.Withdrawal, error)
+	GetWithdrawalByTransactionID(ctx context.Context, transactionID string) (*db.Withdrawal, error)
+	ListWithdrawalsByStoreID(ctx context.Context, storeID int64, limit, offset int) ([]db.Withdrawal, int64, error)
 }
 
 type CartStorage interface {
@@ -108,6 +141,7 @@ type StoryStorage interface {
 	UpdateStory(ctx context.Context, story *db.ProductStory) error
 	DeleteStory(ctx context.Context, id int64) error
 	IncrementStoryViews(ctx context.Context, id int64) error
+	ExpireEndedStories(ctx context.Context) (int64, error)
 }
 
 type FavoriteStorage interface {
