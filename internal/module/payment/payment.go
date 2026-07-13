@@ -87,6 +87,14 @@ func (m *paymentModule) InitiateForOrder(ctx context.Context, order *db.Order, m
 		callbackURI = appURL + "/api/v1/webhook/lakipay"
 	}
 
+	logger.Info("initiating lakipay payment",
+		zap.Int64("order_id", order.ID),
+		zap.Int64("payment_id", payment.ID),
+		zap.String("reference", reference),
+		zap.String("medium", medium),
+		zap.String("callback_uri", callbackURI),
+	)
+
 	resp, err := m.lakipay.InitiateDirectPayment(ctx, lakipay.DirectPaymentRequest{
 		Amount:      order.TotalPrice,
 		Currency:    "ETB",
@@ -97,6 +105,14 @@ func (m *paymentModule) InitiateForOrder(ctx context.Context, order *db.Order, m
 		CallbackURI: callbackURI,
 	})
 	if err != nil {
+		logger.Error("lakipay direct payment failed",
+			zap.Error(err),
+			zap.Int64("order_id", order.ID),
+			zap.Int64("payment_id", payment.ID),
+			zap.String("reference", reference),
+			zap.String("medium", medium),
+			zap.String("phone", phone),
+		)
 		payment.Status = constant.PaymentStatusFailed
 		payment.GatewayStatus = constant.GatewayPaymentStatusFailed
 		_ = m.paymentStorage.UpdatePayment(ctx, payment)

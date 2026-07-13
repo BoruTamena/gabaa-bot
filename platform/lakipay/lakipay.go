@@ -19,6 +19,7 @@ import (
 
 	"github.com/BoruTamena/gabaa-bot/pkg/logger"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type Client struct {
@@ -29,34 +30,73 @@ type Client struct {
 }
 
 func NewClient() *Client {
-	baseURL := viper.GetString("lakipay.base_url")
+	cfg, err := loadClientConfig()
+	if err != nil {
+		logger.Error("lakipay client not configured", zap.Error(err))
+		return &Client{
+			httpClient: &http.Client{Timeout: 30 * time.Second},
+		}
+	}
+
+	return &Client{
+		apiKey:     cfg.apiKey,
+		baseURL:    cfg.baseURL,
+		publicKey:  cfg.webhookPublicKey,
+		httpClient: &http.Client{Timeout: 30 * time.Second},
+	}
+}
+
+type clientConfig struct {
+	apiKey           string
+	webhookPublicKey string
+	baseURL          string
+}
+
+func loadClientConfig() (*clientConfig, error) {
+	baseURL := configString("lakipay.base.url", "lakipay.baseurl")
 	if baseURL == "" {
 		baseURL = "https://api.lakipay.co"
 	}
 
-	secretKey := viper.GetString("lakipay.secret_key")
-	if secretKey == "" {
-		logger.Error("lakipay secret key not configured")
-		return nil
-	}
-	pubKey := viper.GetString("lakipay.public_key")
-	if pubKey == "" {
-		logger.Error("lakipay public key not configured")
-		return nil
+	secretKey := configString("lakipay.secret.key", "lakipay.secretkey")
+	pubKey := configString("lakipay.pub.key", "lakipay.api.secret")
+
+	webhookPublicKey := configString("lakipay.public.key", "lakipay.webhook_public_key")
+	if webhookPublicKey != "" && !strings.Contains(webhookPublicKey, "BEGIN PUBLIC KEY") {
+		// Support older setups that stored the API secret in LAKIPAY_PUBLIC_KEY.
+		// if apiSecret == "" {
+		// 	apiSecret = webhookPublicKey
+		// }
+		webhookPublicKey = ""
 	}
 
-	apikey := secretKey + ":" + pubKey
-	return &Client{
-		apiKey:    apikey,
-		baseURL:   strings.TrimRight(baseURL, "/"),
-		publicKey: viper.GetString("lakipay.public_key"),
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+	// if secretKey == "" {
+	// 	return nil, fmt.Errorf("set LAKIPAY_SECRET_KEY")
+	// }
+	// if apiSecret == "" {
+	// 	return nil, fmt.Errorf("set LAKIPAY_PUB_KEY (LAKISEC_...) for API authentication")
+	// }
+
+	return &clientConfig{
+		apiKey:           pubKey + ":" + secretKey,
+		webhookPublicKey: webhookPublicKey,
+		baseURL:          strings.TrimRight(baseURL, "/"),
+	}, nil
+}
+
+func configString(keys ...string) string {
+	for _, key := range keys {
+		if value := strings.TrimSpace(viper.GetString(key)); value != "" {
+			return value
+		}
 	}
+	return ""
 }
 
 func (c *Client) InitiateDirectPayment(ctx context.Context, req DirectPaymentRequest) (*DirectPaymentResponse, error) {
+	if c == nil || c.apiKey == "" {
+		return nil, fmt.Errorf("lakipay client not configured")
+	}
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
@@ -97,6 +137,9 @@ func (c *Client) InitiateDirectPayment(ctx context.Context, req DirectPaymentReq
 }
 
 func (c *Client) InitiateWithdrawal(ctx context.Context, req WithdrawalRequest) (*WithdrawalResponse, error) {
+	if c == nil || c.apiKey == "" {
+		return nil, fmt.Errorf("lakipay client not configured")
+	}
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
@@ -136,9 +179,18 @@ func (c *Client) InitiateWithdrawal(ctx context.Context, req WithdrawalRequest) 
 	return &result, nil
 }
 
+// ConfigurationError reports whether required LakiPay credentials are missing.
+func (c *Client) ConfigurationError() error {
+	if c == nil || c.apiKey == "" {
+		_, err := loadClientConfig()
+		return err
+	}
+	return nil
+}
+
 func (c *Client) VerifyWebhookSignature(payload map[string]string, signature string) (bool, error) {
-	if c.publicKey == "" {
-		return false, fmt.Errorf("lakipay public key not configured")
+	if c == nil || c.publicKey == "" {
+		return false, fmt.Errorf("lakipay webhook public key not configured")
 	}
 	if signature == "" {
 		return false, fmt.Errorf("missing signature")

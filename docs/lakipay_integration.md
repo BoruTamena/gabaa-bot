@@ -172,10 +172,11 @@ Configure `LAKIPAY_CALLBACK_URL` to this endpoint. RSA signature verification is
 ## Environment Variables
 
 ```env
-LAKIPAY_API_KEY=your_api_key
+LAKIPAY_SECRET_KEY=your_public_api_key   # LAKIPUB_...
+LAKIPAY_PUB_KEY=your_secret_api_key      # LAKISEC_...
 LAKIPAY_BASE_URL=https://api.lakipay.co
 LAKIPAY_CALLBACK_URL=https://your-api-host/api/v1/webhook/lakipay
-LAKIPAY_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----...
+LAKIPAY_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----...  # RSA PEM for webhook verification
 ```
 
 ## Frontend Checklist

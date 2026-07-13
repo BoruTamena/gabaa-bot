@@ -26,6 +26,7 @@ type LakiPay interface {
 	InitiateDirectPayment(ctx context.Context, req lakipay.DirectPaymentRequest) (*lakipay.DirectPaymentResponse, error)
 	InitiateWithdrawal(ctx context.Context, req lakipay.WithdrawalRequest) (*lakipay.WithdrawalResponse, error)
 	VerifyWebhookSignature(payload map[string]string, signature string) (bool, error)
+	ConfigurationError() error
 }
 type Telegram interface {
 	Start()

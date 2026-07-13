@@ -78,12 +78,12 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 	orderMod.SetPaymentModule(paymentMod)
 
 	return Module{
-		AuthModule:     authModule,
-		StoreModule:    store.NewStoreModule(persistence.StoreStorage, persistence.StoreKYCStorage, persistence.UserStorage, platform.tg),
-		ProductModule:  product.NewProductModule(persistence.ProductStorage, persistence.StoreStorage, platform.tg, viper.GetString("app.url"), recommendationModule),
-		OrderModule:    orderMod,
-		PaymentModule:  paymentMod,
-		CartModule:     cart.NewCartModule(persistence.CartStorage, persistence.ProductStorage),
+		AuthModule:    authModule,
+		StoreModule:   store.NewStoreModule(persistence.StoreStorage, persistence.StoreKYCStorage, persistence.UserStorage, platform.tg),
+		ProductModule: product.NewProductModule(persistence.ProductStorage, persistence.StoreStorage, platform.tg, viper.GetString("app.url"), recommendationModule),
+		OrderModule:   orderMod,
+		PaymentModule: paymentMod,
+		CartModule:    cart.NewCartModule(persistence.CartStorage, persistence.ProductStorage),
 		WalletModule: wallet.NewWalletModule(
 			persistence.WalletStorage,
 			persistence.WithdrawalStorage,
@@ -108,5 +108,3 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 		AnalyticsModule:      analytics.NewAnalyticsModule(persistence.AnalyticsStorage),
 	}
 }
-
-
