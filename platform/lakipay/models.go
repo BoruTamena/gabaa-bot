@@ -1,5 +1,7 @@
 package lakipay
 
+import "strings"
+
 type DirectPaymentRequest struct {
 	Amount      float64           `json:"amount"`
 	Currency    string            `json:"currency"`
@@ -17,9 +19,17 @@ type PaymentRedirects struct {
 }
 
 type DirectPaymentResponse struct {
+	Success bool              `json:"success"`
 	Status  string            `json:"status"`
 	Message string            `json:"message"`
 	Data    DirectPaymentData `json:"data"`
+}
+
+func (r DirectPaymentResponse) IsSuccess() bool {
+	if r.Success {
+		return true
+	}
+	return strings.ToUpper(strings.TrimSpace(r.Status)) == "SUCCESS"
 }
 
 type DirectPaymentData struct {
@@ -42,9 +52,17 @@ type WithdrawalRequest struct {
 }
 
 type WithdrawalResponse struct {
+	Success bool           `json:"success"`
 	Status  string         `json:"status"`
 	Message string         `json:"message"`
 	Data    WithdrawalData `json:"data"`
+}
+
+func (r WithdrawalResponse) IsSuccess() bool {
+	if r.Success {
+		return true
+	}
+	return strings.ToUpper(strings.TrimSpace(r.Status)) == "SUCCESS"
 }
 
 type WithdrawalData struct {

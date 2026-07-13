@@ -144,7 +144,7 @@ func (c *Client) InitiateDirectPayment(ctx context.Context, req DirectPaymentReq
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
-	if strings.ToUpper(result.Status) != "SUCCESS" {
+	if !result.IsSuccess() {
 		return nil, fmt.Errorf("lakipay rejected payment: %s", result.Message)
 	}
 
@@ -187,7 +187,7 @@ func (c *Client) InitiateWithdrawal(ctx context.Context, req WithdrawalRequest) 
 		return nil, fmt.Errorf("unmarshal response: %w", err)
 	}
 
-	if strings.ToUpper(result.Status) != "SUCCESS" {
+	if !result.IsSuccess() {
 		return nil, fmt.Errorf("lakipay rejected withdrawal: %s", result.Message)
 	}
 
