@@ -13,7 +13,6 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"github.com/BoruTamena/gabaa-bot/platform/lakipay"
-	"github.com/spf13/viper"
 )
 
 type walletModule struct {
@@ -91,10 +90,9 @@ func (m *walletModule) RequestWithdrawal(ctx context.Context, storeID int64, req
 		return nil, fmt.Errorf("failed to lock funds: %w", err)
 	}
 
-	callbackURI := viper.GetString("lakipay.callback_url")
-	if callbackURI == "" {
-		appURL := strings.TrimRight(viper.GetString("app.url"), "/")
-		callbackURI = appURL + "/api/v1/webhook/lakipay"
+	callbackURL := lakipay.ResolveCallbackURL()
+	if callbackURL == "" {
+		return nil, fmt.Errorf("lakipay callback URL is not configured (set LAKIPAY_CALLBACK_URL)")
 	}
 
 	resp, err := m.lakipay.InitiateWithdrawal(ctx, lakipay.WithdrawalRequest{
@@ -103,7 +101,7 @@ func (m *walletModule) RequestWithdrawal(ctx context.Context, storeID int64, req
 		PhoneNumber: phone,
 		Medium:      req.Medium,
 		Reference:   reference,
-		CallbackURI: callbackURI,
+		CallbackURL: callbackURL,
 	})
 	if err != nil {
 		_ = m.walletStorage.UnlockWithdrawal(ctx, storeID, req.Amount)

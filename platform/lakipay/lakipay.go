@@ -93,6 +93,18 @@ func configString(keys ...string) string {
 	return ""
 }
 
+// ResolveCallbackURL returns the webhook URL sent to LakiPay for payment/withdrawal callbacks.
+func ResolveCallbackURL() string {
+	if url := configString("lakipay.callback_url", "lakipay.callback.url"); url != "" {
+		return url
+	}
+	appURL := strings.TrimRight(viper.GetString("app.url"), "/")
+	if appURL == "" {
+		return ""
+	}
+	return appURL + "/api/v1/webhook/lakipay"
+}
+
 func (c *Client) InitiateDirectPayment(ctx context.Context, req DirectPaymentRequest) (*DirectPaymentResponse, error) {
 	if c == nil || c.apiKey == "" {
 		return nil, fmt.Errorf("lakipay client not configured")

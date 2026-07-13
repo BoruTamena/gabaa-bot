@@ -7,7 +7,7 @@ type DirectPaymentRequest struct {
 	Medium      string            `json:"medium"`
 	Description string            `json:"description,omitempty"`
 	Reference   string            `json:"reference"`
-	CallbackURI string            `json:"callback_uri,omitempty"`
+	CallbackURL string            `json:"callback_url"`
 	Redirects   *PaymentRedirects `json:"redirects,omitempty"`
 }
 
@@ -17,9 +17,9 @@ type PaymentRedirects struct {
 }
 
 type DirectPaymentResponse struct {
-	Status  string              `json:"status"`
-	Message string              `json:"message"`
-	Data    DirectPaymentData   `json:"data"`
+	Status  string            `json:"status"`
+	Message string            `json:"message"`
+	Data    DirectPaymentData `json:"data"`
 }
 
 type DirectPaymentData struct {
@@ -38,13 +38,13 @@ type WithdrawalRequest struct {
 	PhoneNumber string  `json:"phone_number"`
 	Medium      string  `json:"medium"`
 	Reference   string  `json:"reference"`
-	CallbackURI string  `json:"callback_uri,omitempty"`
+	CallbackURL string  `json:"callback_url"`
 }
 
 type WithdrawalResponse struct {
-	Status  string           `json:"status"`
-	Message string           `json:"message"`
-	Data    WithdrawalData   `json:"data"`
+	Status  string         `json:"status"`
+	Message string         `json:"message"`
+	Data    WithdrawalData `json:"data"`
 }
 
 type WithdrawalData struct {

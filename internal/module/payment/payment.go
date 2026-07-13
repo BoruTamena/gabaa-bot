@@ -14,7 +14,6 @@ import (
 	"github.com/BoruTamena/gabaa-bot/pkg/logger"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"github.com/BoruTamena/gabaa-bot/platform/lakipay"
-	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -81,10 +80,9 @@ func (m *paymentModule) InitiateForOrder(ctx context.Context, order *db.Order, m
 		return nil, err
 	}
 
-	callbackURI := viper.GetString("lakipay.callback_url")
-	if callbackURI == "" {
-		appURL := strings.TrimRight(viper.GetString("app.url"), "/")
-		callbackURI = appURL + "/api/v1/webhook/lakipay"
+	callbackURL := lakipay.ResolveCallbackURL()
+	if callbackURL == "" {
+		return nil, fmt.Errorf("lakipay callback URL is not configured (set LAKIPAY_CALLBACK_URL)")
 	}
 
 	logger.Info("initiating lakipay payment",
@@ -92,7 +90,7 @@ func (m *paymentModule) InitiateForOrder(ctx context.Context, order *db.Order, m
 		zap.Int64("payment_id", payment.ID),
 		zap.String("reference", reference),
 		zap.String("medium", medium),
-		zap.String("callback_uri", callbackURI),
+		zap.String("callback_url", callbackURL),
 	)
 
 	resp, err := m.lakipay.InitiateDirectPayment(ctx, lakipay.DirectPaymentRequest{
@@ -102,7 +100,7 @@ func (m *paymentModule) InitiateForOrder(ctx context.Context, order *db.Order, m
 		Medium:      medium,
 		Description: fmt.Sprintf("Payment for order #%d", order.ID),
 		Reference:   reference,
-		CallbackURI: callbackURI,
+		CallbackURL: callbackURL,
 	})
 	if err != nil {
 		logger.Error("lakipay direct payment failed",
