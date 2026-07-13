@@ -77,14 +77,16 @@ func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64,
 		logger.Error("checkout: store not found", zap.Error(err), zap.Int64("user_id", userID), zap.Int64("store_id", storeID))
 		return nil, fmt.Errorf("store not found: %v", err)
 	}
-	if store.VerificationStatus != constant.StoreVerificationVerified {
-		logger.Error("checkout: store not verified",
-			zap.Int64("user_id", userID),
-			zap.Int64("store_id", storeID),
-			zap.String("verification_status", store.VerificationStatus),
-		)
-		return nil, fmt.Errorf("store is not verified for payments")
-	}
+
+	logger.Info("checkout: store found", zap.Int64("store_id", storeID), zap.String("store_name", store.Name))
+	// if store.VerificationStatus != constant.StoreVerificationVerified {
+	// 	logger.Error("checkout: store not verified",
+	// 		zap.Int64("user_id", userID),
+	// 		zap.Int64("store_id", storeID),
+	// 		zap.String("verification_status", store.VerificationStatus),
+	// 	)
+	// 	return nil, fmt.Errorf("store is not verified for payments")
+	// }
 
 	// Validate address
 	addr, err := m.addressStorage.GetAddressByID(ctx, addressID)
