@@ -21,6 +21,17 @@ type Payment struct {
 	CreatedAt     time.Time                     `json:"created_at"`
 }
 
+type PaymentFilterParams struct {
+	PaginationParams
+	StoreID int64  `form:"-"`
+	Status  string `form:"status"` // initiated, pending, success, failed
+}
+
+type StoreTransaction struct {
+	Payment
+	OrderStatus string `json:"order_status"`
+}
+
 type CheckoutResponse struct {
 	Order   Order   `json:"order"`
 	Payment Payment `json:"payment"`

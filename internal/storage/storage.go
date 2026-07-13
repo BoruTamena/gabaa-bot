@@ -86,6 +86,7 @@ type PaymentStorage interface {
 	GetPaymentByID(ctx context.Context, id int64) (*db.Payment, error)
 	GetPaymentByReference(ctx context.Context, reference string) (*db.Payment, error)
 	GetPaymentByTransactionID(ctx context.Context, transactionID string) (*db.Payment, error)
+	ListPaymentsByStoreID(ctx context.Context, filter dto.PaymentFilterParams) ([]db.Payment, int64, error)
 }
 
 type PaymentWebhookStorage interface {

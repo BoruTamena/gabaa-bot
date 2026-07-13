@@ -132,6 +132,29 @@ func (m *paymentModule) InitiateForOrder(ctx context.Context, order *db.Order, m
 	return mapPaymentToDTO(payment), nil
 }
 
+func (m *paymentModule) ListStoreTransactions(ctx context.Context, filter dto.PaymentFilterParams) (*dto.PaginatedResponse, error) {
+	payments, total, err := m.paymentStorage.ListPaymentsByStoreID(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	transactions := make([]dto.StoreTransaction, len(payments))
+	for i, payment := range payments {
+		txn := dto.StoreTransaction{
+			Payment: *mapPaymentToDTO(&payment),
+		}
+		if payment.Order.ID != 0 {
+			txn.OrderStatus = payment.Order.Status
+		}
+		transactions[i] = txn
+	}
+
+	return &dto.PaginatedResponse{
+		Total: total,
+		Data:  transactions,
+	}, nil
+}
+
 func (m *paymentModule) HandleWebhook(ctx context.Context, rawBody []byte) dto.WebhookResult {
 	payloadMap, err := lakipay.PayloadToStringMap(rawBody)
 	if err != nil {

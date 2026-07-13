@@ -7,6 +7,7 @@ import (
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"gorm.io/gorm"
@@ -62,6 +63,35 @@ func (p *paymentPersistence) GetPaymentByTransactionID(ctx context.Context, tran
 		p.logger.Error("Failed to get payment by transaction ID", "error", err, "transactionID", transactionID)
 	}
 	return &payment, err
+}
+
+func (p *paymentPersistence) ListPaymentsByStoreID(ctx context.Context, filter dto.PaymentFilterParams) ([]db.Payment, int64, error) {
+	var payments []db.Payment
+	var total int64
+
+	query := p.db.WithContext(ctx).Model(&db.Payment{}).
+		Joins("JOIN orders ON orders.id = payments.order_id AND orders.deleted_at IS NULL").
+		Where("orders.store_id = ?", filter.StoreID)
+
+	if filter.Status != "" {
+		query = query.Where("payments.status = ?", filter.Status)
+	}
+
+	if err := query.Count(&total).Error; err != nil {
+		p.logger.Error("Failed to count store payments", "error", err, "storeID", filter.StoreID)
+		return nil, 0, err
+	}
+
+	err := query.
+		Preload("Order").
+		Order("payments.created_at DESC").
+		Limit(filter.GetLimit()).
+		Offset(filter.GetOffset()).
+		Find(&payments).Error
+	if err != nil {
+		p.logger.Error("Failed to list store payments", "error", err, "storeID", filter.StoreID)
+	}
+	return payments, total, err
 }
 
 type paymentWebhookPersistence struct {

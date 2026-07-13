@@ -12,6 +12,8 @@ func RegisterPaymentRoutes(api *gin.RouterGroup, paymentHandler *payment.Payment
 	api.GET("/my-store/wallet", paymentHandler.GetMyStoreWallet)
 	api.POST("/my-store/wallet/withdraw", paymentHandler.RequestWithdrawal)
 	api.GET("/my-store/wallet/withdrawals", paymentHandler.ListWithdrawals)
+	api.GET("/my-store/wallet/withdrawals/:withdrawal_id", paymentHandler.GetMyStoreWithdrawal)
+	api.GET("/my-store/transactions", paymentHandler.ListMyStoreTransactions)
 }
 
 // RegisterLakiPayWebhook registers the public LakiPay webhook endpoint.

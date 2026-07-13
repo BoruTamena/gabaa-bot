@@ -80,11 +80,13 @@ type WalletModule interface {
 	GetWalletSummary(ctx context.Context, storeID int64) (*dto.Wallet, error)
 	RequestWithdrawal(ctx context.Context, storeID int64, req dto.WithdrawalRequest) (*dto.Withdrawal, error)
 	ListWithdrawals(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+	GetMyStoreWithdrawal(ctx context.Context, storeID, withdrawalID int64) (*dto.Withdrawal, error)
 }
 
 type PaymentModule interface {
 	InitiateForOrder(ctx context.Context, order *db.Order, medium, phone string) (*dto.Payment, error)
 	HandleWebhook(ctx context.Context, rawBody []byte) dto.WebhookResult
+	ListStoreTransactions(ctx context.Context, filter dto.PaymentFilterParams) (*dto.PaginatedResponse, error)
 }
 
 type CategoryModule interface {

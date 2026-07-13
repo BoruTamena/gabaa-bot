@@ -37,3 +37,7 @@ type Withdrawal struct {
 	GatewayStatus constant.GatewayPaymentStatus `json:"gateway_status"`
 	CreatedAt     time.Time                     `json:"created_at"`
 }
+
+func (w Withdrawal) IsTerminal() bool {
+	return w.Status.IsTerminal()
+}

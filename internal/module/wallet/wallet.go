@@ -145,6 +145,17 @@ func (m *walletModule) ListWithdrawals(ctx context.Context, storeID int64, param
 	}, nil
 }
 
+func (m *walletModule) GetMyStoreWithdrawal(ctx context.Context, storeID, withdrawalID int64) (*dto.Withdrawal, error) {
+	withdrawal, err := m.withdrawalStorage.GetWithdrawalByID(ctx, withdrawalID)
+	if err != nil {
+		return nil, err
+	}
+	if withdrawal.StoreID != storeID {
+		return nil, fmt.Errorf("withdrawal does not belong to your store")
+	}
+	return mapWithdrawalToDTO(withdrawal), nil
+}
+
 func mapWalletToDTO(wallet *db.Wallet) *dto.Wallet {
 	return &dto.Wallet{
 		ID:               wallet.ID,

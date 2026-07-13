@@ -152,3 +152,66 @@ func (h *PaymentHandler) ListWithdrawals(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, resp)
 }
+
+// GetMyStoreWithdrawal returns a single withdrawal for polling status after a withdraw request
+// @Summary Get withdrawal status
+// @Description Retrieve a single withdrawal by ID for the authenticated merchant store (use for polling)
+// @Tags Wallet
+// @Produce json
+// @Param withdrawal_id path int true "Withdrawal ID"
+// @Success 200 {object} response.BaseResponse{data=dto.Withdrawal}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /my-store/wallet/withdrawals/:withdrawal_id [get]
+func (h *PaymentHandler) GetMyStoreWithdrawal(c *gin.Context) {
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		response.Error(c, fmt.Errorf("store context missing"))
+		return
+	}
+
+	withdrawalID, _ := strconv.ParseInt(c.Param("withdrawal_id"), 10, 64)
+
+	withdrawal, err := h.walletModule.GetMyStoreWithdrawal(c.Request.Context(), storeID, withdrawalID)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, withdrawal)
+}
+
+// ListMyStoreTransactions returns paginated payment transactions for the authenticated merchant store
+// @Summary List store transactions
+// @Description Retrieve paginated payment transactions (customer checkouts) for the merchant store
+// @Tags Payment
+// @Produce json
+// @Param status query string false "Filter by payment status (initiated, pending, success, failed)"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /my-store/transactions [get]
+func (h *PaymentHandler) ListMyStoreTransactions(c *gin.Context) {
+	storeID := c.GetInt64("store_id")
+	if storeID == 0 {
+		response.Error(c, fmt.Errorf("store context missing"))
+		return
+	}
+
+	var filter dto.PaymentFilterParams
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.Error(c, fmt.Errorf("invalid query params"))
+		return
+	}
+	filter.StoreID = storeID
+
+	resp, err := h.paymentModule.ListStoreTransactions(c.Request.Context(), filter)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
