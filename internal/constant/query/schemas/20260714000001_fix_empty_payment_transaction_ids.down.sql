@@ -1,0 +1,1 @@
+-- No-op: cannot restore empty-string transaction IDs.

@@ -119,10 +119,11 @@ func (m *paymentModule) InitiateForOrder(ctx context.Context, order *db.Order, m
 	}
 
 	gatewayResp, _ := json.Marshal(resp)
-	txnID := resp.Data.TransactionID
 	payment.Status = constant.PaymentStatusPending
-	payment.TransactionID = &txnID
-	payment.GatewayStatus = constant.ParseGatewayPaymentStatus(resp.Data.Status)
+	if txnID := resp.TransactionID(); txnID != "" {
+		payment.TransactionID = &txnID
+	}
+	payment.GatewayStatus = constant.ParseGatewayPaymentStatus(resp.GatewayStatus())
 	payment.GatewayResponse = gatewayResp
 	if err := m.paymentStorage.UpdatePayment(ctx, payment); err != nil {
 		return nil, err
@@ -144,7 +145,7 @@ func (m *paymentModule) HandleWebhook(ctx context.Context, rawBody []byte) dto.W
 	}
 
 	webhookEvent := &db.PaymentWebhook{
-		TransactionID: payloadMap["transaction_id"],
+		TransactionID: lakipay.WebhookTransactionID(payloadMap),
 		Event:         payloadMap["event"],
 		Status:        payloadMap["status"],
 		Payload:       rawBody,
@@ -168,8 +169,8 @@ func (m *paymentModule) HandleWebhook(ctx context.Context, rawBody []byte) dto.W
 }
 
 func (m *paymentModule) handleDepositWebhook(ctx context.Context, payloadMap map[string]string, webhookEvent *db.PaymentWebhook) dto.WebhookResult {
-	transactionID := payloadMap["transaction_id"]
-	reference := payloadMap["reference"]
+	transactionID := lakipay.WebhookTransactionID(payloadMap)
+	reference := lakipay.WebhookReference(payloadMap)
 	gatewayStatus := constant.ParseGatewayPaymentStatus(payloadMap["status"])
 
 	var payment *db.Payment
@@ -181,11 +182,23 @@ func (m *paymentModule) handleDepositWebhook(ctx context.Context, payloadMap map
 		payment, err = m.paymentStorage.GetPaymentByReference(ctx, reference)
 	}
 	if err != nil || payment == nil {
-		logger.Error("payment not found for webhook", zap.String("transaction_id", transactionID), zap.String("reference", reference))
+		logger.Error("payment not found for webhook",
+			zap.String("transaction_id", transactionID),
+			zap.String("reference", reference),
+			zap.String("lakipay_txn_id", payloadMap["lakipayTxnId"]),
+			zap.String("reference_id", payloadMap["referenceId"]),
+		)
 		return dto.WebhookResult{StatusCode: 404, Message: "payment not found"}
 	}
 
 	webhookEvent.PaymentID = &payment.ID
+
+	if payment.TransactionID == nil || strings.TrimSpace(*payment.TransactionID) == "" {
+		if transactionID != "" {
+			payment.TransactionID = &transactionID
+			_ = m.paymentStorage.UpdatePayment(ctx, payment)
+		}
+	}
 
 	if payment.Status.IsTerminal() {
 		_ = m.paymentWebhookStorage.MarkWebhookProcessed(ctx, webhookEvent.ID)
@@ -213,8 +226,8 @@ func (m *paymentModule) handleDepositWebhook(ctx context.Context, payloadMap map
 }
 
 func (m *paymentModule) handleWithdrawalWebhook(ctx context.Context, payloadMap map[string]string, webhookEvent *db.PaymentWebhook) dto.WebhookResult {
-	transactionID := payloadMap["transaction_id"]
-	reference := payloadMap["reference"]
+	transactionID := lakipay.WebhookTransactionID(payloadMap)
+	reference := lakipay.WebhookReference(payloadMap)
 	gatewayStatus := constant.ParseGatewayPaymentStatus(payloadMap["status"])
 
 	var withdrawal *db.Withdrawal
@@ -231,6 +244,13 @@ func (m *paymentModule) handleWithdrawalWebhook(ctx context.Context, payloadMap 
 	}
 
 	webhookEvent.WithdrawalID = &withdrawal.ID
+
+	if withdrawal.TransactionID == nil || strings.TrimSpace(*withdrawal.TransactionID) == "" {
+		if transactionID != "" {
+			withdrawal.TransactionID = &transactionID
+			_ = m.withdrawalStorage.UpdateWithdrawal(ctx, withdrawal)
+		}
+	}
 
 	if withdrawal.Status.IsTerminal() {
 		_ = m.paymentWebhookStorage.MarkWebhookProcessed(ctx, webhookEvent.ID)

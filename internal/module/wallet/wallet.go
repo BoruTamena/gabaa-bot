@@ -112,10 +112,11 @@ func (m *walletModule) RequestWithdrawal(ctx context.Context, storeID int64, req
 	}
 
 	gatewayResp, _ := json.Marshal(resp)
-	txnID := resp.Data.TransactionID
 	withdrawal.Status = constant.WithdrawalStatusPending
-	withdrawal.TransactionID = &txnID
-	withdrawal.GatewayStatus = constant.ParseGatewayPaymentStatus(resp.Data.Status)
+	if txnID := resp.TransactionID(); txnID != "" {
+		withdrawal.TransactionID = &txnID
+	}
+	withdrawal.GatewayStatus = constant.ParseGatewayPaymentStatus(resp.GatewayStatus())
 	withdrawal.GatewayResponse = gatewayResp
 	if err := m.withdrawalStorage.UpdateWithdrawal(ctx, withdrawal); err != nil {
 		return nil, err

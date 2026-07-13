@@ -19,10 +19,12 @@ type PaymentRedirects struct {
 }
 
 type DirectPaymentResponse struct {
-	Success bool              `json:"success"`
-	Status  string            `json:"status"`
-	Message string            `json:"message"`
-	Data    DirectPaymentData `json:"data"`
+	Success              bool              `json:"success"`
+	Status               string            `json:"status"`
+	Message              string            `json:"message"`
+	ReferenceID          string            `json:"reference_id"`
+	LakipayTransactionID string            `json:"lakipay_transaction_id"`
+	Data                 DirectPaymentData `json:"data"`
 }
 
 func (r DirectPaymentResponse) IsSuccess() bool {
@@ -30,6 +32,27 @@ func (r DirectPaymentResponse) IsSuccess() bool {
 		return true
 	}
 	return strings.ToUpper(strings.TrimSpace(r.Status)) == "SUCCESS"
+}
+
+func (r DirectPaymentResponse) GatewayStatus() string {
+	if status := strings.TrimSpace(r.Data.Status); status != "" {
+		return status
+	}
+	return strings.TrimSpace(r.Status)
+}
+
+func (r DirectPaymentResponse) TransactionID() string {
+	if id := strings.TrimSpace(r.LakipayTransactionID); id != "" {
+		return id
+	}
+	return strings.TrimSpace(r.Data.TransactionID)
+}
+
+func (r DirectPaymentResponse) Reference() string {
+	if ref := strings.TrimSpace(r.ReferenceID); ref != "" {
+		return ref
+	}
+	return strings.TrimSpace(r.Data.Reference)
 }
 
 type DirectPaymentData struct {
@@ -52,10 +75,12 @@ type WithdrawalRequest struct {
 }
 
 type WithdrawalResponse struct {
-	Success bool           `json:"success"`
-	Status  string         `json:"status"`
-	Message string         `json:"message"`
-	Data    WithdrawalData `json:"data"`
+	Success              bool           `json:"success"`
+	Status               string         `json:"status"`
+	Message              string         `json:"message"`
+	ReferenceID          string         `json:"reference_id"`
+	LakipayTransactionID string         `json:"lakipay_transaction_id"`
+	Data                 WithdrawalData `json:"data"`
 }
 
 func (r WithdrawalResponse) IsSuccess() bool {
@@ -63,6 +88,27 @@ func (r WithdrawalResponse) IsSuccess() bool {
 		return true
 	}
 	return strings.ToUpper(strings.TrimSpace(r.Status)) == "SUCCESS"
+}
+
+func (r WithdrawalResponse) GatewayStatus() string {
+	if status := strings.TrimSpace(r.Data.Status); status != "" {
+		return status
+	}
+	return strings.TrimSpace(r.Status)
+}
+
+func (r WithdrawalResponse) TransactionID() string {
+	if id := strings.TrimSpace(r.LakipayTransactionID); id != "" {
+		return id
+	}
+	return strings.TrimSpace(r.Data.TransactionID)
+}
+
+func (r WithdrawalResponse) Reference() string {
+	if ref := strings.TrimSpace(r.ReferenceID); ref != "" {
+		return ref
+	}
+	return strings.TrimSpace(r.Data.Reference)
 }
 
 type WithdrawalData struct {
