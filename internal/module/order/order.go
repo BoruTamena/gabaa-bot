@@ -74,18 +74,30 @@ func (m *orderModule) getCart(ctx context.Context, userID int64) (map[int64]int,
 func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64, addressID int64, medium, phone string) (*dto.CheckoutResponse, error) {
 	store, err := m.storeStorage.GetStoreByID(ctx, storeID)
 	if err != nil {
+		logger.Error("checkout: store not found", zap.Error(err), zap.Int64("user_id", userID), zap.Int64("store_id", storeID))
 		return nil, fmt.Errorf("store not found: %v", err)
 	}
 	if store.VerificationStatus != constant.StoreVerificationVerified {
+		logger.Error("checkout: store not verified",
+			zap.Int64("user_id", userID),
+			zap.Int64("store_id", storeID),
+			zap.String("verification_status", store.VerificationStatus),
+		)
 		return nil, fmt.Errorf("store is not verified for payments")
 	}
 
 	// Validate address
 	addr, err := m.addressStorage.GetAddressByID(ctx, addressID)
 	if err != nil {
+		logger.Error("checkout: invalid address", zap.Error(err), zap.Int64("user_id", userID), zap.Int64("address_id", addressID))
 		return nil, fmt.Errorf("invalid address: %v", err)
 	}
 	if addr.UserID != userID {
+		logger.Error("checkout: unauthorized address",
+			zap.Int64("user_id", userID),
+			zap.Int64("address_id", addressID),
+			zap.Int64("address_owner_id", addr.UserID),
+		)
 		return nil, fmt.Errorf("unauthorized to use this address")
 	}
 
@@ -95,9 +107,11 @@ func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64,
 
 	cart, err := m.getCart(ctx, userID)
 	if err != nil {
+		logger.Error("checkout: failed to load cart", zap.Error(err), zap.Int64("user_id", userID))
 		return nil, err
 	}
 	if len(cart) == 0 {
+		logger.Error("checkout: cart is empty", zap.Int64("user_id", userID))
 		return nil, fmt.Errorf("cart is empty")
 	}
 
@@ -112,9 +126,16 @@ func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64,
 	for pID, qty := range cart {
 		product, err := m.productStorage.GetProductByID(ctx, pID)
 		if err != nil {
+			logger.Error("checkout: failed to load product", zap.Error(err), zap.Int64("user_id", userID), zap.Int64("product_id", pID))
 			return nil, err
 		}
 		if product.Stock < qty {
+			logger.Error("checkout: insufficient stock",
+				zap.Int64("user_id", userID),
+				zap.Int64("product_id", pID),
+				zap.Int("requested_qty", qty),
+				zap.Int("available_stock", product.Stock),
+			)
 			return nil, fmt.Errorf("insufficient stock for product %d", pID)
 		}
 		order.TotalPrice += product.Price * float64(qty)
@@ -127,28 +148,37 @@ func (m *orderModule) Checkout(ctx context.Context, userID int64, storeID int64,
 		// Decrement stock
 		product.Stock -= qty
 		if err := m.productStorage.UpdateProduct(ctx, product); err != nil {
+			logger.Error("checkout: failed to decrement stock", zap.Error(err), zap.Int64("user_id", userID), zap.Int64("product_id", pID))
 			return nil, err
 		}
 	}
 
 	if err := m.orderStorage.CreateOrder(ctx, order); err != nil {
-		logger.Error("failed to create order", zap.Error(err), zap.Int64("user_id", userID))
+		logger.Error("checkout: failed to create order", zap.Error(err), zap.Int64("user_id", userID))
 		return nil, err
 	}
 
 	if err := m.cartStorage.ClearCart(ctx, userID); err != nil {
-		logger.Error("failed to clear cart after checkout", zap.Error(err), zap.Int64("user_id", userID))
+		logger.Error("checkout: failed to clear cart", zap.Error(err), zap.Int64("user_id", userID), zap.Int64("order_id", order.ID))
 		return nil, err
 	}
 
 	logger.Info("checkout completed successfully", zap.Int64("order_id", order.ID), zap.Int64("user_id", userID), zap.Float64("total_price", order.TotalPrice))
 
 	if m.paymentModule == nil {
+		logger.Error("checkout: payment module not configured", zap.Int64("user_id", userID), zap.Int64("order_id", order.ID))
 		return nil, fmt.Errorf("payment module not configured")
 	}
 
 	paymentDTO, err := m.paymentModule.InitiateForOrder(ctx, order, medium, phone)
 	if err != nil {
+		logger.Error("checkout: payment initiation failed",
+			zap.Error(err),
+			zap.Int64("user_id", userID),
+			zap.Int64("order_id", order.ID),
+			zap.String("medium", medium),
+			zap.String("phone", phone),
+		)
 		return nil, err
 	}
 

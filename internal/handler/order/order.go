@@ -7,8 +7,10 @@ import (
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
+	"github.com/BoruTamena/gabaa-bot/pkg/logger"
 	"github.com/BoruTamena/gabaa-bot/pkg/response"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type OrderHandler struct {
@@ -38,12 +40,21 @@ func (h *OrderHandler) Checkout(c *gin.Context) {
 
 	var req dto.CheckoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("checkout: invalid request body", zap.Error(err), zap.Int64("user_id", userID))
 		response.Error(c, fmt.Errorf("invalid request body: %v", err))
 		return
 	}
 
 	result, err := h.orderModule.Checkout(c.Request.Context(), userID, req.StoreID, req.AddressID, req.Medium, req.PhoneNumber)
 	if err != nil {
+		logger.Error("checkout failed",
+			zap.Error(err),
+			zap.Int64("user_id", userID),
+			zap.Int64("store_id", req.StoreID),
+			zap.Int64("address_id", req.AddressID),
+			zap.String("medium", req.Medium),
+			zap.String("phone_number", req.PhoneNumber),
+		)
 		response.Error(c, err)
 		return
 	}
