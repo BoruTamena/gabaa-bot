@@ -13,7 +13,7 @@ type Withdrawal struct {
 	Currency        string                        `gorm:"column:currency;not null;default:'ETB'" json:"currency"`
 	PhoneNumber     string                        `gorm:"column:phone_number;not null" json:"phone_number"`
 	Medium          string                        `gorm:"column:medium;not null" json:"medium"`
-	Reference       string                        `gorm:"column:reference;not null;uniqueIndex" json:"reference"`
+	Reference       string                        `gorm:"column:reference;uniqueIndex" json:"reference"`
 	TransactionID   *string                       `gorm:"column:transaction_id" json:"transaction_id"`
 	Status          constant.WithdrawalStatus       `gorm:"column:status;not null;default:'initiated'" json:"status"`
 	GatewayStatus   constant.GatewayPaymentStatus   `gorm:"column:gateway_status" json:"gateway_status"`

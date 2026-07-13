@@ -8,8 +8,10 @@ import (
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
+	"github.com/BoruTamena/gabaa-bot/pkg/logger"
 	"github.com/BoruTamena/gabaa-bot/pkg/response"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type PaymentHandler struct {
@@ -108,12 +110,19 @@ func (h *PaymentHandler) RequestWithdrawal(c *gin.Context) {
 
 	var req dto.WithdrawalRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Error("withdrawal: invalid request body", zap.Error(err), zap.Int64("store_id", storeID))
 		response.Error(c, fmt.Errorf("invalid request body: %v", err))
 		return
 	}
 
 	withdrawal, err := h.walletModule.RequestWithdrawal(c.Request.Context(), storeID, req)
 	if err != nil {
+		logger.Error("withdrawal request failed",
+			zap.Error(err),
+			zap.Int64("store_id", storeID),
+			zap.Float64("amount", req.Amount),
+			zap.String("medium", req.Medium),
+		)
 		response.Error(c, err)
 		return
 	}

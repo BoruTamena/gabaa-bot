@@ -178,6 +178,7 @@ func (c *Client) InitiateWithdrawal(ctx context.Context, req WithdrawalRequest) 
 		return nil, fmt.Errorf("read response: %w", err)
 	}
 
+	logger.Info("lakipay withdrawal response", zap.String("response", string(respBody)))
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("lakipay error (status %d): %s", resp.StatusCode, string(respBody))
 	}

@@ -19,7 +19,11 @@ func NewWithdrawalPersistence(db *gorm.DB, logger platform.Logger) storage.Withd
 }
 
 func (p *withdrawalPersistence) CreateWithdrawal(ctx context.Context, withdrawal *db.Withdrawal) error {
-	err := p.db.WithContext(ctx).Create(withdrawal).Error
+	query := p.db.WithContext(ctx)
+	if withdrawal.Reference == "" {
+		query = query.Omit("Reference")
+	}
+	err := query.Create(withdrawal).Error
 	if err != nil {
 		p.logger.Error("Failed to create withdrawal", "error", err)
 	}
