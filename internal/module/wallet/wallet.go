@@ -52,13 +52,14 @@ func (m *walletModule) RequestWithdrawal(ctx context.Context, storeID int64, req
 		logger.Error("withdrawal: store not found", zap.Error(err), zap.Int64("store_id", storeID))
 		return nil, fmt.Errorf("store not found: %w", err)
 	}
-	if store.VerificationStatus != constant.StoreVerificationVerified {
-		logger.Error("withdrawal: store not verified",
-			zap.Int64("store_id", storeID),
-			zap.String("verification_status", store.VerificationStatus),
-		)
-		return nil, fmt.Errorf("store is not verified for withdrawals")
-	}
+	// if store.VerificationStatus != constant.StoreVerificationVerified {
+	// 	logger.Error("withdrawal: store not verified",
+	// 		zap.Int64("store_id", storeID),
+	// 		zap.String("verification_status", store.VerificationStatus),
+	// 	)
+	// 	return nil, fmt.Errorf("store is not verified for withdrawals")
+	// }
+	logger.Info("the withdrawal request", zap.Int64("store_id", store.ID), zap.Float64("amount", req.Amount), zap.String("phone_number", req.PhoneNumber), zap.String("medium", req.Medium))
 
 	phone := normalizePhone(req.PhoneNumber)
 	if phone == "" {
