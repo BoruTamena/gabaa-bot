@@ -111,15 +111,18 @@ func (c *Client) InitiateDirectPayment(ctx context.Context, req DirectPaymentReq
 
 	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
+		logger.Error("lakipay request failed", zap.Error(err), zap.String("api_key", c.apiKey))
 		return nil, fmt.Errorf("lakipay request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		logger.Error("lakipay request failed", zap.Error(err), zap.String("api_key", c.apiKey))
 		return nil, fmt.Errorf("read response: %w", err)
 	}
 
+	logger.Info("lakipay response", zap.String("response", string(respBody)), zap.String("api_key", c.apiKey))
 	if resp.StatusCode >= 400 {
 		return nil, fmt.Errorf("lakipay error (status %d): %s", resp.StatusCode, string(respBody))
 	}
