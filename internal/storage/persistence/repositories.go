@@ -327,6 +327,49 @@ func (p *orderPersistence) UpdateOrderStatus(ctx context.Context, orderID int64,
 	return err
 }
 
+func (p *orderPersistence) UpdateOrderDispatch(ctx context.Context, orderID int64, status string, agentID, routeID int64) error {
+	now := time.Now()
+	updates := map[string]interface{}{
+		"status":            status,
+		"delivery_agent_id": agentID,
+		"dispatched_at":     now,
+	}
+	if routeID > 0 {
+		updates["delivery_route_id"] = routeID
+	}
+	err := p.db.WithContext(ctx).Model(&db.Order{}).Where("id = ?", orderID).Updates(updates).Error
+	if err != nil {
+		p.logger.Error("Failed to update order dispatch", "error", err, "orderID", orderID)
+	}
+	return err
+}
+
+func (p *orderPersistence) GetOrdersByDeliveryAgentID(ctx context.Context, agentID int64, status string, limit, offset int) ([]db.Order, error) {
+	var orders []db.Order
+	query := p.db.WithContext(ctx).
+		Preload("User").
+		Preload("Store").
+		Preload("Items").
+		Preload("Items.Product").
+		Preload("ShippingAddress").
+		Where("delivery_agent_id = ?", agentID)
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&orders).Error
+	return orders, err
+}
+
+func (p *orderPersistence) GetOrdersTotalByDeliveryAgentID(ctx context.Context, agentID int64, status string) (int64, error) {
+	var count int64
+	query := p.db.WithContext(ctx).Model(&db.Order{}).Where("delivery_agent_id = ?", agentID)
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	err := query.Count(&count).Error
+	return count, err
+}
+
 func (p *orderPersistence) GetOrdersByFilter(ctx context.Context, filter dto.OrderFilterParams) ([]db.Order, int64, error) {
 	var orders []db.Order
 	var count int64

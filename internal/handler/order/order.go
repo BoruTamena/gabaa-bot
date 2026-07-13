@@ -289,15 +289,13 @@ func (h *OrderHandler) MyStoreUpdateOrderStatus(c *gin.Context) {
 
 	orderID, _ := strconv.ParseInt(c.Param("order_id"), 10, 64)
 
-	var body struct {
-		Status string `json:"status"`
-	}
+	var body dto.ShipOrderRequest
 	if err := c.ShouldBindJSON(&body); err != nil || body.Status == "" {
 		response.Error(c, fmt.Errorf("status is required"))
 		return
 	}
 
-	if err := h.orderModule.UpdateMyStoreOrderStatus(c.Request.Context(), storeID, orderID, body.Status); err != nil {
+	if err := h.orderModule.UpdateMyStoreOrderStatus(c.Request.Context(), storeID, orderID, body); err != nil {
 		response.Error(c, err)
 		return
 	}

@@ -66,7 +66,47 @@ type OrderStorage interface {
 	GetOrdersByCustomerID(ctx context.Context, customerID int64, limit, offset int) ([]db.Order, error)
 	GetOrdersTotalByUserID(ctx context.Context, userID int64) (int64, error)
 	UpdateOrderStatus(ctx context.Context, orderID int64, status string) error
+	UpdateOrderDispatch(ctx context.Context, orderID int64, status string, agentID, routeID int64) error
+	GetOrdersByDeliveryAgentID(ctx context.Context, agentID int64, status string, limit, offset int) ([]db.Order, error)
+	GetOrdersTotalByDeliveryAgentID(ctx context.Context, agentID int64, status string) (int64, error)
 	GetOrdersByFilter(ctx context.Context, filter dto.OrderFilterParams) ([]db.Order, int64, error)
+}
+
+type DeliveryStorage interface {
+	CreateAgent(ctx context.Context, agent *db.DeliveryAgent) error
+	GetAgentByID(ctx context.Context, id int64) (*db.DeliveryAgent, error)
+	GetAgentByUsername(ctx context.Context, username string) (*db.DeliveryAgent, error)
+	GetAgentByTelegramUserID(ctx context.Context, telegramUserID int64) (*db.DeliveryAgent, error)
+	GetAgentByUserID(ctx context.Context, userID int64) (*db.DeliveryAgent, error)
+	UpdateAgent(ctx context.Context, agent *db.DeliveryAgent) error
+	AdjustLoyaltyScore(ctx context.Context, agentID int64, delta int) error
+
+	CreateStoreLink(ctx context.Context, link *db.StoreDeliveryLink) error
+	GetStoreLink(ctx context.Context, storeID, agentID int64) (*db.StoreDeliveryLink, error)
+	ListStoreLinksByStoreID(ctx context.Context, storeID int64) ([]db.StoreDeliveryLink, error)
+	UpdateStoreLink(ctx context.Context, link *db.StoreDeliveryLink) error
+	DeleteStoreLink(ctx context.Context, storeID, agentID int64) error
+	StoreHasAgent(ctx context.Context, storeID, agentID int64) (bool, error)
+
+	CreateRoute(ctx context.Context, route *db.DeliveryRoute) error
+	GetRouteByID(ctx context.Context, routeID int64) (*db.DeliveryRoute, error)
+	UpdateRoute(ctx context.Context, route *db.DeliveryRoute) error
+	DeleteRoute(ctx context.Context, routeID int64) error
+	ListRoutesByLinkID(ctx context.Context, linkID int64) ([]db.DeliveryRoute, error)
+
+	CreateRouteLocation(ctx context.Context, loc *db.DeliveryRouteLocation) error
+	DeleteRouteLocationsByRouteID(ctx context.Context, routeID int64) error
+	ListRouteLocationsByRouteID(ctx context.Context, routeID int64) ([]db.DeliveryRouteLocation, error)
+
+	CreateAgentShare(ctx context.Context, share *db.DeliveryAgentShare) error
+	ListSharedAgents(ctx context.Context, excludeStoreID int64) ([]db.DeliveryAgent, error)
+	ListAgentsForStore(ctx context.Context, storeID int64) ([]db.DeliveryAgent, error)
+	ListLinksWithRoutesForStore(ctx context.Context, storeID int64) ([]db.StoreDeliveryLink, error)
+
+	ListAreaPresets(ctx context.Context) ([]db.DeliveryAreaPreset, error)
+	GetSharedOwnerLink(ctx context.Context, agentID int64) (*db.StoreDeliveryLink, error)
+	ListShareEnabledLinksForAgent(ctx context.Context, agentID int64) ([]db.StoreDeliveryLink, error)
+	ListLinksByAgentID(ctx context.Context, agentID int64) ([]db.StoreDeliveryLink, error)
 }
 
 

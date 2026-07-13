@@ -19,13 +19,15 @@ type TelegramUser struct {
 }
 
 type AuthResponse struct {
-	Token          string `json:"token"`
-	UserID         int64  `json:"userId"`
-	TelegramUserID int64  `json:"telegramUserId,omitempty"`
-	Username       string `json:"username"`
-	Role           string `json:"role"`
-	HasStore       bool   `json:"hasStore"`
-	StoreID        int64  `json:"storeId,omitempty"`
+	Token           string `json:"token"`
+	UserID          int64  `json:"userId"`
+	TelegramUserID  int64  `json:"telegramUserId,omitempty"`
+	Username        string `json:"username"`
+	Role            string `json:"role"`
+	HasStore        bool   `json:"hasStore"`
+	StoreID         int64  `json:"storeId,omitempty"`
+	DeliveryAgentID int64  `json:"deliveryAgentId,omitempty"`
+	IsDelivery      bool   `json:"isDelivery"`
 }
 
 type UserList struct {

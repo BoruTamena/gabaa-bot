@@ -23,6 +23,7 @@ type botModule struct {
 	categoryStorage      storage.CategoryStorage
 	recommendationModule module.RecommendationModule
 	authModule           module.AuthModule
+	deliveryModule       module.DeliveryModule
 	tele                 platform.Telegram
 }
 
@@ -32,6 +33,7 @@ func NewBotModule(
 	cStorage storage.CategoryStorage,
 	rModule module.RecommendationModule,
 	aModule module.AuthModule,
+	dModule module.DeliveryModule,
 	tele platform.Telegram,
 ) module.BotModule {
 	m := &botModule{
@@ -40,6 +42,7 @@ func NewBotModule(
 		categoryStorage:      cStorage,
 		recommendationModule: rModule,
 		authModule:           aModule,
+		deliveryModule:       dModule,
 		tele:                 tele,
 	}
 	m.registerHandlers()
@@ -103,6 +106,22 @@ func (m *botModule) handleStart(c telebot.Context) error {
 		}
 
 		return c.Send("🚀 *Store linking initiated!*\n\nNow, add me to your Group or Channel as an *Administrator* to complete the setup.")
+	}
+
+	user, err := m.userStorage.GetUserByTelegramID(ctx, c.Sender().ID)
+	if err == nil && m.deliveryModule != nil {
+		activated, actErr := m.deliveryModule.ActivatePendingInvite(ctx, c.Sender().ID, username, user.ID)
+		if actErr != nil {
+			logger.Error("failed to activate delivery invite", zap.Error(actErr))
+		}
+		if activated {
+			deliveryURL := m.tele.DeliveryAppURL()
+			msg := "🚚 *Welcome to Gabaa Delivery!*\n\nYou've been connected as a delivery partner. Open the delivery app to view assigned orders."
+			if deliveryURL != "" {
+				msg += "\n\n" + deliveryURL
+			}
+			return c.Send(msg, telebot.ModeMarkdown)
+		}
 	}
 
 	return c.Send("Welcome to Gabaa Bot! 🛍️\n\nUse /preferences to choose product categories and /recommendations on to get new product alerts in this chat.")

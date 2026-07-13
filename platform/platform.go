@@ -39,6 +39,8 @@ type Telegram interface {
 	ProcessUpdate(u telebot.Update)
 	SendProductRecommendation(telegramUserID int64, product dto.Product, storeName string) error
 	SendNewOrderNotification(telegramUserID int64, order dto.Order, storeName string) error
+	SendDeliveryDispatchNotification(telegramUserID int64, order dto.Order, address *dto.Address, storeName, pickupLocation string) error
+	DeliveryAppURL() string
 }
 
 

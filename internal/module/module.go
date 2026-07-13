@@ -70,10 +70,11 @@ type OrderModule interface {
 	// Merchant-scoped:
 	GetMyStoreOrders(ctx context.Context, filter dto.OrderFilterParams) (*dto.PaginatedResponse, error)
 	GetMyStoreOrder(ctx context.Context, storeID int64, orderID int64) (*dto.Order, error)
-	UpdateMyStoreOrderStatus(ctx context.Context, storeID int64, orderID int64, status string) error
+	UpdateMyStoreOrderStatus(ctx context.Context, storeID int64, orderID int64, req dto.ShipOrderRequest) error
 	OnPaymentSuccess(ctx context.Context, orderID int64) error
 	OnPaymentFailed(ctx context.Context, orderID int64) error
 	SetPaymentModule(pm PaymentModule)
+	SetDeliveryModule(dm DeliveryModule)
 }
 
 type WalletModule interface {
@@ -134,4 +135,25 @@ type AnalyticsModule interface {
 	GetOrderAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.OrderAnalytics, error)
 	GetProductAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.ProductAnalytics, error)
 	GetStoryAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.StoryAnalytics, error)
+}
+
+type DeliveryModule interface {
+	ListAreaPresets(ctx context.Context) ([]dto.DeliveryAreaPreset, error)
+	ConnectAgent(ctx context.Context, storeID, userID int64, req dto.ConnectDeliveryAgentRequest) (*dto.DeliveryAgentResponse, error)
+	ListAgents(ctx context.Context, storeID int64) ([]dto.DeliveryAgentResponse, error)
+	UpdateAgent(ctx context.Context, storeID, agentID int64, req dto.UpdateDeliveryAgentRequest) (*dto.DeliveryAgentResponse, error)
+	AddRoute(ctx context.Context, storeID, agentID int64, req dto.AddDeliveryRouteRequest) (*dto.DeliveryRouteResponse, error)
+	UpdateRoute(ctx context.Context, storeID, routeID int64, req dto.UpdateDeliveryRouteRequest) (*dto.DeliveryRouteResponse, error)
+	DeleteRoute(ctx context.Context, storeID, routeID int64) error
+	DisconnectAgent(ctx context.Context, storeID, agentID int64) error
+	ListSharedAgents(ctx context.Context, storeID int64) ([]dto.DeliveryAgentResponse, error)
+	AdoptAgent(ctx context.Context, storeID, userID, agentID int64) (*dto.DeliveryAgentResponse, error)
+	GetDeliverySuggestions(ctx context.Context, storeID, orderID int64) ([]dto.DeliverySuggestion, error)
+	DispatchOnShip(ctx context.Context, storeID, orderID int64, agentID, routeID *int64) error
+	ActivatePendingInvite(ctx context.Context, telegramUserID int64, username string, userID int64) (bool, error)
+	GetProfile(ctx context.Context, agentID int64) (*dto.DeliveryProfileResponse, error)
+	ListAssignedOrders(ctx context.Context, agentID int64, status string, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+	GetAssignedOrder(ctx context.Context, agentID, orderID int64) (*dto.DeliveryOrderResponse, error)
+	UpdateDeliveryOrderStatus(ctx context.Context, agentID, orderID int64, status string) error
+	SetOrderModule(om OrderModule)
 }

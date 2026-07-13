@@ -6,6 +6,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/module/analytics"
 	"github.com/BoruTamena/gabaa-bot/internal/module/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/module/cart"
+	"github.com/BoruTamena/gabaa-bot/internal/module/delivery"
 	"github.com/BoruTamena/gabaa-bot/internal/module/order"
 	"github.com/BoruTamena/gabaa-bot/internal/module/payment"
 	"github.com/BoruTamena/gabaa-bot/internal/module/product"
@@ -35,6 +36,7 @@ type Module struct {
 	FavoriteModule       module.FavoriteModule
 	RecommendationModule module.RecommendationModule
 	AnalyticsModule      module.AnalyticsModule
+	DeliveryModule       module.DeliveryModule
 }
 
 func InitModule(persistence Persistence, platform PlatFormLayer) Module {
@@ -49,6 +51,7 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 	authModule := auth.NewAuthModule(
 		persistence.UserStorage,
 		persistence.StoreStorage,
+		persistence.DeliveryStorage,
 		platform.tg,
 		persistence.AuthSessionStorage,
 	)
@@ -64,6 +67,17 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 		persistence.UserStorage,
 		platform.tg,
 	)
+
+	deliveryMod := delivery.NewDeliveryModule(
+		persistence.DeliveryStorage,
+		persistence.OrderStorage,
+		persistence.StoreStorage,
+		persistence.EscrowStorage,
+		persistence.WalletStorage,
+		platform.tg,
+	)
+	deliveryMod.SetOrderModule(orderMod)
+	orderMod.SetDeliveryModule(deliveryMod)
 
 	paymentMod := payment.NewPaymentModule(
 		persistence.PaymentStorage,
@@ -98,6 +112,7 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 			persistence.CategoryStorage,
 			recommendationModule,
 			authModule,
+			deliveryMod,
 			platform.tg,
 		),
 		UploadModule:         upload.NewUploadModule(platform.uploader),
@@ -106,5 +121,6 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 		FavoriteModule:       product.NewFavoriteModule(persistence.FavoriteStorage),
 		RecommendationModule: recommendationModule,
 		AnalyticsModule:      analytics.NewAnalyticsModule(persistence.AnalyticsStorage),
+		DeliveryModule:       deliveryMod,
 	}
 }

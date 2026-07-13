@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/BoruTamena/gabaa-bot/internal/constant"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
@@ -23,21 +24,24 @@ import (
 const loginSessionTTL = 5 * time.Minute
 
 type authModule struct {
-	userStorage         storage.UserStorage
-	storeStorage        storage.StoreStorage
-	authSessionStorage  storage.AuthSessionStorage
-	tele                platform.Telegram
+	userStorage        storage.UserStorage
+	storeStorage       storage.StoreStorage
+	deliveryStorage    storage.DeliveryStorage
+	authSessionStorage storage.AuthSessionStorage
+	tele               platform.Telegram
 }
 
 func NewAuthModule(
 	uStorage storage.UserStorage,
 	sStorage storage.StoreStorage,
+	dStorage storage.DeliveryStorage,
 	tele platform.Telegram,
 	authSessionStorage storage.AuthSessionStorage,
 ) module.AuthModule {
 	return &authModule{
 		userStorage:        uStorage,
 		storeStorage:       sStorage,
+		deliveryStorage:    dStorage,
 		authSessionStorage: authSessionStorage,
 		tele:               tele,
 	}
@@ -154,6 +158,7 @@ func (m *authModule) authenticateTelegramUser(ctx context.Context, tgUser *dto.T
 	}
 
 	role := "customer"
+	var deliveryAgentID int64
 	if chatID != 0 {
 		isAdmin, _ := m.tele.IsChatAdmin(chatID, tgUser.ID)
 		if isAdmin {
@@ -163,6 +168,17 @@ func (m *authModule) authenticateTelegramUser(ctx context.Context, tgUser *dto.T
 		stores, err := m.storeStorage.GetStoresBySellerID(ctx, user.ID)
 		if err == nil && len(stores) > 0 {
 			role = "admin"
+		}
+	}
+
+	if role != "admin" {
+		agent, err := m.deliveryStorage.GetAgentByUserID(ctx, user.ID)
+		if err != nil {
+			agent, err = m.deliveryStorage.GetAgentByTelegramUserID(ctx, tgUser.ID)
+		}
+		if err == nil && agent != nil && agent.Status == constant.DeliveryAgentStatusActive {
+			role = constant.RoleDelivery
+			deliveryAgentID = agent.ID
 		}
 	}
 
@@ -184,7 +200,7 @@ func (m *authModule) authenticateTelegramUser(ctx context.Context, tgUser *dto.T
 		}
 	}
 
-	token, err := m.generateJWT(user.ID, role, storeID)
+	token, err := m.generateJWT(user.ID, role, storeID, deliveryAgentID)
 	if err != nil {
 		logger.Error("failed to generate JWT", zap.Error(err), zap.Int64("user_id", user.ID))
 		return nil, err
@@ -192,14 +208,17 @@ func (m *authModule) authenticateTelegramUser(ctx context.Context, tgUser *dto.T
 
 	logger.Info("user authenticated successfully", zap.Int64("user_id", user.ID), zap.String("role", role), zap.Int64("store_id", storeID))
 
+	isDelivery := role == constant.RoleDelivery
 	return &dto.AuthResponse{
-		Token:          token,
-		UserID:         user.ID,
-		TelegramUserID: tgUser.ID,
-		Username:       user.Username,
-		Role:           role,
-		HasStore:       hasStore,
-		StoreID:        storeID,
+		Token:           token,
+		UserID:          user.ID,
+		TelegramUserID:  tgUser.ID,
+		Username:        user.Username,
+		Role:            role,
+		HasStore:        hasStore,
+		StoreID:         storeID,
+		DeliveryAgentID: deliveryAgentID,
+		IsDelivery:      isDelivery,
 	}, nil
 }
 
@@ -225,12 +244,15 @@ func generateSessionID() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-func (m *authModule) generateJWT(userID int64, role string, storeID int64) (string, error) {
+func (m *authModule) generateJWT(userID int64, role string, storeID, deliveryAgentID int64) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id":  userID,
 		"role":     role,
 		"store_id": storeID,
 		"exp":      time.Now().Add(time.Hour * 24 * 7).Unix(),
+	}
+	if deliveryAgentID > 0 {
+		claims["delivery_agent_id"] = deliveryAgentID
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

@@ -312,3 +312,96 @@ func (tg *telegram) merchantOrderURL(orderID int64) string {
 	}
 	return fmt.Sprintf("https://t.me/%s?startapp=merchant_order_%d", username, orderID)
 }
+
+func (tg *telegram) deliveryOrderURL(orderID int64) string {
+	username := viper.GetString("tg.bot_username")
+	if username == "" {
+		username = "gabaaBot"
+	}
+	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
+		username = tg.bot.Me.Username
+	}
+	return fmt.Sprintf("https://t.me/%s?startapp=delivery_order_%d", username, orderID)
+}
+
+func (tg *telegram) DeliveryAppURL() string {
+	username := viper.GetString("tg.bot_username")
+	if username == "" {
+		username = "gabaaBot"
+	}
+	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
+		username = tg.bot.Me.Username
+	}
+	return fmt.Sprintf("https://t.me/%s?startapp=delivery", username)
+}
+
+func (tg *telegram) SendDeliveryDispatchNotification(telegramUserID int64, order dto.Order, address *dto.Address, storeName, pickupLocation string) error {
+	itemCount := 0
+	var itemLines strings.Builder
+	for _, item := range order.OrderItems {
+		itemCount += item.Quantity
+		name := fmt.Sprintf("Product #%d", item.ProductID)
+		if item.Product != nil && item.Product.Name != "" {
+			name = item.Product.Name
+		}
+		itemLines.WriteString(fmt.Sprintf("• %d× %s\n", item.Quantity, name))
+	}
+
+	deliveryLine := "—"
+	phoneLine := ""
+	if address != nil {
+		parts := []string{}
+		if address.RecipientName != "" {
+			parts = append(parts, address.RecipientName)
+		}
+		if address.Street != "" {
+			parts = append(parts, address.Street)
+		}
+		if address.City != "" {
+			parts = append(parts, address.City)
+		}
+		if address.Region != "" {
+			parts = append(parts, address.Region)
+		}
+		if len(parts) > 0 {
+			deliveryLine = strings.Join(parts, ", ")
+		}
+		if address.Phone != "" {
+			phoneLine = address.Phone
+		}
+	}
+
+	pickup := pickupLocation
+	if pickup == "" {
+		pickup = storeName
+	}
+
+	caption := fmt.Sprintf(
+		"<b>📦 New Delivery #%d</b>\n\n"+
+			"<b>Pickup:</b> %s\n"+
+			"<b>Store:</b> %s\n"+
+			"<b>Deliver to:</b> %s\n"+
+			"<b>Total:</b> %.2f ETB\n"+
+			"<b>Items:</b> %d\n\n"+
+			"%s",
+		order.ID,
+		pickup,
+		storeName,
+		deliveryLine,
+		order.TotalPrice,
+		itemCount,
+		strings.TrimSpace(itemLines.String()),
+	)
+	if phoneLine != "" {
+		caption += fmt.Sprintf("\n<b>Phone:</b> %s", phoneLine)
+	}
+
+	orderURL := tg.deliveryOrderURL(order.ID)
+	selector := &telebot.ReplyMarkup{}
+	btn := selector.WebApp("🚚 View Delivery", &telebot.WebApp{URL: orderURL})
+	selector.Inline(selector.Row(btn))
+
+	recipient := &telebot.User{ID: telegramUserID}
+	_, err := tg.bot.Send(recipient, caption, telebot.ModeHTML, selector)
+	return err
+}

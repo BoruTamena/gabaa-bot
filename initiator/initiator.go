@@ -49,9 +49,14 @@ func SeedData(p Persistence) {
 			Name:           "Gabaa Sample Store",
 			Category:       "Electronics",
 			Description:    "A sample store for testing product listings.",
+			Location:       "Bole Road, Addis Ababa, Bole",
 		}
 		p.StoreStorage.CreateStore(ctx, store)
+		store, _ = p.StoreStorage.GetStoreByChatID(ctx, sellerID)
 	}
+
+	// 5. Seed delivery agents, routes, and locations
+	seedDeliveryData(ctx, p, store, user)
 
 	// 4. Seed Products (if store has no products)
 	count, _ := p.ProductStorage.GetProductsTotal(ctx, store.ID)
@@ -131,6 +136,7 @@ func Init() {
 		handlerLayer.StoryHandler,
 		handlerLayer.FavoriteHandler,
 		handlerLayer.PreferenceHandler,
+		handlerLayer.DeliveryHandler,
 	)
 
 	port := viper.GetString("server.port")

@@ -18,16 +18,17 @@ import (
 )
 
 type orderModule struct {
-	orderStorage   storage.OrderStorage
-	productStorage storage.ProductStorage
-	cartStorage    storage.CartStorage
-	walletStorage  storage.WalletStorage
-	escrowStorage  storage.EscrowStorage
-	addressStorage storage.AddressStorage
-	storeStorage   storage.StoreStorage
-	userStorage    storage.UserStorage
-	tele           platform.Telegram
-	paymentModule  module.PaymentModule
+	orderStorage    storage.OrderStorage
+	productStorage  storage.ProductStorage
+	cartStorage     storage.CartStorage
+	walletStorage   storage.WalletStorage
+	escrowStorage   storage.EscrowStorage
+	addressStorage  storage.AddressStorage
+	storeStorage    storage.StoreStorage
+	userStorage     storage.UserStorage
+	tele            platform.Telegram
+	paymentModule   module.PaymentModule
+	deliveryModule  module.DeliveryModule
 }
 
 func NewOrderModule(
@@ -56,6 +57,10 @@ func NewOrderModule(
 
 func (m *orderModule) SetPaymentModule(pm module.PaymentModule) {
 	m.paymentModule = pm
+}
+
+func (m *orderModule) SetDeliveryModule(dm module.DeliveryModule) {
+	m.deliveryModule = dm
 }
 
 func (m *orderModule) getCart(ctx context.Context, userID int64) (map[int64]int, error) {
@@ -365,8 +370,8 @@ func (m *orderModule) GetMyStoreOrder(ctx context.Context, storeID int64, orderI
 	return m.mapOrderToDTO(order), nil
 }
 
-func (m *orderModule) UpdateMyStoreOrderStatus(ctx context.Context, storeID int64, orderID int64, status string) error {
-	// Merchants can only set these statuses
+func (m *orderModule) UpdateMyStoreOrderStatus(ctx context.Context, storeID int64, orderID int64, req dto.ShipOrderRequest) error {
+	status := req.Status
 	allowedStatuses := map[string]bool{"shipped": true, "delivered": true}
 	if !allowedStatuses[status] {
 		return fmt.Errorf("invalid status: must be 'shipped' or 'delivered'")
@@ -377,23 +382,31 @@ func (m *orderModule) UpdateMyStoreOrderStatus(ctx context.Context, storeID int6
 		return err
 	}
 
-	// Ownership check
 	if order.StoreID != storeID {
 		return fmt.Errorf("order does not belong to your store")
 	}
 
-	// Release escrow and move pending -> available on delivery
-	if status == "delivered" {
-		escrow, err := m.escrowStorage.GetEscrowByOrderID(ctx, orderID)
-		if err == nil && escrow.Status == constant.EscrowStatusHeld {
-			if err := m.escrowStorage.ReleaseEscrow(ctx, orderID); err != nil {
-				logger.Error("failed to release escrow on delivery", zap.Error(err), zap.Int64("order_id", orderID))
-				return err
-			}
-			if err := m.walletStorage.ReleaseEscrowFunds(ctx, storeID, escrow.Amount); err != nil {
-				logger.Error("failed to release escrow funds on delivery", zap.Error(err), zap.Int64("store_id", storeID))
-				return err
-			}
+	if status == "shipped" {
+		if m.deliveryModule == nil {
+			return fmt.Errorf("delivery module not configured")
+		}
+		if err := m.deliveryModule.DispatchOnShip(ctx, storeID, orderID, req.DeliveryAgentID, req.DeliveryRouteID); err != nil {
+			return err
+		}
+		logger.Info("merchant shipped order with dispatch", zap.Int64("order_id", orderID))
+		return nil
+	}
+
+	// delivered
+	escrow, err := m.escrowStorage.GetEscrowByOrderID(ctx, orderID)
+	if err == nil && escrow.Status == constant.EscrowStatusHeld {
+		if err := m.escrowStorage.ReleaseEscrow(ctx, orderID); err != nil {
+			logger.Error("failed to release escrow on delivery", zap.Error(err), zap.Int64("order_id", orderID))
+			return err
+		}
+		if err := m.walletStorage.ReleaseEscrowFunds(ctx, storeID, escrow.Amount); err != nil {
+			logger.Error("failed to release escrow funds on delivery", zap.Error(err), zap.Int64("store_id", storeID))
+			return err
 		}
 	}
 

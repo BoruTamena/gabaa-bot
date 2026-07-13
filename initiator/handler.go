@@ -4,6 +4,7 @@ import (
 	"github.com/BoruTamena/gabaa-bot/internal/handler/address"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/cart"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/delivery"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/middleware"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/order"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/payment"
@@ -30,6 +31,7 @@ type Handler struct {
 	StoryHandler     *product.StoryHandler
 	FavoriteHandler  *product.FavoriteHandler
 	PreferenceHandler *preference.PreferenceHandler
+	DeliveryHandler   *delivery.DeliveryHandler
 }
 
 func InitHandler(module Module, platform PlatFormLayer) Handler {
@@ -49,6 +51,7 @@ func InitHandler(module Module, platform PlatFormLayer) Handler {
 		StoryHandler:     product.NewStoryHandler(module.StoryModule),
 		FavoriteHandler:  product.NewFavoriteHandler(module.FavoriteModule),
 		PreferenceHandler: preference.NewPreferenceHandler(module.RecommendationModule),
+		DeliveryHandler:   delivery.NewDeliveryHandler(module.DeliveryModule, module.OrderModule),
 	}
 }
 

@@ -1,5 +1,7 @@
 package db
 
+import "time"
+
 type Order struct {
 	BaseModel
 	UserID            int64      `gorm:"column:user_id;not null" json:"user_id"`
@@ -7,6 +9,9 @@ type Order struct {
 	ShippingAddressID *int64     `gorm:"column:shipping_address_id" json:"shipping_address_id"`
 	Status            string     `gorm:"column:status;not null;default:'pending'" json:"status"`
 	TotalPrice        float64    `gorm:"column:total_price;type:numeric;not null" json:"total_price"`
+	DeliveryAgentID   *int64     `gorm:"column:delivery_agent_id" json:"delivery_agent_id"`
+	DeliveryRouteID   *int64     `gorm:"column:delivery_route_id" json:"delivery_route_id"`
+	DispatchedAt      *time.Time `gorm:"column:dispatched_at" json:"dispatched_at"`
 	User              User       `gorm:"foreignKey:UserID;references:ID" json:"user"`
 	Store             Store      `gorm:"foreignKey:StoreID;references:ID" json:"store"`
 	ShippingAddress   *Address   `gorm:"foreignKey:ShippingAddressID;references:ID" json:"shipping_address"`

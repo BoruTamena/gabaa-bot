@@ -80,7 +80,28 @@ func (m *AuthMiddleware) JWTAuth() gin.HandlerFunc {
 		if storeID, ok := claims["store_id"].(float64); ok {
 			c.Set("store_id", int64(storeID))
 		}
-		
+		if deliveryAgentID, ok := claims["delivery_agent_id"].(float64); ok {
+			c.Set("delivery_agent_id", int64(deliveryAgentID))
+		}
+
+		c.Next()
+	}
+}
+
+func (m *AuthMiddleware) DeliveryAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetString("role") != constant.RoleDelivery {
+			appErr := errorx.New(errorx.ErrForbidden, "Delivery access required", http.StatusForbidden)
+			c.JSON(appErr.Status, appErr)
+			c.Abort()
+			return
+		}
+		if c.GetInt64("delivery_agent_id") == 0 {
+			appErr := errorx.New(errorx.ErrForbidden, "Delivery agent context missing", http.StatusForbidden)
+			c.JSON(appErr.Status, appErr)
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }
