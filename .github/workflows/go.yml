@@ -6,8 +6,8 @@ name: Go
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  # pull_request:
+  #   branches: [ "main" ]
 
 jobs:
 
@@ -26,3 +26,11 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: build and pushing image to docker hub
+      uses: mr-smithers-excellent/docker-build-push@v7
+      with:
+        image: borutamena/gabaa
+        registry: docker.io
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
