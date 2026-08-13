@@ -201,6 +201,42 @@ func (h *OrderHandler) GetUserOrders(c *gin.Context) {
 	response.Success(c, http.StatusOK, resp)
 }
 
+// GetStoreRecentSales returns recent sales for a specific store by name
+// @Summary List a store's recent sales
+// @Description Fetch recent orders (sales) for a specific store by name
+// @Tags Order
+// @Produce json
+// @Param storeName path string true "Store Name"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Param status query string false "Filter by order status"
+// @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /stores/{storeName}/sales [get]
+func (h *OrderHandler) GetStoreRecentSales(c *gin.Context) {
+	storeName := c.Param("storeName")
+	if storeName == "" {
+		response.Error(c, fmt.Errorf("store name is required"))
+		return
+	}
+
+	var filter dto.OrderFilterParams
+	if err := c.ShouldBindQuery(&filter); err != nil {
+		response.Error(c, fmt.Errorf("invalid query params"))
+		return
+	}
+
+	resp, err := h.orderModule.GetStoreRecentSales(c.Request.Context(), storeName, filter)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
 // MyStoreListOrders lists all orders for the authenticated merchant's store
 // @Summary List my store orders
 // @Description Retrieve paginated orders scoped to the authenticated merchant's store with optional filtering

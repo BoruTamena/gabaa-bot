@@ -19,13 +19,15 @@ import (
 type storyModule struct {
 	storyStorage   storage.StoryStorage
 	productStorage storage.ProductStorage
+	storeStorage   storage.StoreStorage
 }
 
 // NewStoryModule creates a new StoryModule.
-func NewStoryModule(ss storage.StoryStorage, ps storage.ProductStorage) module.StoryModule {
+func NewStoryModule(ss storage.StoryStorage, ps storage.ProductStorage, sts storage.StoreStorage) module.StoryModule {
 	return &storyModule{
 		storyStorage:   ss,
 		productStorage: ps,
+		storeStorage:   sts,
 	}
 }
 
@@ -265,6 +267,33 @@ func (m *storyModule) runStoryExpiry(ctx context.Context) {
 // ListActiveStories returns publicly visible, currently-active stories with pagination.
 func (m *storyModule) ListActiveStories(ctx context.Context, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
 	stories, total, err := m.storyStorage.ListActiveStories(ctx, params)
+	if err != nil {
+		return nil, err
+	}
+
+	dtoStories := make([]dto.ProductStory, len(stories))
+	for i, s := range stories {
+		dtoStories[i] = *m.mapToDTO(&s, nil)
+	}
+
+	return &dto.PaginatedResponse{
+		Total: total,
+		Data:  dtoStories,
+	}, nil
+}
+
+// GetStoreStories returns paginated stories for a specific store by name.
+func (m *storyModule) GetStoreStories(ctx context.Context, storeName string, filter dto.ProductStoryFilterParams) (*dto.PaginatedResponse, error) {
+	store, err := m.storeStorage.GetStoreByName(ctx, storeName)
+	if err != nil {
+		return nil, errorx.New(errorx.ErrNotFound, "Store not found", http.StatusNotFound)
+	}
+
+	filter.StoreID = store.ID
+	filter.IsActive = new(bool)
+	*filter.IsActive = true
+
+	stories, total, err := m.storyStorage.ListStoriesByStore(ctx, filter)
 	if err != nil {
 		return nil, err
 	}

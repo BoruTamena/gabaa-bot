@@ -356,6 +356,47 @@ func (m *orderModule) GetMyStoreOrders(ctx context.Context, filter dto.OrderFilt
 	return &dto.PaginatedResponse{Total: total, Data: dtoOrders}, nil
 }
 
+func (m *orderModule) GetStoreRecentSales(ctx context.Context, storeName string, filter dto.OrderFilterParams) (*dto.PaginatedResponse, error) {
+	store, err := m.storeStorage.GetStoreByName(ctx, storeName)
+	if err != nil {
+		return nil, fmt.Errorf("store not found")
+	}
+
+	filter.StoreID = store.ID
+	// Force only successful/delivered orders for public display if we wanted, but the requirement just says "recent sales".
+	
+	orders, total, err := m.orderStorage.GetOrdersByFilter(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var sales []map[string]interface{}
+	for _, o := range orders {
+		for _, item := range o.Items {
+			productName := "Unknown Product"
+			if item.Product.ID != 0 {
+				productName = item.Product.Name
+			}
+			buyerName := "Unknown"
+			if o.User.ID != 0 {
+				buyerName = o.User.Username
+			}
+
+			sales = append(sales, map[string]interface{}{
+				"id":          fmt.Sprintf("ORD-%d", o.ID),
+				"productName": productName,
+				"amount":      item.Price * float64(item.Quantity),
+				"currency":    "ETB", // From wallet/standard
+				"status":      o.Status,
+				"buyerName":   buyerName,
+				"purchasedAt": o.CreatedAt,
+			})
+		}
+	}
+
+	return &dto.PaginatedResponse{Total: total, Data: sales}, nil
+}
+
 func (m *orderModule) GetMyStoreOrder(ctx context.Context, storeID int64, orderID int64) (*dto.Order, error) {
 	order, err := m.orderStorage.GetOrderByID(ctx, orderID)
 	if err != nil {

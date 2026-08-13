@@ -17,7 +17,7 @@ func InitViper(currentDir string) error {
 	// so the app still works when env vars are injected by Docker / k8s / CI.
 	envFile := filepath.Join(currentDir, ".env")
 	if err := godotenv.Load(envFile); err != nil {
-		log.Printf(".env file not found at %s, relying on OS environment variables: %v", envFile, err)
+		log.Printf("failed to load %s (%v); relying on OS environment variables", envFile, err)
 	}
 
 	// Map dot-separated viper keys (e.g. "db.url") → underscore env vars (e.g. "DB_URL")

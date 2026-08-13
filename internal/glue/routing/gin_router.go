@@ -53,6 +53,12 @@ func NewGinRouter(
 	RegisterPublicCategoryRoutes(r, categoryHandler)
 	RegisterPublicStoryRoutes(r, storyHandler)
 
+	// New public store endpoints
+	r.GET("/api/v1/stores/:storeName", storeHandler.GetStoreDetailsByName)
+	r.GET("/api/v1/stores/:storeName/stories", storyHandler.PublicGetStoreStories)
+	r.GET("/api/v1/stores/:storeName/products", productHandler.GetStoreProducts)
+	r.GET("/api/v1/stores/:storeName/sales", orderHandler.GetStoreRecentSales)
+
 	// Image Upload (Public as requested)
 	uploadGroup := r.Group("/")
 	RegisterUploadRoutes(uploadGroup, uploadHandler)

@@ -120,12 +120,15 @@ func (r UpdateProductStoryRequest) Validate() error {
 	)
 }
 
-// ProductStoryFilterParams is used to list stories (merchant-scoped).
+// ProductStoryFilterParams is used to list stories (merchant-scoped or public).
 type ProductStoryFilterParams struct {
 	PaginationParams
 	StoreID   int64  `form:"-"`          // injected server-side
 	ProductID *int64 `form:"product_id"` // optional client filter
 	IsActive  *bool  `form:"is_active"`
+	Type      string `form:"type"`       // video or image
+	Search    string `form:"search"`     // search by caption/title
+	SortBy    string `form:"sort_by"`    // newest, popular
 }
 
 // ── Favorite DTOs ──────────────────────────────────────────────────────────

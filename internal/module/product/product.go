@@ -172,6 +172,18 @@ func (m *productModule) ListAllProducts(ctx context.Context, filter dto.ProductF
 	}, nil
 }
 
+func (m *productModule) GetStoreProducts(ctx context.Context, storeName string, filter dto.ProductFilterParams) (*dto.PaginatedResponse, error) {
+	store, err := m.storeStorage.GetStoreByName(ctx, storeName)
+	if err != nil {
+		return nil, fmt.Errorf("store not found")
+	}
+
+	filter.StoreID = store.ID
+	// Force only published products for public view
+	filter.Status = constant.ProductStatusPublished
+	return m.ListAllProducts(ctx, filter)
+}
+
 func (m *productModule) UpdateProduct(ctx context.Context, id int64, req dto.UpdateProductRequest) (*dto.Product, error) {
 	if err := req.Validate(); err != nil {
 		return nil, err
