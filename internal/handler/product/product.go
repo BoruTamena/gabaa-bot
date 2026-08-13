@@ -243,6 +243,51 @@ func (h *ProductHandler) PublicGetProductByID(c *gin.Context) {
 	response.Success(c, http.StatusOK, product)
 }
 
+// GetStoreProducts returns all products for a specific store
+// @Summary List a store's products
+// @Description Fetch all available products for a specific store by name
+// @Tags Product
+// @Produce json
+// @Param storeName path string true "Store Name"
+// @Param category query string false "Category"
+// @Param query query string false "Search query"
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /stores/{storeName}/products [get]
+func (h *ProductHandler) GetStoreProducts(c *gin.Context) {
+	storeName := c.Param("storeName")
+	if storeName == "" {
+		c.Error(errorx.New(errorx.ErrBadRequest, "store name is required", http.StatusBadRequest))
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
+	category := c.Query("category")
+	query := c.Query("query")
+
+	params := dto.ProductFilterParams{
+		PaginationParams: dto.PaginationParams{
+			Page:     page,
+			PageSize: pageSize,
+		},
+		Category: category,
+		Query:    query,
+	}
+
+	resp, err := h.productModule.GetStoreProducts(c.Request.Context(), storeName, params)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
 // PublicListProducts returns all products with filtering and pagination
 // @Summary List all products (public)
 // @Description Fetch all available products across stores with filtering/pagination

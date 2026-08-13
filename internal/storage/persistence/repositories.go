@@ -87,6 +87,15 @@ func (p *storePersistence) GetStoreByID(ctx context.Context, id int64) (*db.Stor
 	return &store, err
 }
 
+func (p *storePersistence) GetStoreByName(ctx context.Context, name string) (*db.Store, error) {
+	var store db.Store
+	err := p.db.WithContext(ctx).Where("name ILIKE ?", name).First(&store).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		p.logger.Error("Failed to get store by name", "error", err, "name", name)
+	}
+	return &store, err
+}
+
 func (p *storePersistence) GetStoreByChatID(ctx context.Context, chatID int64) (*db.Store, error) {
 	var store db.Store
 	err := p.db.WithContext(ctx).Where("telegram_chat_id = ?", chatID).First(&store).Error
@@ -699,15 +708,29 @@ func (p *storyPersistence) ListStoriesByStore(ctx context.Context, filter dto.Pr
 		query = query.Where("is_active = ?", *filter.IsActive)
 	}
 
+	if filter.Type != "" {
+		query = query.Where("media_type = ?", filter.Type)
+	}
+
+	if filter.Search != "" {
+		searchTerm := "%" + filter.Search + "%"
+		query = query.Where("caption ILIKE ?", searchTerm)
+	}
+
 	if err := query.Count(&count).Error; err != nil {
 		return nil, 0, err
+	}
+
+	if filter.SortBy == "popular" {
+		query = query.Order("views DESC, created_at DESC")
+	} else {
+		query = query.Order("created_at DESC")
 	}
 
 	err := query.
 		Preload("Product").
 		Limit(filter.GetLimit()).
 		Offset(filter.GetOffset()).
-		Order("created_at DESC").
 		Find(&stories).Error
 	if err != nil {
 		p.logger.Error("Failed to list stories by store", "error", err, "storeID", filter.StoreID)

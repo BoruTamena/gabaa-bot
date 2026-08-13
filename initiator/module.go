@@ -117,7 +117,7 @@ func InitModule(persistence Persistence, platform PlatFormLayer) Module {
 		),
 		UploadModule:         upload.NewUploadModule(platform.uploader),
 		AddressModule:        address.NewAddressModule(persistence.AddressStorage),
-		StoryModule:          product.NewStoryModule(persistence.StoryStorage, persistence.ProductStorage),
+		StoryModule:          product.NewStoryModule(persistence.StoryStorage, persistence.ProductStorage, persistence.StoreStorage),
 		FavoriteModule:       product.NewFavoriteModule(persistence.FavoriteStorage),
 		RecommendationModule: recommendationModule,
 		AnalyticsModule:      analytics.NewAnalyticsModule(persistence.AnalyticsStorage),

@@ -249,6 +249,8 @@ func buildCanonicalString(payload map[string]string) string {
 }
 
 func parsePublicKey(pemKey string) (*rsa.PublicKey, error) {
+	// Support .env values stored as a single line with literal \n escapes.
+	pemKey = strings.ReplaceAll(pemKey, `\n`, "\n")
 	block, _ := pem.Decode([]byte(pemKey))
 	if block == nil {
 		return nil, fmt.Errorf("failed to parse PEM public key")

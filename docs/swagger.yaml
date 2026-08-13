@@ -1,4 +1,42 @@
 definitions:
+  constant.GatewayPaymentStatus:
+    enum:
+    - PENDING
+    - SUCCESS
+    - FAILED
+    - CANCELLED
+    type: string
+    x-enum-varnames:
+    - GatewayPaymentStatusPending
+    - GatewayPaymentStatusSuccess
+    - GatewayPaymentStatusFailed
+    - GatewayPaymentStatusCancelled
+  constant.PaymentStatus:
+    enum:
+    - initiated
+    - pending
+    - success
+    - failed
+    type: string
+    x-enum-varnames:
+    - PaymentStatusInitiated
+    - PaymentStatusPending
+    - PaymentStatusSuccess
+    - PaymentStatusFailed
+  constant.WithdrawalStatus:
+    enum:
+    - initiated
+    - pending
+    - success
+    - failed
+    - cancelled
+    type: string
+    x-enum-varnames:
+    - WithdrawalStatusInitiated
+    - WithdrawalStatusPending
+    - WithdrawalStatusSuccess
+    - WithdrawalStatusFailed
+    - WithdrawalStatusCancelled
   dto.Address:
     properties:
       city:
@@ -26,7 +64,11 @@ definitions:
     type: object
   dto.AuthResponse:
     properties:
+      deliveryAgentId:
+        type: integer
       hasStore:
+        type: boolean
+      isDelivery:
         type: boolean
       role:
         type: string
@@ -70,11 +112,28 @@ definitions:
     properties:
       address_id:
         type: integer
+      medium:
+        enum:
+        - MPESA
+        - TELEBIRR
+        - CBE
+        - ETHSWITCH
+        type: string
+      phone_number:
+        type: string
       store_id:
         type: integer
     required:
     - address_id
+    - medium
     - store_id
+    type: object
+  dto.CheckoutResponse:
+    properties:
+      order:
+        $ref: '#/definitions/dto.Order'
+      payment:
+        $ref: '#/definitions/dto.Payment'
     type: object
   dto.CreateAddressRequest:
     properties:
@@ -165,6 +224,22 @@ definitions:
       user_id:
         type: integer
     type: object
+  dto.OrderAnalytics:
+    properties:
+      average_order_value:
+        type: number
+      cancellation_rate_pct:
+        type: number
+      orders_by_status:
+        items:
+          $ref: '#/definitions/dto.OrdersByStatus'
+        type: array
+      recent_orders:
+        description: last 7 days
+        type: integer
+      total_orders:
+        type: integer
+    type: object
   dto.OrderCustomer:
     properties:
       id:
@@ -200,11 +275,57 @@ definitions:
       name:
         type: string
     type: object
+  dto.OrdersByStatus:
+    properties:
+      count:
+        type: integer
+      percentage:
+        type: number
+      status:
+        type: string
+    type: object
   dto.PaginatedResponse:
     properties:
       data: {}
       total:
         type: integer
+    type: object
+  dto.Payment:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      currency:
+        type: string
+      gateway_status:
+        $ref: '#/definitions/constant.GatewayPaymentStatus'
+      id:
+        type: integer
+      medium:
+        type: string
+      method:
+        type: string
+      order_id:
+        type: integer
+      phone_number:
+        type: string
+      reference:
+        type: string
+      status:
+        $ref: '#/definitions/constant.PaymentStatus'
+      transaction_id:
+        type: string
+    type: object
+  dto.PeriodRevenue:
+    properties:
+      orders:
+        type: integer
+      period:
+        description: e.g. "2026-07-08"
+        type: string
+      revenue:
+        type: number
     type: object
   dto.Product:
     properties:
@@ -234,6 +355,33 @@ definitions:
         type: integer
       store_id:
         type: integer
+    type: object
+  dto.ProductAnalytics:
+    properties:
+      low_stock_count:
+        description: stock <= 5
+        type: integer
+      out_of_stock_count:
+        description: stock == 0
+        type: integer
+      products_by_status:
+        items:
+          $ref: '#/definitions/dto.ProductByStatus'
+        type: array
+      top_viewed_products:
+        items:
+          $ref: '#/definitions/dto.TopViewedProduct'
+        type: array
+      total_products:
+        type: integer
+    type: object
+  dto.ProductByStatus:
+    properties:
+      count:
+        type: integer
+      status:
+        description: draft, published, archived
+        type: string
     type: object
   dto.ProductStory:
     properties:
@@ -268,6 +416,25 @@ definitions:
       views:
         type: integer
     type: object
+  dto.SalesAnalytics:
+    properties:
+      average_order_value:
+        type: number
+      revenue_by_period:
+        items:
+          $ref: '#/definitions/dto.PeriodRevenue'
+        type: array
+      revenue_change_pct:
+        type: number
+      top_selling_products:
+        items:
+          $ref: '#/definitions/dto.TopProduct'
+        type: array
+      total_orders:
+        type: integer
+      total_revenue:
+        type: number
+    type: object
   dto.Store:
     properties:
       category:
@@ -296,6 +463,60 @@ definitions:
         type: integer
       telegram_chat_title:
         type: string
+      verificationStatus:
+        type: string
+    type: object
+  dto.StoryAnalytics:
+    properties:
+      active_stories:
+        type: integer
+      expired_stories:
+        type: integer
+      top_stories:
+        items:
+          $ref: '#/definitions/dto.TopStory'
+        type: array
+      total_stories:
+        type: integer
+      total_views:
+        type: integer
+    type: object
+  dto.TopProduct:
+    properties:
+      product_id:
+        type: integer
+      product_name:
+        type: string
+      revenue:
+        type: number
+      units_sold:
+        type: integer
+    type: object
+  dto.TopStory:
+    properties:
+      caption:
+        type: string
+      ends_at:
+        type: string
+      product_id:
+        type: integer
+      starts_at:
+        type: string
+      story_id:
+        type: integer
+      views:
+        type: integer
+    type: object
+  dto.TopViewedProduct:
+    properties:
+      category:
+        type: string
+      product_id:
+        type: integer
+      product_name:
+        type: string
+      views:
+        type: integer
     type: object
   dto.UpdateAddressRequest:
     properties:
@@ -370,6 +591,74 @@ definitions:
       enabled:
         type: boolean
     type: object
+  dto.Wallet:
+    properties:
+      available_balance:
+        type: number
+      currency:
+        type: string
+      id:
+        type: integer
+      locked_balance:
+        type: number
+      pending_balance:
+        type: number
+      store_id:
+        type: integer
+      total_earned:
+        type: number
+      total_withdrawn:
+        type: number
+    type: object
+  dto.Withdrawal:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      currency:
+        type: string
+      gateway_status:
+        $ref: '#/definitions/constant.GatewayPaymentStatus'
+      id:
+        type: integer
+      medium:
+        type: string
+      phone_number:
+        type: string
+      reference:
+        type: string
+      status:
+        $ref: '#/definitions/constant.WithdrawalStatus'
+      store_id:
+        type: integer
+      transaction_id:
+        type: string
+    type: object
+  dto.WithdrawalRequest:
+    properties:
+      amount:
+        type: number
+      currency:
+        enum:
+        - ETB
+        - USD
+        type: string
+      medium:
+        enum:
+        - MPESA
+        - TELEBIRR
+        - CBE
+        - ETHSWITCH
+        type: string
+      phone_number:
+        type: string
+    required:
+    - amount
+    - currency
+    - medium
+    - phone_number
+    type: object
   errorx.AppError:
     properties:
       details:
@@ -408,6 +697,29 @@ definitions:
 info:
   contact: {}
 paths:
+  /api/v1/webhook/lakipay:
+    post:
+      consumes:
+      - application/json
+      description: Receives and processes LakiPay deposit and withdrawal webhooks
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: LakiPay webhook
+      tags:
+      - Payment
   /api/v1/webhook/telegram:
     post:
       consumes:
@@ -767,8 +1079,8 @@ paths:
       - Merchant Order
   /my-store/orders/:order_id/status:
     put:
-      description: Merchant updates an order status to 'shipped' or 'delivered'. Wallet
-        is credited on 'delivered'.
+      description: Merchant updates an order status to 'shipped' or 'delivered'. Escrow
+        is released on 'delivered'.
       parameters:
       - description: Order ID
         in: path
@@ -1338,12 +1650,213 @@ paths:
       summary: Update a story ad
       tags:
       - Story
+  /my-store/transactions:
+    get:
+      description: Retrieve paginated payment transactions (customer checkouts) for
+        the merchant store
+      parameters:
+      - description: Filter by payment status (initiated, pending, success, failed)
+        in: query
+        name: status
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List store transactions
+      tags:
+      - Payment
+  /my-store/wallet:
+    get:
+      description: Retrieve wallet balances for the merchant store from JWT
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Wallet'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get my store wallet
+      tags:
+      - Wallet
+  /my-store/wallet/withdraw:
+    post:
+      consumes:
+      - application/json
+      description: Merchant withdraws available balance via LakiPay
+      parameters:
+      - description: Withdrawal details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.WithdrawalRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Withdrawal'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Request withdrawal
+      tags:
+      - Wallet
+  /my-store/wallet/withdrawals:
+    get:
+      description: Retrieve withdrawal history for the authenticated merchant store
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List withdrawals
+      tags:
+      - Wallet
+  /my-store/wallet/withdrawals/:withdrawal_id:
+    get:
+      description: Retrieve a single withdrawal by ID for the authenticated merchant
+        store (use for polling)
+      parameters:
+      - description: Withdrawal ID
+        in: path
+        name: withdrawal_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Withdrawal'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get withdrawal status
+      tags:
+      - Wallet
   /order/create:
     post:
       consumes:
       - application/json
-      description: Creates a new order based on the user's current cart items for
-        a specific store
+      description: Creates a new order based on the user's current cart items and
+        initiates payment
       parameters:
       - description: Checkout Data
         in: body
@@ -1361,7 +1874,7 @@ paths:
             - $ref: '#/definitions/response.BaseResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/dto.Order'
+                  $ref: '#/definitions/dto.CheckoutResponse'
               type: object
         "400":
           description: Bad Request
@@ -1444,65 +1957,6 @@ paths:
       summary: Get order
       tags:
       - Order
-  /payment/verify:
-    post:
-      consumes:
-      - application/json
-      description: Verify manual payment order and credit wallet
-      parameters:
-      - description: Payment Details
-        in: body
-        name: request
-        required: true
-        schema:
-          additionalProperties:
-            format: int64
-            type: integer
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                data:
-                  additionalProperties:
-                    type: string
-                  type: object
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                error:
-                  $ref: '#/definitions/errorx.AppError'
-              type: object
-        "401":
-          description: Unauthorized
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                error:
-                  $ref: '#/definitions/errorx.AppError'
-              type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                error:
-                  $ref: '#/definitions/errorx.AppError'
-              type: object
-      summary: Verify payment (manual)
-      tags:
-      - Payment
   /products:
     get:
       description: Fetch all available products across stores with filtering/pagination
@@ -1998,7 +2452,7 @@ paths:
       - Store
   /store/:store_id/wallet:
     get:
-      description: Retrieve the wallet balance for a given store
+      description: Retrieve pending, available, and locked balances for a store
       parameters:
       - description: Store ID
         in: path
@@ -2015,10 +2469,7 @@ paths:
             - $ref: '#/definitions/response.BaseResponse'
             - properties:
                 data:
-                  additionalProperties:
-                    format: float64
-                    type: number
-                  type: object
+                  $ref: '#/definitions/dto.Wallet'
               type: object
         "401":
           description: Unauthorized
@@ -2038,9 +2489,229 @@ paths:
                 error:
                   $ref: '#/definitions/errorx.AppError'
               type: object
-      summary: Get wallet balance
+      summary: Get wallet summary
       tags:
       - Wallet
+  /store/analytics/orders:
+    get:
+      description: Returns order status breakdown, cancellation rates, and recent
+        order volume for the authenticated store.
+      parameters:
+      - description: Start date (RFC3339 format, e.g. 2026-07-01T00:00:00Z)
+        in: query
+        name: from
+        type: string
+      - description: End date (RFC3339 format, e.g. 2026-07-08T23:59:59Z)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.OrderAnalytics'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get order analytics
+      tags:
+      - Store Analytics
+  /store/analytics/products:
+    get:
+      description: Returns product catalog status counts, stock alerts, and top viewed
+        products for the authenticated store.
+      parameters:
+      - description: Start date (RFC3339 format, e.g. 2026-07-01T00:00:00Z)
+        in: query
+        name: from
+        type: string
+      - description: End date (RFC3339 format, e.g. 2026-07-08T23:59:59Z)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.ProductAnalytics'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get product analytics
+      tags:
+      - Store Analytics
+  /store/analytics/sales:
+    get:
+      description: Returns sales metrics, trend data by period, and top selling products
+        for the authenticated store.
+      parameters:
+      - description: Start date (RFC3339 format, e.g. 2026-07-01T00:00:00Z)
+        in: query
+        name: from
+        type: string
+      - description: End date (RFC3339 format, e.g. 2026-07-08T23:59:59Z)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.SalesAnalytics'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get sales analytics
+      tags:
+      - Store Analytics
+  /store/analytics/stories:
+    get:
+      description: Returns stats on active/expired stories and top viewed product
+        stories for the authenticated store.
+      parameters:
+      - description: Start date (RFC3339 format, e.g. 2026-07-01T00:00:00Z)
+        in: query
+        name: from
+        type: string
+      - description: End date (RFC3339 format, e.g. 2026-07-08T23:59:59Z)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoryAnalytics'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get stories analytics
+      tags:
+      - Store Analytics
   /store/dashboard/:chat_id:
     get:
       description: 'Returns dashboardType: ''setup'', ''manage'', or ''storefront'''
@@ -2147,6 +2818,258 @@ paths:
       summary: Create store
       tags:
       - Store
+  /stores/{storeName}:
+    get:
+      description: Returns public store details
+      parameters:
+      - description: Store Name
+        in: path
+        name: storeName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Store'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get store by name
+      tags:
+      - Store
+  /stores/{storeName}/products:
+    get:
+      description: Fetch all available products for a specific store by name
+      parameters:
+      - description: Store Name
+        in: path
+        name: storeName
+        required: true
+        type: string
+      - description: Category
+        in: query
+        name: category
+        type: string
+      - description: Search query
+        in: query
+        name: query
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List a store's products
+      tags:
+      - Product
+  /stores/{storeName}/sales:
+    get:
+      description: Fetch recent orders (sales) for a specific store by name
+      parameters:
+      - description: Store Name
+        in: path
+        name: storeName
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by order status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List a store's recent sales
+      tags:
+      - Order
+  /stores/{storeName}/stories:
+    get:
+      description: Returns paginated active story ads for a specific store by name
+      parameters:
+      - description: Store Name
+        in: path
+        name: storeName
+        required: true
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size limit
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by media type (video, image)
+        in: query
+        name: type
+        type: string
+      - description: Search stories by caption
+        in: query
+        name: search
+        type: string
+      - description: Sort by (newest, popular)
+        in: query
+        name: sort_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List a store's story ads
+      tags:
+      - Story
   /stories:
     get:
       description: Returns all currently active story ads ordered by recency (date-range

@@ -15,6 +15,41 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/v1/webhook/lakipay": {
+            "post": {
+                "description": "Receives and processes LakiPay deposit and withdrawal webhooks",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payment"
+                ],
+                "summary": "LakiPay webhook",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/webhook/telegram": {
             "post": {
                 "description": "Handle incoming updates from Telegram via webhook",
@@ -653,7 +688,7 @@ const docTemplate = `{
         },
         "/my-store/orders/:order_id/status": {
             "put": {
-                "description": "Merchant updates an order status to 'shipped' or 'delivered'. Wallet is credited on 'delivered'.",
+                "description": "Merchant updates an order status to 'shipped' or 'delivered'. Escrow is released on 'delivered'.",
                 "produces": [
                     "application/json"
                 ],
@@ -1704,9 +1739,370 @@ const docTemplate = `{
                 }
             }
         },
+        "/my-store/transactions": {
+            "get": {
+                "description": "Retrieve paginated payment transactions (customer checkouts) for the merchant store",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payment"
+                ],
+                "summary": "List store transactions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by payment status (initiated, pending, success, failed)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/my-store/wallet": {
+            "get": {
+                "description": "Retrieve wallet balances for the merchant store from JWT",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Get my store wallet",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.Wallet"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/my-store/wallet/withdraw": {
+            "post": {
+                "description": "Merchant withdraws available balance via LakiPay",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Request withdrawal",
+                "parameters": [
+                    {
+                        "description": "Withdrawal details",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.WithdrawalRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.Withdrawal"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/my-store/wallet/withdrawals": {
+            "get": {
+                "description": "Retrieve withdrawal history for the authenticated merchant store",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "List withdrawals",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/my-store/wallet/withdrawals/:withdrawal_id": {
+            "get": {
+                "description": "Retrieve a single withdrawal by ID for the authenticated merchant store (use for polling)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Wallet"
+                ],
+                "summary": "Get withdrawal status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Withdrawal ID",
+                        "name": "withdrawal_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.Withdrawal"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/order/create": {
             "post": {
-                "description": "Creates a new order based on the user's current cart items for a specific store",
+                "description": "Creates a new order based on the user's current cart items and initiates payment",
                 "consumes": [
                     "application/json"
                 ],
@@ -1740,7 +2136,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/dto.Order"
+                                            "$ref": "#/definitions/dto.CheckoutResponse"
                                         }
                                     }
                                 }
@@ -1862,113 +2258,6 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "$ref": "#/definitions/errorx.AppError"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "$ref": "#/definitions/errorx.AppError"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/payment/verify": {
-            "post": {
-                "description": "Verify manual payment order and credit wallet",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Payment"
-                ],
-                "summary": "Verify payment (manual)",
-                "parameters": [
-                    {
-                        "description": "Payment Details",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "integer",
-                                "format": "int64"
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "additionalProperties": {
-                                                "type": "string"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/response.BaseResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "error": {
-                                            "$ref": "#/definitions/errorx.AppError"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
                         "schema": {
                             "allOf": [
                                 {
@@ -2909,14 +3198,14 @@ const docTemplate = `{
         },
         "/store/:store_id/wallet": {
             "get": {
-                "description": "Retrieve the wallet balance for a given store",
+                "description": "Retrieve pending, available, and locked balances for a store",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Wallet"
                 ],
-                "summary": "Get wallet balance",
+                "summary": "Get wallet summary",
                 "parameters": [
                     {
                         "type": "integer",
@@ -2938,11 +3227,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "object",
-                                            "additionalProperties": {
-                                                "type": "number",
-                                                "format": "float64"
-                                            }
+                                            "$ref": "#/definitions/dto.Wallet"
                                         }
                                     }
                                 }
@@ -2951,6 +3236,406 @@ const docTemplate = `{
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/store/analytics/orders": {
+            "get": {
+                "description": "Returns order status breakdown, cancellation rates, and recent order volume for the authenticated store.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Store Analytics"
+                ],
+                "summary": "Get order analytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339 format, e.g. 2026-07-01T00:00:00Z)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339 format, e.g. 2026-07-08T23:59:59Z)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.OrderAnalytics"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/store/analytics/products": {
+            "get": {
+                "description": "Returns product catalog status counts, stock alerts, and top viewed products for the authenticated store.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Store Analytics"
+                ],
+                "summary": "Get product analytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339 format, e.g. 2026-07-01T00:00:00Z)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339 format, e.g. 2026-07-08T23:59:59Z)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.ProductAnalytics"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/store/analytics/sales": {
+            "get": {
+                "description": "Returns sales metrics, trend data by period, and top selling products for the authenticated store.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Store Analytics"
+                ],
+                "summary": "Get sales analytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339 format, e.g. 2026-07-01T00:00:00Z)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339 format, e.g. 2026-07-08T23:59:59Z)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.SalesAnalytics"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/store/analytics/stories": {
+            "get": {
+                "description": "Returns stats on active/expired stories and top viewed product stories for the authenticated store.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Store Analytics"
+                ],
+                "summary": "Get stories analytics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start date (RFC3339 format, e.g. 2026-07-01T00:00:00Z)",
+                        "name": "from",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date (RFC3339 format, e.g. 2026-07-08T23:59:59Z)",
+                        "name": "to",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.StoryAnalytics"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "allOf": [
                                 {
@@ -3147,6 +3832,458 @@ const docTemplate = `{
                     },
                     "422": {
                         "description": "Unprocessable Entity",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{storeName}": {
+            "get": {
+                "description": "Returns public store details",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Store"
+                ],
+                "summary": "Get store by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Store Name",
+                        "name": "storeName",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.Store"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{storeName}/products": {
+            "get": {
+                "description": "Fetch all available products for a specific store by name",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Product"
+                ],
+                "summary": "List a store's products",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Store Name",
+                        "name": "storeName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Category",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{storeName}/sales": {
+            "get": {
+                "description": "Fetch recent orders (sales) for a specific store by name",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Order"
+                ],
+                "summary": "List a store's recent sales",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Store Name",
+                        "name": "storeName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by order status",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/stores/{storeName}/stories": {
+            "get": {
+                "description": "Returns paginated active story ads for a specific store by name",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Story"
+                ],
+                "summary": "List a store's story ads",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Store Name",
+                        "name": "storeName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by media type (video, image)",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search stories by caption",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by (newest, popular)",
+                        "name": "sort_by",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/dto.PaginatedResponse"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/response.BaseResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "error": {
+                                            "$ref": "#/definitions/errorx.AppError"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "allOf": [
                                 {
@@ -4691,6 +5828,53 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "constant.GatewayPaymentStatus": {
+            "type": "string",
+            "enum": [
+                "PENDING",
+                "SUCCESS",
+                "FAILED",
+                "CANCELLED"
+            ],
+            "x-enum-varnames": [
+                "GatewayPaymentStatusPending",
+                "GatewayPaymentStatusSuccess",
+                "GatewayPaymentStatusFailed",
+                "GatewayPaymentStatusCancelled"
+            ]
+        },
+        "constant.PaymentStatus": {
+            "type": "string",
+            "enum": [
+                "initiated",
+                "pending",
+                "success",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "PaymentStatusInitiated",
+                "PaymentStatusPending",
+                "PaymentStatusSuccess",
+                "PaymentStatusFailed"
+            ]
+        },
+        "constant.WithdrawalStatus": {
+            "type": "string",
+            "enum": [
+                "initiated",
+                "pending",
+                "success",
+                "failed",
+                "cancelled"
+            ],
+            "x-enum-varnames": [
+                "WithdrawalStatusInitiated",
+                "WithdrawalStatusPending",
+                "WithdrawalStatusSuccess",
+                "WithdrawalStatusFailed",
+                "WithdrawalStatusCancelled"
+            ]
+        },
         "dto.Address": {
             "type": "object",
             "properties": {
@@ -4732,7 +5916,13 @@ const docTemplate = `{
         "dto.AuthResponse": {
             "type": "object",
             "properties": {
+                "deliveryAgentId": {
+                    "type": "integer"
+                },
                 "hasStore": {
+                    "type": "boolean"
+                },
+                "isDelivery": {
                     "type": "boolean"
                 },
                 "role": {
@@ -4798,14 +5988,38 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "address_id",
+                "medium",
                 "store_id"
             ],
             "properties": {
                 "address_id": {
                     "type": "integer"
                 },
+                "medium": {
+                    "type": "string",
+                    "enum": [
+                        "MPESA",
+                        "TELEBIRR",
+                        "CBE",
+                        "ETHSWITCH"
+                    ]
+                },
+                "phone_number": {
+                    "type": "string"
+                },
                 "store_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.CheckoutResponse": {
+            "type": "object",
+            "properties": {
+                "order": {
+                    "$ref": "#/definitions/dto.Order"
+                },
+                "payment": {
+                    "$ref": "#/definitions/dto.Payment"
                 }
             }
         },
@@ -4943,6 +6157,30 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.OrderAnalytics": {
+            "type": "object",
+            "properties": {
+                "average_order_value": {
+                    "type": "number"
+                },
+                "cancellation_rate_pct": {
+                    "type": "number"
+                },
+                "orders_by_status": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.OrdersByStatus"
+                    }
+                },
+                "recent_orders": {
+                    "description": "last 7 days",
+                    "type": "integer"
+                },
+                "total_orders": {
+                    "type": "integer"
+                }
+            }
+        },
         "dto.OrderCustomer": {
             "type": "object",
             "properties": {
@@ -4997,12 +6235,82 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.OrdersByStatus": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "percentage": {
+                    "type": "number"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "dto.PaginatedResponse": {
             "type": "object",
             "properties": {
                 "data": {},
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.Payment": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "gateway_status": {
+                    "$ref": "#/definitions/constant.GatewayPaymentStatus"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "medium": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "integer"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "reference": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/constant.PaymentStatus"
+                },
+                "transaction_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.PeriodRevenue": {
+            "type": "object",
+            "properties": {
+                "orders": {
+                    "type": "integer"
+                },
+                "period": {
+                    "description": "e.g. \"2026-07-08\"",
+                    "type": "string"
+                },
+                "revenue": {
+                    "type": "number"
                 }
             }
         },
@@ -5047,6 +6355,46 @@ const docTemplate = `{
                 },
                 "store_id": {
                     "type": "integer"
+                }
+            }
+        },
+        "dto.ProductAnalytics": {
+            "type": "object",
+            "properties": {
+                "low_stock_count": {
+                    "description": "stock \u003c= 5",
+                    "type": "integer"
+                },
+                "out_of_stock_count": {
+                    "description": "stock == 0",
+                    "type": "integer"
+                },
+                "products_by_status": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.ProductByStatus"
+                    }
+                },
+                "top_viewed_products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TopViewedProduct"
+                    }
+                },
+                "total_products": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.ProductByStatus": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "draft, published, archived",
+                    "type": "string"
                 }
             }
         },
@@ -5101,6 +6449,35 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.SalesAnalytics": {
+            "type": "object",
+            "properties": {
+                "average_order_value": {
+                    "type": "number"
+                },
+                "revenue_by_period": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.PeriodRevenue"
+                    }
+                },
+                "revenue_change_pct": {
+                    "type": "number"
+                },
+                "top_selling_products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TopProduct"
+                    }
+                },
+                "total_orders": {
+                    "type": "integer"
+                },
+                "total_revenue": {
+                    "type": "number"
+                }
+            }
+        },
         "dto.Store": {
             "type": "object",
             "properties": {
@@ -5142,6 +6519,89 @@ const docTemplate = `{
                 },
                 "telegram_chat_title": {
                     "type": "string"
+                },
+                "verificationStatus": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.StoryAnalytics": {
+            "type": "object",
+            "properties": {
+                "active_stories": {
+                    "type": "integer"
+                },
+                "expired_stories": {
+                    "type": "integer"
+                },
+                "top_stories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.TopStory"
+                    }
+                },
+                "total_stories": {
+                    "type": "integer"
+                },
+                "total_views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.TopProduct": {
+            "type": "object",
+            "properties": {
+                "product_id": {
+                    "type": "integer"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "revenue": {
+                    "type": "number"
+                },
+                "units_sold": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.TopStory": {
+            "type": "object",
+            "properties": {
+                "caption": {
+                    "type": "string"
+                },
+                "ends_at": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "starts_at": {
+                    "type": "string"
+                },
+                "story_id": {
+                    "type": "integer"
+                },
+                "views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.TopViewedProduct": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "views": {
+                    "type": "integer"
                 }
             }
         },
@@ -5254,6 +6714,106 @@ const docTemplate = `{
                 },
                 "enabled": {
                     "type": "boolean"
+                }
+            }
+        },
+        "dto.Wallet": {
+            "type": "object",
+            "properties": {
+                "available_balance": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "locked_balance": {
+                    "type": "number"
+                },
+                "pending_balance": {
+                    "type": "number"
+                },
+                "store_id": {
+                    "type": "integer"
+                },
+                "total_earned": {
+                    "type": "number"
+                },
+                "total_withdrawn": {
+                    "type": "number"
+                }
+            }
+        },
+        "dto.Withdrawal": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "gateway_status": {
+                    "$ref": "#/definitions/constant.GatewayPaymentStatus"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "medium": {
+                    "type": "string"
+                },
+                "phone_number": {
+                    "type": "string"
+                },
+                "reference": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/constant.WithdrawalStatus"
+                },
+                "store_id": {
+                    "type": "integer"
+                },
+                "transaction_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.WithdrawalRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "currency",
+                "medium",
+                "phone_number"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string",
+                    "enum": [
+                        "ETB",
+                        "USD"
+                    ]
+                },
+                "medium": {
+                    "type": "string",
+                    "enum": [
+                        "MPESA",
+                        "TELEBIRR",
+                        "CBE",
+                        "ETHSWITCH"
+                    ]
+                },
+                "phone_number": {
+                    "type": "string"
                 }
             }
         },

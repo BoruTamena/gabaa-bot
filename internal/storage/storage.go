@@ -34,6 +34,7 @@ type UserStorage interface {
 type StoreStorage interface {
 	CreateStore(ctx context.Context, store *db.Store) error
 	GetStoreByID(ctx context.Context, id int64) (*db.Store, error)
+	GetStoreByName(ctx context.Context, name string) (*db.Store, error)
 	GetStoreByChatID(ctx context.Context, chatID int64) (*db.Store, error)
 	GetStoresBySellerID(ctx context.Context, sellerID int64) ([]db.Store, error)
 	UpdateStore(ctx context.Context, store *db.Store) error

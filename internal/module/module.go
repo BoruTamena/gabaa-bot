@@ -30,6 +30,7 @@ type AddressModule interface {
 type StoreModule interface {
 	CreateStore(ctx context.Context, userID int64, req dto.CreateStoreRequest) (*dto.Store, error)
 	GetAdminDashboard(ctx context.Context, userID int64, chatID int64) (string, *dto.Store, error)
+	GetStoreDetailsByName(ctx context.Context, storeName string) (*dto.Store, error)
 	GetStore(ctx context.Context, id int64) (*dto.Store, error)
 	GetStoreStatus(ctx context.Context, id int64) (string, error)
 	UpdateStore(ctx context.Context, id int64, req dto.UpdateStoreRequest) (*dto.Store, error)
@@ -46,6 +47,7 @@ type ProductModule interface {
 	GetProduct(ctx context.Context, id int64) (*dto.Product, error)
 	ListProducts(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
 	ListAllProducts(ctx context.Context, filter dto.ProductFilterParams) (*dto.PaginatedResponse, error)
+	GetStoreProducts(ctx context.Context, storeName string, filter dto.ProductFilterParams) (*dto.PaginatedResponse, error)
 	UpdateProduct(ctx context.Context, id int64, req dto.UpdateProductRequest) (*dto.Product, error)
 	DeleteProduct(ctx context.Context, id int64) error
 	PostProduct(ctx context.Context, productID int64, storeID int64) (*dto.Product, error)
@@ -69,6 +71,7 @@ type OrderModule interface {
 	CancelOrder(ctx context.Context, userID int64, orderID int64) error
 	// Merchant-scoped:
 	GetMyStoreOrders(ctx context.Context, filter dto.OrderFilterParams) (*dto.PaginatedResponse, error)
+	GetStoreRecentSales(ctx context.Context, storeName string, filter dto.OrderFilterParams) (*dto.PaginatedResponse, error)
 	GetMyStoreOrder(ctx context.Context, storeID int64, orderID int64) (*dto.Order, error)
 	UpdateMyStoreOrderStatus(ctx context.Context, storeID int64, orderID int64, req dto.ShipOrderRequest) error
 	OnPaymentSuccess(ctx context.Context, orderID int64) error
@@ -109,6 +112,7 @@ type StoryModule interface {
 	CreateStory(ctx context.Context, storeID int64, req dto.CreateProductStoryRequest) (*dto.ProductStory, error)
 	GetStory(ctx context.Context, id int64) (*dto.ProductStory, error)
 	ListMyStories(ctx context.Context, filter dto.ProductStoryFilterParams) (*dto.PaginatedResponse, error)
+	GetStoreStories(ctx context.Context, storeName string, filter dto.ProductStoryFilterParams) (*dto.PaginatedResponse, error)
 	UpdateStory(ctx context.Context, storeID int64, storyID int64, req dto.UpdateProductStoryRequest) (*dto.ProductStory, error)
 	DeleteStory(ctx context.Context, storeID int64, storyID int64) error
 	ListActiveStories(ctx context.Context, params dto.PaginationParams) (*dto.PaginatedResponse, error)

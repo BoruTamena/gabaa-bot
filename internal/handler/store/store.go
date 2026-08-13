@@ -78,6 +78,35 @@ func (h *StoreHandler) GetStore(c *gin.Context) {
 	response.Success(c, http.StatusOK, store)
 }
 
+// GetStoreDetailsByName retrieves store profile by name
+// @Summary Get store by name
+// @Description Returns public store details
+// @Tags Store
+// @Produce json
+// @Param storeName path string true "Store Name"
+// @Success 200 {object} response.BaseResponse{data=dto.Store}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /stores/{storeName} [get]
+func (h *StoreHandler) GetStoreDetailsByName(c *gin.Context) {
+	storeName := c.Param("storeName")
+	if storeName == "" {
+		appErr := errorx.New(errorx.ErrBadRequest, "store name is required", http.StatusBadRequest)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	store, err := h.storeModule.GetStoreDetailsByName(c.Request.Context(), storeName)
+	if err != nil {
+		appErr := errorx.New(errorx.ErrNotFound, "Store not found", http.StatusNotFound)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, store)
+}
+
 // GetStoreStatus retrieves store status
 // @Summary Get store status
 // @Description Returns store status: 'pending' or 'launched'

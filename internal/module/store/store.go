@@ -133,6 +133,14 @@ func (m *storeModule) GetStore(ctx context.Context, id int64) (*dto.Store, error
 	return m.mapToDTO(store), nil
 }
 
+func (m *storeModule) GetStoreDetailsByName(ctx context.Context, storeName string) (*dto.Store, error) {
+	store, err := m.storeStorage.GetStoreByName(ctx, storeName)
+	if err != nil {
+		return nil, err
+	}
+	return m.mapToDTO(store), nil
+}
+
 func (m *storeModule) GetStoreStatus(ctx context.Context, id int64) (string, error) {
 	store, err := m.storeStorage.GetStoreByID(ctx, id)
 	if err != nil {
