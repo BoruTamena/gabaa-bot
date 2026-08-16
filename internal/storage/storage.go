@@ -37,6 +37,7 @@ type StoreStorage interface {
 	GetStoreByName(ctx context.Context, name string) (*db.Store, error)
 	GetStoreByChatID(ctx context.Context, chatID int64) (*db.Store, error)
 	GetStoresBySellerID(ctx context.Context, sellerID int64) ([]db.Store, error)
+	ListActiveStores(ctx context.Context, params dto.PaginationParams, query, category string) ([]db.Store, int64, error)
 	UpdateStore(ctx context.Context, store *db.Store) error
 	IncrementStoreViews(ctx context.Context, storeIDs []int64) error
 	UpdateStoreVerificationStatus(ctx context.Context, storeID int64, status string) error

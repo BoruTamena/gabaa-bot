@@ -258,32 +258,31 @@ func (h *StoryHandler) PublicListActiveStories(c *gin.Context) {
 }
 
 // PublicGetStoreStories godoc
-// @Summary List a store's story ads
-// @Description Returns paginated active story ads for a specific store by name
+// @Summary List public story ads
+// @Description Returns paginated active story ads. store_name is optional and uses ILIKE text search on store name.
 // @Tags Story
 // @Produce json
-// @Param storeName path string true "Store Name"
+// @Param storeName path string false "Store name search term (optional)"
+// @Param store_name query string false "Store name text search (optional)"
 // @Param page query int false "Page number"
-// @Param limit query int false "Page size limit"
+// @Param page_size query int false "Page size"
 // @Param type query string false "Filter by media type (video, image)"
 // @Param search query string false "Search stories by caption"
 // @Param sort_by query string false "Sort by (newest, popular)"
 // @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
 // @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
-// @Failure 404 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
-// @Router /stores/{storeName}/stories [get]
+// @Router /api/v1/stories [get]
 func (h *StoryHandler) PublicGetStoreStories(c *gin.Context) {
-	storeName := c.Param("storeName")
-	if storeName == "" {
-		c.Error(errorx.New(errorx.ErrBadRequest, "store name is required", http.StatusBadRequest))
-		return
-	}
-	
 	var filter dto.ProductStoryFilterParams
 	if err := c.ShouldBindQuery(&filter); err != nil {
 		c.Error(errorx.New(errorx.ErrBadRequest, err.Error(), http.StatusBadRequest))
 		return
+	}
+
+	storeName := c.Param("storeName")
+	if storeName == "" {
+		storeName = filter.StoreName
 	}
 
 	resp, err := h.storyModule.GetStoreStories(c.Request.Context(), storeName, filter)

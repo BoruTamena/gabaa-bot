@@ -6,9 +6,11 @@ import (
 )
 
 // RegisterPublicStoryRoutes registers public (unauthenticated) story ad routes.
-func RegisterPublicStoryRoutes(r *gin.Engine, h *product.StoryHandler) {
-	r.GET("/stories", h.PublicListActiveStories)
-	r.GET("/stories/:id", h.PublicGetStory)
+func RegisterPublicStoryRoutes(api *gin.RouterGroup, h *product.StoryHandler) {
+	// Static paths before /stories/:id so they are not captured as IDs.
+	api.GET("/stories", h.PublicGetStoreStories)
+	api.GET("/stories/active", h.PublicListActiveStories)
+	api.GET("/stories/:id", h.PublicGetStory)
 }
 
 // RegisterStoryRoutes registers protected story ad routes under the API group.

@@ -6,12 +6,9 @@ import (
 )
 
 // RegisterPublicProductRoutes registers public (unauthenticated) product routes.
-func RegisterPublicProductRoutes(r *gin.Engine, productHandler *product.ProductHandler) {
-	r.GET("/products",
-		productHandler.PublicListProducts)
-
-	r.GET("/product/:id",
-		productHandler.PublicGetProductByID)
+func RegisterPublicProductRoutes(api *gin.RouterGroup, productHandler *product.ProductHandler) {
+	api.GET("/products", productHandler.PublicListProducts)
+	api.GET("/product/:id", productHandler.PublicGetProductByID)
 }
 
 // RegisterProductRoutes registers protected product routes under the API group.

@@ -49,12 +49,15 @@ type UpdateProductRequest struct {
 
 type ProductFilterParams struct {
 	PaginationParams
-	StoreID  int64  `form:"-"`      // injected server-side, not from client
-	Category string `form:"category"`
-	Query    string `form:"query"`
-	Status   string `form:"status"`
-	MinStock *int   `form:"min_stock"`
-	MaxStock *int   `form:"max_stock"`
+	StoreID  int64    `form:"store_id"`
+	Category string   `form:"category"`
+	Query    string   `form:"query"`
+	Title    string   `form:"title"`
+	Status   string   `form:"status"`
+	MinStock *int     `form:"min_stock"`
+	MaxStock *int     `form:"max_stock"`
+	MinPrice *float64 `form:"min_price"`
+	MaxPrice *float64 `form:"max_price"`
 }
 
 func (r UpdateProductRequest) Validate() error {
@@ -68,19 +71,19 @@ func (r UpdateProductRequest) Validate() error {
 
 // ProductStory is the full story response returned to the client.
 type ProductStory struct {
-	ID        int64      `json:"id"`
-	StoreID   int64      `json:"store_id"`
-	ProductID int64      `json:"product_id"`
-	Caption   string     `json:"caption"`
-	MediaURLs []string   `json:"media_urls"`
-	MediaType string     `json:"media_type"`
-	StartsAt  string     `json:"starts_at"` // RFC3339
-	EndsAt    string     `json:"ends_at"`   // RFC3339
-	IsActive  bool       `json:"is_active"`
-	Views     int64      `json:"views"`
-	CreatedAt string     `json:"created_at"`
+	ID        int64    `json:"id"`
+	StoreID   int64    `json:"store_id"`
+	ProductID int64    `json:"product_id"`
+	Caption   string   `json:"caption"`
+	MediaURLs []string `json:"media_urls"`
+	MediaType string   `json:"media_type"`
+	StartsAt  string   `json:"starts_at"` // RFC3339
+	EndsAt    string   `json:"ends_at"`   // RFC3339
+	IsActive  bool     `json:"is_active"`
+	Views     int64    `json:"views"`
+	CreatedAt string   `json:"created_at"`
 	// Product detail is populated only on single-story fetch (GetStory)
-	Product   *Product   `json:"product,omitempty"`
+	Product *Product `json:"product,omitempty"`
 }
 
 // CreateProductStoryRequest is the payload for creating a new story ad.
@@ -124,11 +127,12 @@ func (r UpdateProductStoryRequest) Validate() error {
 type ProductStoryFilterParams struct {
 	PaginationParams
 	StoreID   int64  `form:"-"`          // injected server-side
+	StoreName string `form:"store_name"` // optional ILIKE search on store name
 	ProductID *int64 `form:"product_id"` // optional client filter
 	IsActive  *bool  `form:"is_active"`
-	Type      string `form:"type"`       // video or image
-	Search    string `form:"search"`     // search by caption/title
-	SortBy    string `form:"sort_by"`    // newest, popular
+	Type      string `form:"type"`    // video or image
+	Search    string `form:"search"`  // search by caption/title
+	SortBy    string `form:"sort_by"` // newest, popular
 }
 
 // ── Favorite DTOs ──────────────────────────────────────────────────────────
@@ -140,5 +144,3 @@ type FavoriteResponse struct {
 	CreatedAt string   `json:"created_at"`
 	Product   *Product `json:"product,omitempty"`
 }
-
-

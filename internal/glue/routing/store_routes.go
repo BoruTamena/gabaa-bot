@@ -2,9 +2,27 @@ package routing
 
 import (
 	"github.com/BoruTamena/gabaa-bot/internal/handler/middleware"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/order"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/product"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/store"
 	"github.com/gin-gonic/gin"
 )
+
+// PublicStoreRoutes registers all public store-related routes.
+func PublicStoreRoutes(
+	api *gin.RouterGroup,
+	storeHandler *store.StoreHandler,
+	storyHandler *product.StoryHandler,
+	productHandler *product.ProductHandler,
+	orderHandler *order.OrderHandler,
+) {
+	// Exact /stores before /stores/:storeName
+	api.GET("/stores", storeHandler.ListActiveStores)
+	api.GET("/stores/:storeName", storeHandler.GetStoreDetailsByName)
+	api.GET("/stores/:storeName/stories", storyHandler.PublicGetStoreStories)
+	api.GET("/stores/:storeName/products", productHandler.GetStoreProducts)
+	api.GET("/stores/:storeName/sales", orderHandler.GetStoreRecentSales)
+}
 
 // RegisterStoreRoutes registers all store-related routes under the protected API group.
 func RegisterStoreRoutes(
@@ -39,4 +57,3 @@ func RegisterStoreRoutes(
 		admin.POST("/store-verifications/:store_id/reject", storeHandler.RejectStoreVerification)
 	}
 }
-

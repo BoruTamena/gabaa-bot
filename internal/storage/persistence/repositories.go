@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BoruTamena/gabaa-bot/internal/constant"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
@@ -114,6 +115,35 @@ func (p *storePersistence) GetStoresBySellerID(ctx context.Context, sellerID int
 	return stores, err
 }
 
+func (p *storePersistence) ListActiveStores(ctx context.Context, params dto.PaginationParams, query, category string) ([]db.Store, int64, error) {
+	var stores []db.Store
+	var count int64
+
+	q := p.db.WithContext(ctx).Model(&db.Store{}).
+		Where("status = ?", constant.StoreStatusLaunched)
+
+	if category != "" {
+		q = q.Where("category ILIKE ?", category)
+	}
+	if query != "" {
+		term := "%" + query + "%"
+		q = q.Where("name ILIKE ? OR description ILIKE ? OR location ILIKE ?", term, term, term)
+	}
+
+	if err := q.Count(&count).Error; err != nil {
+		return nil, 0, err
+	}
+
+	err := q.Order("created_at DESC").
+		Limit(params.GetLimit()).
+		Offset(params.GetOffset()).
+		Find(&stores).Error
+	if err != nil {
+		p.logger.Error("Failed to list active stores", "error", err)
+	}
+	return stores, count, err
+}
+
 func (p *storePersistence) UpdateStore(ctx context.Context, store *db.Store) error {
 	err := p.db.WithContext(ctx).Save(store).Error
 	if err != nil {
@@ -206,6 +236,10 @@ func (p *productPersistence) ListAllProducts(ctx context.Context, filter dto.Pro
 		query = query.Where("name ILIKE ? OR description ILIKE ?", searchTerm, searchTerm)
 	}
 
+	if filter.Title != "" {
+		query = query.Where("name ILIKE ?", "%"+filter.Title+"%")
+	}
+
 	if filter.Status != "" {
 		query = query.Where("status = ?", filter.Status)
 	}
@@ -216,6 +250,14 @@ func (p *productPersistence) ListAllProducts(ctx context.Context, filter dto.Pro
 
 	if filter.MaxStock != nil {
 		query = query.Where("stock <= ?", *filter.MaxStock)
+	}
+
+	if filter.MinPrice != nil {
+		query = query.Where("price >= ?", *filter.MinPrice)
+	}
+
+	if filter.MaxPrice != nil {
+		query = query.Where("price <= ?", *filter.MaxPrice)
 	}
 
 	err := query.Count(&count).Error
@@ -697,24 +739,32 @@ func (p *storyPersistence) ListStoriesByStore(ctx context.Context, filter dto.Pr
 	var stories []db.ProductStory
 	var count int64
 
-	query := p.db.WithContext(ctx).Model(&db.ProductStory{}).
-		Where("store_id = ?", filter.StoreID)
+	query := p.db.WithContext(ctx).Model(&db.ProductStory{})
+
+	if filter.StoreID != 0 {
+		query = query.Where("product_stories.store_id = ?", filter.StoreID)
+	}
+
+	if filter.StoreName != "" {
+		query = query.Joins("JOIN stores ON stores.id = product_stories.store_id AND stores.deleted_at IS NULL").
+			Where("stores.name ILIKE ?", "%"+filter.StoreName+"%")
+	}
 
 	if filter.ProductID != nil {
-		query = query.Where("product_id = ?", *filter.ProductID)
+		query = query.Where("product_stories.product_id = ?", *filter.ProductID)
 	}
 
 	if filter.IsActive != nil {
-		query = query.Where("is_active = ?", *filter.IsActive)
+		query = query.Where("product_stories.is_active = ?", *filter.IsActive)
 	}
 
 	if filter.Type != "" {
-		query = query.Where("media_type = ?", filter.Type)
+		query = query.Where("product_stories.media_type = ?", filter.Type)
 	}
 
 	if filter.Search != "" {
 		searchTerm := "%" + filter.Search + "%"
-		query = query.Where("caption ILIKE ?", searchTerm)
+		query = query.Where("product_stories.caption ILIKE ?", searchTerm)
 	}
 
 	if err := query.Count(&count).Error; err != nil {
@@ -722,9 +772,9 @@ func (p *storyPersistence) ListStoriesByStore(ctx context.Context, filter dto.Pr
 	}
 
 	if filter.SortBy == "popular" {
-		query = query.Order("views DESC, created_at DESC")
+		query = query.Order("product_stories.views DESC, product_stories.created_at DESC")
 	} else {
-		query = query.Order("created_at DESC")
+		query = query.Order("product_stories.created_at DESC")
 	}
 
 	err := query.
