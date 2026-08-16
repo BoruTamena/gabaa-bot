@@ -13,7 +13,6 @@ import (
 	"github.com/BoruTamena/gabaa-bot/pkg/logger"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"go.uber.org/zap"
-	"gopkg.in/telebot.v4"
 )
 
 type productModule struct {
@@ -98,22 +97,6 @@ func (m *productModule) CreateProduct(ctx context.Context, sellerID int64, store
 	logger.Info("product created successfully", zap.Int64("product_id", dbProduct.ID), zap.Int64("store_id", storeID))
 
 	return m.mapToDTO(dbProduct), nil
-}
-
-func (m *productModule) PostProduct(ctx context.Context, productID int64, storeID int64) (*dto.Product, error) {
-	product, err := m.productStorage.GetProductByID(ctx, productID)
-	if err != nil {
-		return nil, err
-	}
-
-	product.IsPosted = true
-	if err := m.productStorage.UpdateProduct(ctx, product); err != nil {
-		logger.Error("failed to post product", zap.Error(err), zap.Int64("product_id", productID))
-		return nil, err
-	}
-
-	logger.Info("product posted successfully", zap.Int64("product_id", productID))
-	return m.mapToDTO(product), nil
 }
 
 func (m *productModule) GetProduct(ctx context.Context, id int64) (*dto.Product, error) {
@@ -214,10 +197,18 @@ func (m *productModule) UpdateProduct(ctx context.Context, id int64, req dto.Upd
 	if req.Status != "" {
 		// If transitioning to 'published' for the first time
 		if product.Status != constant.ProductStatusPublished && req.Status == constant.ProductStatusPublished {
-			publishedProduct := *product
-			publishedProduct.Status = constant.ProductStatusPublished
-			go m.pushProductToTelegram(&publishedProduct)
-			go m.recommendationModule.NotifyMatchingUsers(context.Background(), &publishedProduct, product.SellerID)
+			product.Status = constant.ProductStatusPublished
+			if err := m.productStorage.UpdateProduct(ctx, product); err != nil {
+				logger.Error("failed to publish product", zap.Error(err), zap.Int64("product_id", id))
+				return nil, err
+			}
+
+			published := *product
+			go m.publishProductToStoreChat(context.Background(), &published)
+			go m.recommendationModule.NotifyMatchingUsers(context.Background(), &published, product.SellerID)
+
+			logger.Info("product published successfully", zap.Int64("product_id", id))
+			return m.mapToDTO(product), nil
 		}
 		product.Status = req.Status
 	}
@@ -267,73 +258,72 @@ func (m *productModule) mapToDTO(p *db.Product) *dto.Product {
 	}
 }
 
-func (m *productModule) pushProductToTelegram(p *db.Product) {
+func (m *productModule) publishProductToStoreChat(ctx context.Context, p *db.Product) {
 	if p.StoreID == nil {
+		logger.Warn("skip telegram product post: product has no store_id", zap.Int64("product_id", p.ID))
 		return
 	}
 
-	// 1. Get store to find chat ID
-	ctx := context.Background()
 	store, err := m.storeStorage.GetStoreByID(ctx, *p.StoreID)
-	if err != nil || store.TelegramChatID == 0 {
-		logger.Error("cannot push product: store not found or not linked", zap.Error(err))
+	if err != nil {
+		logger.Error("cannot push product: store not found", zap.Error(err), zap.Int64("product_id", p.ID))
+		return
+	}
+	if store.TelegramChatID == 0 {
+		logger.Warn("cannot push product: store has no linked telegram chat",
+			zap.Int64("product_id", p.ID),
+			zap.Int64("store_id", store.ID),
+		)
 		return
 	}
 
-	caption := fmt.Sprintf(
-		"<b>%s</b>\n\n"+
-			"💰 <b>%s ETB</b>\n"+
-			"📦 <b>%d in stock</b>\n"+
-			"🏷️ <b>%s</b>\n\n"+
-			"<blockquote>%s</blockquote>",
-		p.Name, fmt.Sprintf("%.2f", p.Price), p.Stock, p.Category, p.Description,
+	productDTO := m.mapToDTO(p)
+	if err := m.tele.SendStoreProductPost(store.TelegramChatID, *productDTO, store.Name); err != nil {
+		logger.Error("failed to push product to telegram",
+			zap.Error(err),
+			zap.Int64("product_id", p.ID),
+			zap.Int64("chat_id", store.TelegramChatID),
+		)
+		return
+	}
+
+	p.IsPosted = true
+	if err := m.productStorage.UpdateProduct(ctx, p); err != nil {
+		logger.Warn("product posted to telegram but failed to mark is_posted",
+			zap.Error(err),
+			zap.Int64("product_id", p.ID),
+		)
+		return
+	}
+
+	logger.Info("product pushed to telegram successfully",
+		zap.Int64("product_id", p.ID),
+		zap.Int64("chat_id", store.TelegramChatID),
 	)
+}
 
-	bot := m.tele.GetBot()
-	if m.appURL == "" {
-		m.appURL = "https://gabaa-web.vercel.app"
-	}
-
-	selector := &telebot.ReplyMarkup{}
-	btn := selector.WebApp("🛒 Order Now", &telebot.WebApp{
-		URL: fmt.Sprintf("%s/product/%d", m.appURL, p.ID),
-	})
-	selector.Inline(selector.Row(btn))
-	chat := &telebot.Chat{ID: store.TelegramChatID}
-
-	// 4. Handle Images (Multiple vs Single)
-	var images []string
-	_ = json.Unmarshal([]byte(p.Images), &images)
-
-	if len(images) > 1 {
-		// Multi-image: Send an Album first, then the Action Card
-		album := telebot.Album{}
-		for i, imgURL := range images {
-			if i >= 10 {
-				break // Telegram limit is 10
-			}
-			photo := &telebot.Photo{File: telebot.FromURL(imgURL)}
-			album = append(album, photo)
-		}
-		_, _ = bot.SendAlbum(chat, album)
-
-		// Send the detail card with the button
-		_, err = bot.Send(chat, caption, telebot.ModeHTML, selector)
-	} else if len(images) == 1 {
-		// Single image: Send photo with caption and button
-		photo := &telebot.Photo{
-			File:    telebot.FromURL(images[0]),
-			Caption: caption,
-		}
-		_, err = bot.Send(chat, photo, telebot.ModeHTML, selector)
-	} else {
-		// No images: Send text only
-		_, err = bot.Send(chat, caption, telebot.ModeHTML, selector)
-	}
-
+func (m *productModule) PostProduct(ctx context.Context, productID int64, storeID int64) (*dto.Product, error) {
+	product, err := m.productStorage.GetProductByID(ctx, productID)
 	if err != nil {
-		logger.Error("failed to push product to telegram", zap.Error(err), zap.Int64("product_id", p.ID))
-	} else {
-		logger.Info("product pushed to telegram successfully", zap.Int64("product_id", p.ID))
+		return nil, err
 	}
+	if product.StoreID == nil || *product.StoreID != storeID {
+		return nil, fmt.Errorf("product does not belong to this store")
+	}
+
+	wasPosted := product.IsPosted
+	product.Status = constant.ProductStatusPublished
+	product.IsPosted = true
+	if err := m.productStorage.UpdateProduct(ctx, product); err != nil {
+		logger.Error("failed to post product", zap.Error(err), zap.Int64("product_id", productID))
+		return nil, err
+	}
+
+	if !wasPosted {
+		published := *product
+		go m.publishProductToStoreChat(context.Background(), &published)
+	}
+
+	logger.Info("product posted successfully", zap.Int64("product_id", productID))
+	return m.mapToDTO(product), nil
 }
