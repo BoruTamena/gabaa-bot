@@ -302,6 +302,131 @@ func (tg *telegram) SendNewOrderNotification(telegramUserID int64, order dto.Ord
 	return err
 }
 
+func (tg *telegram) productMiniAppURL(productID int64) string {
+	username := viper.GetString("tg.bot_username")
+	if username == "" {
+		username = "gabaaBot"
+	}
+	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
+		username = tg.bot.Me.Username
+	}
+	return fmt.Sprintf("https://t.me/%s?startapp=product_%d", username, productID)
+}
+
+func escapeHTML(s string) string {
+	replacer := strings.NewReplacer(
+		"&", "&amp;",
+		"<", "&lt;",
+		">", "&gt;",
+		`"`, "&quot;",
+	)
+	return replacer.Replace(s)
+}
+
+func truncateRunes(s string, max int) string {
+	r := []rune(s)
+	if len(r) <= max {
+		return s
+	}
+	return string(r[:max-1]) + "…"
+}
+
+func (tg *telegram) buildProductPostCaption(product dto.Product, storeName string) string {
+	name := escapeHTML(product.Name)
+	category := escapeHTML(product.Category)
+	desc := escapeHTML(truncateRunes(strings.TrimSpace(product.Description), 500))
+	store := escapeHTML(storeName)
+
+	var b strings.Builder
+	if store != "" {
+		b.WriteString(fmt.Sprintf("🆕 <b>New from %s</b>\n\n", store))
+	} else {
+		b.WriteString("🆕 <b>New product</b>\n\n")
+	}
+	b.WriteString(fmt.Sprintf("<b>%s</b>\n", name))
+	b.WriteString(fmt.Sprintf("💰 <b>%.2f ETB</b>\n", product.Price))
+	if product.Stock > 0 {
+		b.WriteString(fmt.Sprintf("📦 %d in stock\n", product.Stock))
+	}
+	if category != "" {
+		b.WriteString(fmt.Sprintf("🏷 %s\n", category))
+	}
+	if desc != "" {
+		b.WriteString("\n")
+		b.WriteString(desc)
+		b.WriteString("\n")
+	}
+	b.WriteString("\n————————————\n")
+	b.WriteString("<i>Order below in Gabaa Mini App</i>")
+	return b.String()
+}
+
+// SendStoreProductPost publishes a product to a store's Telegram group/channel
+// as a channel-style post (photo + caption + Mini App deep-link button).
+// WebApp buttons are not used here — they are unreliable outside private chats.
+func (tg *telegram) SendStoreProductPost(chatID int64, product dto.Product, storeName string) error {
+	if chatID == 0 {
+		return fmt.Errorf("telegram chat id is missing")
+	}
+	if tg.bot == nil {
+		return fmt.Errorf("telegram bot is not initialized")
+	}
+
+	caption := tg.buildProductPostCaption(product, storeName)
+	// Photo captions must be <= 1024 characters
+	caption = truncateRunes(caption, 1024)
+
+	selector := &telebot.ReplyMarkup{}
+	btn := selector.URL("🛒 Order Now", tg.productMiniAppURL(product.ID))
+	selector.Inline(selector.Row(btn))
+
+	chat := &telebot.Chat{ID: chatID}
+	images := product.Images
+
+	sendActionCard := func() error {
+		_, err := tg.bot.Send(chat, caption, telebot.ModeHTML, selector)
+		return err
+	}
+
+	if len(images) == 0 {
+		return sendActionCard()
+	}
+
+	if len(images) == 1 {
+		photo := &telebot.Photo{
+			File:    telebot.FromURL(images[0]),
+			Caption: caption,
+		}
+		_, err := tg.bot.Send(chat, photo, telebot.ModeHTML, selector)
+		return err
+	}
+
+	// Multi-image: cover photo as the main "post" with caption + button,
+	// then remaining images as a gallery album (albums cannot carry buttons).
+	cover := &telebot.Photo{
+		File:    telebot.FromURL(images[0]),
+		Caption: caption,
+	}
+	if _, err := tg.bot.Send(chat, cover, telebot.ModeHTML, selector); err != nil {
+		return err
+	}
+
+	album := telebot.Album{}
+	for i := 1; i < len(images) && i < 10; i++ {
+		album = append(album, &telebot.Photo{File: telebot.FromURL(images[i])})
+	}
+	if len(album) > 0 {
+		if _, err := tg.bot.SendAlbum(chat, album); err != nil {
+			logger.Warn("product gallery album failed after main post",
+				zap.Error(err),
+				zap.Int64("product_id", product.ID),
+				zap.Int64("chat_id", chatID),
+			)
+		}
+	}
+	return nil
+}
+
 func (tg *telegram) merchantOrderURL(orderID int64) string {
 	username := viper.GetString("tg.bot_username")
 	if username == "" {
