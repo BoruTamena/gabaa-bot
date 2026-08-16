@@ -31,6 +31,7 @@ type StoreModule interface {
 	CreateStore(ctx context.Context, userID int64, req dto.CreateStoreRequest) (*dto.Store, error)
 	GetAdminDashboard(ctx context.Context, userID int64, chatID int64) (string, *dto.Store, error)
 	GetStoreDetailsByName(ctx context.Context, storeName string) (*dto.Store, error)
+	ListActiveStores(ctx context.Context, params dto.PaginationParams, query, category string) (*dto.PaginatedResponse, error)
 	GetStore(ctx context.Context, id int64) (*dto.Store, error)
 	GetStoreStatus(ctx context.Context, id int64) (string, error)
 	UpdateStore(ctx context.Context, id int64, req dto.UpdateStoreRequest) (*dto.Store, error)

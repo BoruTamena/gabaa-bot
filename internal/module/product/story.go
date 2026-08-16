@@ -135,10 +135,7 @@ func (m *storyModule) ListMyStories(ctx context.Context, filter dto.ProductStory
 		dtoStories[i] = *m.mapToDTO(&s, nil)
 	}
 
-	return &dto.PaginatedResponse{
-		Total: total,
-		Data:  dtoStories,
-	}, nil
+	return dto.NewPaginatedResponse(dtoStories, total, filter.PaginationParams), nil
 }
 
 // UpdateStory partially updates a story, enforcing store ownership.
@@ -276,20 +273,14 @@ func (m *storyModule) ListActiveStories(ctx context.Context, params dto.Paginati
 		dtoStories[i] = *m.mapToDTO(&s, nil)
 	}
 
-	return &dto.PaginatedResponse{
-		Total: total,
-		Data:  dtoStories,
-	}, nil
+	return dto.NewPaginatedResponse(dtoStories, total, params), nil
 }
 
-// GetStoreStories returns paginated stories for a specific store by name.
+// GetStoreStories returns paginated active stories. storeName is optional ILIKE search on store name.
 func (m *storyModule) GetStoreStories(ctx context.Context, storeName string, filter dto.ProductStoryFilterParams) (*dto.PaginatedResponse, error) {
-	store, err := m.storeStorage.GetStoreByName(ctx, storeName)
-	if err != nil {
-		return nil, errorx.New(errorx.ErrNotFound, "Store not found", http.StatusNotFound)
+	if storeName != "" {
+		filter.StoreName = storeName
 	}
-
-	filter.StoreID = store.ID
 	filter.IsActive = new(bool)
 	*filter.IsActive = true
 
@@ -303,10 +294,7 @@ func (m *storyModule) GetStoreStories(ctx context.Context, storeName string, fil
 		dtoStories[i] = *m.mapToDTO(&s, nil)
 	}
 
-	return &dto.PaginatedResponse{
-		Total: total,
-		Data:  dtoStories,
-	}, nil
+	return dto.NewPaginatedResponse(dtoStories, total, filter.PaginationParams), nil
 }
 
 // mapToDTO converts a db.ProductStory to dto.ProductStory.

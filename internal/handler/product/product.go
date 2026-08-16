@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/BoruTamena/gabaa-bot/internal/constant"
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
@@ -290,30 +291,29 @@ func (h *ProductHandler) GetStoreProducts(c *gin.Context) {
 
 // PublicListProducts returns all products with filtering and pagination
 // @Summary List all products (public)
-// @Description Fetch all available products across stores with filtering/pagination
+// @Description Fetch published products across stores with optional store_id, title, price range, and pagination
 // @Tags Product
 // @Produce json
+// @Param store_id query int false "Filter by store ID"
+// @Param title query string false "Search by product title (name)"
+// @Param min_price query number false "Minimum price (inclusive)"
+// @Param max_price query number false "Maximum price (inclusive)"
 // @Param category query string false "Category"
-// @Param query query string false "Search query"
+// @Param query query string false "Search query (name or description)"
 // @Param page query int false "Page number"
 // @Param page_size query int false "Page size"
 // @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
 // @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
 // @Router /products [get]
 func (h *ProductHandler) PublicListProducts(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	category := c.Query("category")
-	query := c.Query("query")
-
-	params := dto.ProductFilterParams{
-		PaginationParams: dto.PaginationParams{
-			Page:     page,
-			PageSize: pageSize,
-		},
-		Category: category,
-		Query:    query,
+	var params dto.ProductFilterParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		c.Error(errorx.New(errorx.ErrBadRequest, err.Error(), http.StatusBadRequest))
+		return
 	}
+
+	params.Status = constant.ProductStatusPublished
 
 	resp, err := h.productModule.ListAllProducts(c.Request.Context(), params)
 	if err != nil {

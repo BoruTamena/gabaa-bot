@@ -107,6 +107,41 @@ func (h *StoreHandler) GetStoreDetailsByName(c *gin.Context) {
 	response.Success(c, http.StatusOK, store)
 }
 
+// ListActiveStores lists launched stores for the public marketplace
+// @Summary List active stores
+// @Description Returns paginated launched stores with optional name/category filters
+// @Tags Store
+// @Produce json
+// @Param page query int false "Page number"
+// @Param page_size query int false "Page size"
+// @Param query query string false "Search name, description, or location"
+// @Param category query string false "Filter by category"
+// @Success 200 {object} response.BaseResponse{data=dto.PaginatedResponse}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 500 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /stores [get]
+func (h *StoreHandler) ListActiveStores(c *gin.Context) {
+	var params dto.PaginationParams
+	if err := c.ShouldBindQuery(&params); err != nil {
+		appErr := errorx.New(errorx.ErrBadRequest, err.Error(), http.StatusBadRequest)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	resp, err := h.storeModule.ListActiveStores(
+		c.Request.Context(),
+		params,
+		c.Query("query"),
+		c.Query("category"),
+	)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
 // GetStoreStatus retrieves store status
 // @Summary Get store status
 // @Description Returns store status: 'pending' or 'launched'

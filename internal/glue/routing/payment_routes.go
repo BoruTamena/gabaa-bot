@@ -17,6 +17,6 @@ func RegisterPaymentRoutes(api *gin.RouterGroup, paymentHandler *payment.Payment
 }
 
 // RegisterLakiPayWebhook registers the public LakiPay webhook endpoint.
-func RegisterLakiPayWebhook(r *gin.Engine, paymentHandler *payment.PaymentHandler) {
-	r.POST("/api/v1/webhook/lakipay", paymentHandler.HandleLakiPayWebhook)
+func RegisterLakiPayWebhook(api *gin.RouterGroup, paymentHandler *payment.PaymentHandler) {
+	api.POST("/webhook/lakipay", paymentHandler.HandleLakiPayWebhook)
 }

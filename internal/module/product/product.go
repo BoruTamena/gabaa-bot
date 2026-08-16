@@ -166,10 +166,7 @@ func (m *productModule) ListAllProducts(ctx context.Context, filter dto.ProductF
 	// Increment views asynchronously
 	m.incrementStoreViewsAsync(products)
 
-	return &dto.PaginatedResponse{
-		Total: total,
-		Data:  dtoProducts,
-	}, nil
+	return dto.NewPaginatedResponse(dtoProducts, total, filter.PaginationParams), nil
 }
 
 func (m *productModule) GetStoreProducts(ctx context.Context, storeName string, filter dto.ProductFilterParams) (*dto.PaginatedResponse, error) {

@@ -141,6 +141,19 @@ func (m *storeModule) GetStoreDetailsByName(ctx context.Context, storeName strin
 	return m.mapToDTO(store), nil
 }
 
+func (m *storeModule) ListActiveStores(ctx context.Context, params dto.PaginationParams, query, category string) (*dto.PaginatedResponse, error) {
+	stores, total, err := m.storeStorage.ListActiveStores(ctx, params, query, category)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]dto.Store, len(stores))
+	for i := range stores {
+		items[i] = *m.mapToDTO(&stores[i])
+	}
+	return dto.NewPaginatedResponse(items, total, params), nil
+}
+
 func (m *storeModule) GetStoreStatus(ctx context.Context, id int64) (string, error) {
 	store, err := m.storeStorage.GetStoreByID(ctx, id)
 	if err != nil {

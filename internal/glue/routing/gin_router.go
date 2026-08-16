@@ -38,56 +38,49 @@ func NewGinRouter(
 	deliveryHandler *delivery.DeliveryHandler,
 ) *gin.Engine {
 
-	r := gin.Default()
+	engine := gin.Default()
 
 	// Global middleware — must be first
-	r.Use(middleware.CORSMiddleware())
-	r.Use(middleware.ErrorMiddleware())
+	engine.Use(middleware.CORSMiddleware())
+	engine.Use(middleware.ErrorMiddleware())
 
-	// Swagger documentation
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Swagger stays at root (outside versioned API)
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	apiV1 := engine.Group("/api/v1")
 
 	// ── Public routes (no auth required) ──────────────────────────────
-	RegisterAuthRoutes(r, authHandler)
-	RegisterPublicProductRoutes(r, productHandler)
-	RegisterPublicCategoryRoutes(r, categoryHandler)
-	RegisterPublicStoryRoutes(r, storyHandler)
+	RegisterAuthRoutes(apiV1, authHandler)
+	RegisterPublicProductRoutes(apiV1, productHandler)
+	RegisterPublicCategoryRoutes(apiV1, categoryHandler)
+	RegisterPublicStoryRoutes(apiV1, storyHandler)
 
-	// New public store endpoints
-	r.GET("/api/v1/stores/:storeName", storeHandler.GetStoreDetailsByName)
-	r.GET("/api/v1/stores/:storeName/stories", storyHandler.PublicGetStoreStories)
-	r.GET("/api/v1/stores/:storeName/products", productHandler.GetStoreProducts)
-	r.GET("/api/v1/stores/:storeName/sales", orderHandler.GetStoreRecentSales)
+	// Public store routes
+	PublicStoreRoutes(apiV1, storeHandler, storyHandler, productHandler, orderHandler)
 
-	// Image Upload (Public as requested)
-	uploadGroup := r.Group("/")
-	RegisterUploadRoutes(uploadGroup, uploadHandler)
+	// Upload routes
+	RegisterUploadRoutes(apiV1, uploadHandler)
 
-	// Telegram Webhook
-	r.POST("/api/v1/webhook/telegram", authMiddleware.TelegramWebhookSecret(), webhookHandler.HandleUpdate)
-
-	// LakiPay Webhook (public)
-	RegisterLakiPayWebhook(r, paymentHandler)
+	apiV1.POST("/webhook/telegram", authMiddleware.TelegramWebhookSecret(), webhookHandler.HandleUpdate)
+	RegisterLakiPayWebhook(apiV1, paymentHandler)
 
 	// ── Protected routes (JWT auth required) ──────────────────────────
-	api := r.Group("/")
-	api.Use(authMiddleware.JWTAuth())
+	protected := apiV1.Group("/")
+	protected.Use(authMiddleware.JWTAuth())
 	{
-		RegisterStoreRoutes(api, storeHandler, analyticsHandler, authMiddleware)
-		RegisterProductRoutes(api, productHandler)
-		RegisterCategoryRoutes(api, categoryHandler)
-		RegisterOrderRoutes(api, orderHandler)
-		RegisterCartRoutes(api, cartHandler)
-		RegisterPaymentRoutes(api, paymentHandler)
-		RegisterAddressRoutes(api, addressHandler)
-		RegisterStoryRoutes(api, storyHandler)
-		RegisterFavoriteRoutes(api, favoriteHandler)
-		RegisterPreferenceRoutes(api, preferenceHandler)
-		RegisterProtectedUploadRoutes(api, uploadHandler)
-		RegisterDeliveryRoutes(api, deliveryHandler, authMiddleware)
+		RegisterStoreRoutes(protected, storeHandler, analyticsHandler, authMiddleware)
+		RegisterProductRoutes(protected, productHandler)
+		RegisterCategoryRoutes(protected, categoryHandler)
+		RegisterOrderRoutes(protected, orderHandler)
+		RegisterCartRoutes(protected, cartHandler)
+		RegisterPaymentRoutes(protected, paymentHandler)
+		RegisterAddressRoutes(protected, addressHandler)
+		RegisterStoryRoutes(protected, storyHandler)
+		RegisterFavoriteRoutes(protected, favoriteHandler)
+		RegisterPreferenceRoutes(protected, preferenceHandler)
+		RegisterProtectedUploadRoutes(protected, uploadHandler)
+		RegisterDeliveryRoutes(protected, deliveryHandler, authMiddleware)
 	}
 
-
-	return r
+	return engine
 }
-
