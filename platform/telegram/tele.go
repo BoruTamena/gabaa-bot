@@ -200,31 +200,11 @@ func (tg *telegram) IsChatAdmin(chatID int64, userID int64) (bool, error) {
 }
 
 func (tg *telegram) SendProductRecommendation(telegramUserID int64, product dto.Product, storeName string) error {
-	_ = storeName
-
-	caption := fmt.Sprintf(
-		"<b>%s</b>\n\n"+
-			"💰 <b>%s ETB</b>\n"+
-			"📦 <b>%d in stock</b>\n"+
-			"🏷️ <b>%s</b>\n\n"+
-			"<blockquote>%s</blockquote>\n\n"+
-			"<i>Subscribed to %s · /preferences to manage</i>",
-		product.Name,
-		fmt.Sprintf("%.2f", product.Price),
-		product.Stock,
-		product.Category,
-		product.Description,
-		product.Category,
-	)
-
-	baseURL := strings.TrimRight(viper.GetString("app.url"), "/")
-	if baseURL == "" {
-		baseURL = "https://gabaa-web.vercel.app"
-	}
+	caption := tg.buildProductPostCaption(product, storeName)
 
 	selector := &telebot.ReplyMarkup{}
 	btn := selector.WebApp("🛒 Order Now", &telebot.WebApp{
-		URL: fmt.Sprintf("%s/product/%d", baseURL, product.ID),
+		URL: tg.productDetailPageURL(product.ID),
 	})
 	selector.Inline(selector.Row(btn))
 
@@ -302,13 +282,35 @@ func (tg *telegram) SendNewOrderNotification(telegramUserID int64, order dto.Ord
 	return err
 }
 
-func (tg *telegram) productMiniAppURL(productID int64) string {
+func (tg *telegram) botUsername() string {
 	username := viper.GetString("tg.bot_username")
 	if username == "" {
-		username = "gabaaBot"
+		username = "gabaa_bot"
 	}
-	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
+	if tg.bot != nil && tg.bot.Me != nil && tg.bot.Me.Username != "" {
 		username = tg.bot.Me.Username
+	}
+	return username
+}
+
+// productDetailPageURL is the web product detail page, e.g.
+// https://gabaa-web.vercel.app/product/12
+func (tg *telegram) productDetailPageURL(productID int64) string {
+	appURL := strings.TrimRight(viper.GetString("app.url"), "/")
+	if appURL == "" {
+		appURL = "https://gabaa-web.vercel.app"
+	}
+	return fmt.Sprintf("%s/product/%d", appURL, productID)
+}
+
+// productMiniAppURL converts the product detail page into a Telegram Mini App
+// deep link. Frontend should read start_param=product_{id} and open /product/{id}.
+// Example: https://t.me/gabaa_bot/place?startapp=product_12
+func (tg *telegram) productMiniAppURL(productID int64) string {
+	username := tg.botUsername()
+	shortName := strings.TrimSpace(viper.GetString("tg.webapp_short_name"))
+	if shortName != "" {
+		return fmt.Sprintf("https://t.me/%s/%s?startapp=product_%d", username, shortName, productID)
 	}
 	return fmt.Sprintf("https://t.me/%s?startapp=product_%d", username, productID)
 }
@@ -332,38 +334,32 @@ func truncateRunes(s string, max int) string {
 }
 
 func (tg *telegram) buildProductPostCaption(product dto.Product, storeName string) string {
+	_ = storeName
 	name := escapeHTML(product.Name)
-	category := escapeHTML(product.Category)
-	desc := escapeHTML(truncateRunes(strings.TrimSpace(product.Description), 500))
-	store := escapeHTML(storeName)
+	desc := escapeHTML(truncateRunes(strings.TrimSpace(product.Description), 600))
 
 	var b strings.Builder
-	if store != "" {
-		b.WriteString(fmt.Sprintf("🆕 <b>New from %s</b>\n\n", store))
-	} else {
-		b.WriteString("🆕 <b>New product</b>\n\n")
-	}
+	// 1. Product title (highlighted)
 	b.WriteString(fmt.Sprintf("<b>%s</b>\n", name))
-	b.WriteString(fmt.Sprintf("💰 <b>%.2f ETB</b>\n", product.Price))
-	if product.Stock > 0 {
-		b.WriteString(fmt.Sprintf("📦 %d in stock\n", product.Stock))
-	}
-	if category != "" {
-		b.WriteString(fmt.Sprintf("🏷 %s\n", category))
-	}
+
+	// 2. Description in quote
 	if desc != "" {
-		b.WriteString("\n")
-		b.WriteString(desc)
-		b.WriteString("\n")
+		b.WriteString(fmt.Sprintf("<blockquote>%s</blockquote>\n", desc))
 	}
-	b.WriteString("\n————————————\n")
-	b.WriteString("<i>Order below in Gabaa Mini App</i>")
+
+	// 3. Price and stock details
+	b.WriteString(fmt.Sprintf("\n💰 Price: <b>%.2f ETB</b>", product.Price))
+	if product.Stock > 0 {
+		b.WriteString(fmt.Sprintf("\n📦 Stock: <b>%d</b>", product.Stock))
+	} else {
+		b.WriteString("\n📦 Stock: <b>Out of stock</b>")
+	}
+
 	return b.String()
 }
 
 // SendStoreProductPost publishes a product to a store's Telegram group/channel
-// as a channel-style post (photo + caption + Mini App deep-link button).
-// WebApp buttons are not used here — they are unreliable outside private chats.
+// as a channel-style post (photo + caption + Order Now Mini App deep link).
 func (tg *telegram) SendStoreProductPost(chatID int64, product dto.Product, storeName string) error {
 	if chatID == 0 {
 		return fmt.Errorf("telegram chat id is missing")
@@ -373,23 +369,34 @@ func (tg *telegram) SendStoreProductPost(chatID int64, product dto.Product, stor
 	}
 
 	caption := tg.buildProductPostCaption(product, storeName)
-	// Photo captions must be <= 1024 characters
 	caption = truncateRunes(caption, 1024)
 
+	// Web product page → Mini App deep link:
+	// https://gabaa-web.vercel.app/product/12
+	// → https://t.me/<bot>/<short_name>?startapp=product_12
+	miniAppURL := tg.productMiniAppURL(product.ID)
+	detailPageURL := tg.productDetailPageURL(product.ID)
+
 	selector := &telebot.ReplyMarkup{}
-	btn := selector.URL("🛒 Order Now", tg.productMiniAppURL(product.ID))
-	selector.Inline(selector.Row(btn))
+	selector.Inline(selector.Row(selector.URL("🛒 Order Now", miniAppURL)))
 
 	chat := &telebot.Chat{ID: chatID}
 	images := product.Images
 
-	sendActionCard := func() error {
-		_, err := tg.bot.Send(chat, caption, telebot.ModeHTML, selector)
-		return err
+	sendWithMarkup := func(msg interface{}) error {
+		_, err := tg.bot.Send(chat, msg, telebot.ModeHTML, selector)
+		if err == nil {
+			return nil
+		}
+		// Last resort: open the web product detail page directly.
+		fallback := &telebot.ReplyMarkup{}
+		fallback.Inline(fallback.Row(fallback.URL("🛒 Order Now", detailPageURL)))
+		_, err2 := tg.bot.Send(chat, msg, telebot.ModeHTML, fallback)
+		return err2
 	}
 
 	if len(images) == 0 {
-		return sendActionCard()
+		return sendWithMarkup(caption)
 	}
 
 	if len(images) == 1 {
@@ -397,17 +404,14 @@ func (tg *telegram) SendStoreProductPost(chatID int64, product dto.Product, stor
 			File:    telebot.FromURL(images[0]),
 			Caption: caption,
 		}
-		_, err := tg.bot.Send(chat, photo, telebot.ModeHTML, selector)
-		return err
+		return sendWithMarkup(photo)
 	}
 
-	// Multi-image: cover photo as the main "post" with caption + button,
-	// then remaining images as a gallery album (albums cannot carry buttons).
 	cover := &telebot.Photo{
 		File:    telebot.FromURL(images[0]),
 		Caption: caption,
 	}
-	if _, err := tg.bot.Send(chat, cover, telebot.ModeHTML, selector); err != nil {
+	if err := sendWithMarkup(cover); err != nil {
 		return err
 	}
 
@@ -430,7 +434,7 @@ func (tg *telegram) SendStoreProductPost(chatID int64, product dto.Product, stor
 func (tg *telegram) merchantOrderURL(orderID int64) string {
 	username := viper.GetString("tg.bot_username")
 	if username == "" {
-		username = "gabaaBot"
+		username = "gabaa_bot"
 	}
 	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
 		username = tg.bot.Me.Username
@@ -441,7 +445,7 @@ func (tg *telegram) merchantOrderURL(orderID int64) string {
 func (tg *telegram) deliveryOrderURL(orderID int64) string {
 	username := viper.GetString("tg.bot_username")
 	if username == "" {
-		username = "gabaaBot"
+		username = "gabaa_bot"
 	}
 	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
 		username = tg.bot.Me.Username
@@ -452,7 +456,7 @@ func (tg *telegram) deliveryOrderURL(orderID int64) string {
 func (tg *telegram) DeliveryAppURL() string {
 	username := viper.GetString("tg.bot_username")
 	if username == "" {
-		username = "gabaaBot"
+		username = "gabaa_bot"
 	}
 	if tg.bot.Me != nil && tg.bot.Me.Username != "" {
 		username = tg.bot.Me.Username
