@@ -369,13 +369,13 @@ func (tg *telegram) SendStoreProductPost(chatID int64, product dto.Product, stor
 	}
 
 	caption := tg.buildProductPostCaption(product, storeName)
-	caption = truncateRunes(caption, 1024)
 
 	// Web product page → Mini App deep link:
 	// https://gabaa-web.vercel.app/product/12
 	// → https://t.me/<bot>/<short_name>?startapp=product_12
 	miniAppURL := tg.productMiniAppURL(product.ID)
 	detailPageURL := tg.productDetailPageURL(product.ID)
+	orderLink := fmt.Sprintf("\n\n<a href=\"%s\">🛒 Order Now</a>", miniAppURL)
 
 	selector := &telebot.ReplyMarkup{}
 	selector.Inline(selector.Row(selector.URL("🛒 Order Now", miniAppURL)))
@@ -395,6 +395,8 @@ func (tg *telegram) SendStoreProductPost(chatID int64, product dto.Product, stor
 		return err2
 	}
 
+	caption = truncateRunes(caption, 1024)
+
 	if len(images) == 0 {
 		return sendWithMarkup(caption)
 	}
@@ -407,26 +409,30 @@ func (tg *telegram) SendStoreProductPost(chatID int64, product dto.Product, stor
 		return sendWithMarkup(photo)
 	}
 
-	cover := &telebot.Photo{
-		File:    telebot.FromURL(images[0]),
-		Caption: caption,
-	}
-	if err := sendWithMarkup(cover); err != nil {
-		return err
+	// Multiple images: one media group (Telegram albums cannot carry buttons,
+	// so Order Now is included as a caption link on the same post).
+	albumCaption := truncateRunes(caption, 1024-len([]rune(orderLink))) + orderLink
+
+	album := make(telebot.Album, 0, 10)
+	for i := 0; i < len(images) && i < 10; i++ {
+		photo := &telebot.Photo{File: telebot.FromURL(images[i])}
+		if i == 0 {
+			photo.Caption = albumCaption
+		}
+		album = append(album, photo)
 	}
 
-	album := telebot.Album{}
-	for i := 1; i < len(images) && i < 10; i++ {
-		album = append(album, &telebot.Photo{File: telebot.FromURL(images[i])})
-	}
-	if len(album) > 0 {
-		if _, err := tg.bot.SendAlbum(chat, album); err != nil {
-			logger.Warn("product gallery album failed after main post",
-				zap.Error(err),
-				zap.Int64("product_id", product.ID),
-				zap.Int64("chat_id", chatID),
-			)
+	if _, err := tg.bot.SendAlbum(chat, album, telebot.ModeHTML); err != nil {
+		logger.Warn("product album post failed; falling back to cover photo",
+			zap.Error(err),
+			zap.Int64("product_id", product.ID),
+			zap.Int64("chat_id", chatID),
+		)
+		photo := &telebot.Photo{
+			File:    telebot.FromURL(images[0]),
+			Caption: caption,
 		}
+		return sendWithMarkup(photo)
 	}
 	return nil
 }
