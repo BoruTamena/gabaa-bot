@@ -25,6 +25,8 @@ type PaymentFilterParams struct {
 	PaginationParams
 	StoreID int64  `form:"-"`
 	Status  string `form:"status"` // initiated, pending, success, failed
+	Medium  string `form:"medium"`
+	Query   string `form:"query"`
 }
 
 type StoreTransaction struct {

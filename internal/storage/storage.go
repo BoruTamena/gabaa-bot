@@ -29,6 +29,7 @@ type UserStorage interface {
 	GetUserByTelegramID(ctx context.Context, telegramID int64) (*db.User, error)
 	GetUserByID(ctx context.Context, id int64) (*db.User, error)
 	UpdateUser(ctx context.Context, user *db.User) error
+	ListUsers(ctx context.Context, filter dto.AdminUserFilterParams) ([]db.User, int64, error)
 }
 
 type StoreStorage interface {
@@ -38,6 +39,8 @@ type StoreStorage interface {
 	GetStoreByChatID(ctx context.Context, chatID int64) (*db.Store, error)
 	GetStoresBySellerID(ctx context.Context, sellerID int64) ([]db.Store, error)
 	ListActiveStores(ctx context.Context, params dto.PaginationParams, query, category string) ([]db.Store, int64, error)
+	ListStoresAdmin(ctx context.Context, filter dto.AdminStoreFilterParams) ([]db.Store, int64, error)
+	UpdateStoreStatus(ctx context.Context, storeID int64, status string) error
 	UpdateStore(ctx context.Context, store *db.Store) error
 	IncrementStoreViews(ctx context.Context, storeIDs []int64) error
 	UpdateStoreVerificationStatus(ctx context.Context, storeID int64, status string) error
@@ -47,6 +50,7 @@ type StoreKYCStorage interface {
 	UpsertStoreKYC(ctx context.Context, kyc *db.StoreKYC) error
 	GetStoreKYCByStoreID(ctx context.Context, storeID int64) (*db.StoreKYC, error)
 	ListStoreKYCByVerificationStatus(ctx context.Context, status string) ([]db.StoreKYC, error)
+	ListStoreKYCAdmin(ctx context.Context, filter dto.AdminStoreKYCFilterParams) ([]db.StoreKYC, int64, error)
 	UpdateStoreKYCReview(ctx context.Context, storeID int64, reviewNote string, reviewedAt time.Time) error
 }
 
@@ -80,6 +84,7 @@ type OrderStorage interface {
 	GetOrdersByDeliveryAgentID(ctx context.Context, agentID int64, status string, limit, offset int) ([]db.Order, error)
 	GetOrdersTotalByDeliveryAgentID(ctx context.Context, agentID int64, status string) (int64, error)
 	GetOrdersByFilter(ctx context.Context, filter dto.OrderFilterParams) ([]db.Order, int64, error)
+	GetOrdersByAdminFilter(ctx context.Context, filter dto.AdminOrderFilterParams) ([]db.Order, int64, error)
 }
 
 type DeliveryStorage interface {
@@ -155,7 +160,7 @@ type WithdrawalStorage interface {
 	GetWithdrawalByID(ctx context.Context, id int64) (*db.Withdrawal, error)
 	GetWithdrawalByReference(ctx context.Context, reference string) (*db.Withdrawal, error)
 	GetWithdrawalByTransactionID(ctx context.Context, transactionID string) (*db.Withdrawal, error)
-	ListWithdrawalsByStoreID(ctx context.Context, storeID int64, limit, offset int) ([]db.Withdrawal, int64, error)
+	ListWithdrawalsByStoreID(ctx context.Context, storeID int64, filter dto.AdminWithdrawalFilterParams) ([]db.Withdrawal, int64, error)
 }
 
 type CartStorage interface {

@@ -153,7 +153,7 @@ func (h *PaymentHandler) ListWithdrawals(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.walletModule.ListWithdrawals(c.Request.Context(), storeID, params)
+	resp, err := h.walletModule.ListWithdrawals(c.Request.Context(), storeID, dto.AdminWithdrawalFilterParams{PaginationParams: params})
 	if err != nil {
 		response.Error(c, err)
 		return

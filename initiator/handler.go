@@ -2,6 +2,7 @@ package initiator
 
 import (
 	"github.com/BoruTamena/gabaa-bot/internal/handler/address"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/admin"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/cart"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/delivery"
@@ -32,6 +33,7 @@ type Handler struct {
 	FavoriteHandler  *product.FavoriteHandler
 	PreferenceHandler *preference.PreferenceHandler
 	DeliveryHandler   *delivery.DeliveryHandler
+	AdminHandler      *admin.Handler
 }
 
 func InitHandler(module Module, platform PlatFormLayer) Handler {
@@ -52,6 +54,15 @@ func InitHandler(module Module, platform PlatFormLayer) Handler {
 		FavoriteHandler:  product.NewFavoriteHandler(module.FavoriteModule),
 		PreferenceHandler: preference.NewPreferenceHandler(module.RecommendationModule),
 		DeliveryHandler:   delivery.NewDeliveryHandler(module.DeliveryModule, module.OrderModule),
+		AdminHandler: admin.NewHandler(
+			module.StoreModule,
+			module.OrderModule,
+			module.UserModule,
+			module.WalletModule,
+			module.PaymentModule,
+			module.StoryModule,
+			module.DeliveryModule,
+		),
 	}
 }
 

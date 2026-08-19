@@ -4,6 +4,7 @@ const (
 	// Store Statuses
 	StoreStatusPending  = "pending"
 	StoreStatusLaunched = "launched"
+	StoreStatusBanned   = "banned"
 
 	// Store verification statuses
 	StoreVerificationUnverified    = "unverified"

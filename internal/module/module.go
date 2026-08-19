@@ -9,6 +9,7 @@ import (
 
 type AuthModule interface {
 	TelegramAuth(ctx context.Context, initData string) (*dto.AuthResponse, error)
+	AdminLogin(ctx context.Context, username, password string) (*dto.AuthResponse, error)
 	StartBotLoginSession(ctx context.Context) (*dto.TelegramLoginSessionResponse, error)
 	CompleteBotLoginSession(ctx context.Context, sessionID string, tgUser *dto.TelegramUser) error
 	PollBotLoginSession(ctx context.Context, sessionID string) (*dto.TelegramLoginPollResponse, error)
@@ -16,6 +17,7 @@ type AuthModule interface {
 
 type UserModule interface {
 	GetOrCreateUser(ctx context.Context, telegramID int64, username string) (*dto.User, error)
+	ListUsers(ctx context.Context, filter dto.AdminUserFilterParams) (*dto.PaginatedResponse, error)
 }
 
 type AddressModule interface {
@@ -38,9 +40,13 @@ type StoreModule interface {
 	SubmitStoreKYC(ctx context.Context, storeID, sellerID int64, req dto.SubmitStoreKYCRequest) (*dto.StoreKYCResponse, error)
 	GetStoreKYC(ctx context.Context, storeID, sellerID int64) (*dto.StoreKYCResponse, error)
 	ListStoreVerifications(ctx context.Context, status string) ([]dto.StoreKYCResponse, error)
+	ListStoreVerificationsAdmin(ctx context.Context, filter dto.AdminStoreKYCFilterParams) (*dto.PaginatedResponse, error)
 	ApproveStoreKYC(ctx context.Context, storeID int64) (*dto.StoreKYCResponse, error)
 	RejectStoreKYC(ctx context.Context, storeID int64, req dto.RejectStoreKYCRequest) (*dto.StoreKYCResponse, error)
+	AdminUpsertStoreKYC(ctx context.Context, storeID int64, req dto.SubmitStoreKYCRequest) (*dto.StoreKYCResponse, error)
 	IsStoreVerified(ctx context.Context, storeID int64) (bool, error)
+	AdminListStores(ctx context.Context, filter dto.AdminStoreFilterParams) (*dto.PaginatedResponse, error)
+	AdminUpdateStoreStatus(ctx context.Context, storeID int64, status string) (*dto.Store, error)
 }
 
 type ProductModule interface {
@@ -81,6 +87,7 @@ type OrderModule interface {
 	GetStoreRecentSales(ctx context.Context, storeName string, filter dto.OrderFilterParams) (*dto.PaginatedResponse, error)
 	GetMyStoreOrder(ctx context.Context, storeID int64, orderID int64) (*dto.Order, error)
 	UpdateMyStoreOrderStatus(ctx context.Context, storeID int64, orderID int64, req dto.ShipOrderRequest) error
+	AdminListOrders(ctx context.Context, filter dto.AdminOrderFilterParams) (*dto.PaginatedResponse, error)
 	OnPaymentSuccess(ctx context.Context, orderID int64) error
 	OnPaymentFailed(ctx context.Context, orderID int64) error
 	SetPaymentModule(pm PaymentModule)
@@ -90,7 +97,7 @@ type OrderModule interface {
 type WalletModule interface {
 	GetWalletSummary(ctx context.Context, storeID int64) (*dto.Wallet, error)
 	RequestWithdrawal(ctx context.Context, storeID int64, req dto.WithdrawalRequest) (*dto.Withdrawal, error)
-	ListWithdrawals(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error)
+	ListWithdrawals(ctx context.Context, storeID int64, filter dto.AdminWithdrawalFilterParams) (*dto.PaginatedResponse, error)
 	GetMyStoreWithdrawal(ctx context.Context, storeID, withdrawalID int64) (*dto.Withdrawal, error)
 }
 

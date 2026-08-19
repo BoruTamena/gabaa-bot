@@ -137,6 +137,7 @@ func Init() {
 		handlerLayer.FavoriteHandler,
 		handlerLayer.PreferenceHandler,
 		handlerLayer.DeliveryHandler,
+		handlerLayer.AdminHandler,
 	)
 
 	port := viper.GetString("server.port")

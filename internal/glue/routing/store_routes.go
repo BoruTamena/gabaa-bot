@@ -1,7 +1,6 @@
 package routing
 
 import (
-	"github.com/BoruTamena/gabaa-bot/internal/handler/middleware"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/order"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/product"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/store"
@@ -29,7 +28,6 @@ func RegisterStoreRoutes(
 	api *gin.RouterGroup,
 	storeHandler *store.StoreHandler,
 	analyticsHandler *store.AnalyticsHandler,
-	authMiddleware *middleware.AuthMiddleware,
 ) {
 	api.POST("/store/from-chat", storeHandler.CreateStore)
 	api.GET("/store/:store_id", storeHandler.GetStore)
@@ -47,13 +45,5 @@ func RegisterStoreRoutes(
 		analytics.GET("/orders", analyticsHandler.GetOrderAnalytics)
 		analytics.GET("/products", analyticsHandler.GetProductAnalytics)
 		analytics.GET("/stories", analyticsHandler.GetStoryAnalytics)
-	}
-
-	admin := api.Group("/admin")
-	admin.Use(authMiddleware.PlatformAdminAuth())
-	{
-		admin.GET("/store-verifications", storeHandler.ListStoreVerifications)
-		admin.POST("/store-verifications/:store_id/approve", storeHandler.ApproveStoreVerification)
-		admin.POST("/store-verifications/:store_id/reject", storeHandler.RejectStoreVerification)
 	}
 }

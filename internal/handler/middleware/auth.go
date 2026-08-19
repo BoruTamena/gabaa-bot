@@ -75,8 +75,23 @@ func (m *AuthMiddleware) JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", int64(claims["user_id"].(float64)))
-		c.Set("role", claims["role"].(string))
+		userID, ok := claims["user_id"].(float64)
+		if !ok {
+			appErr := errorx.New(errorx.ErrUnauthorized, "Invalid token claims", http.StatusUnauthorized)
+			c.JSON(appErr.Status, appErr)
+			c.Abort()
+			return
+		}
+		role, ok := claims["role"].(string)
+		if !ok {
+			appErr := errorx.New(errorx.ErrUnauthorized, "Invalid token claims", http.StatusUnauthorized)
+			c.JSON(appErr.Status, appErr)
+			c.Abort()
+			return
+		}
+
+		c.Set("user_id", int64(userID))
+		c.Set("role", role)
 		if storeID, ok := claims["store_id"].(float64); ok {
 			c.Set("store_id", int64(storeID))
 		}
