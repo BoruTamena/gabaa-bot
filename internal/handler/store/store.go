@@ -313,6 +313,17 @@ func (h *StoreHandler) ListStoreVerifications(c *gin.Context) {
 	response.Success(c, http.StatusOK, resp)
 }
 
+// ApproveStoreVerification approves a store's KYC submission
+// @Summary Approve store KYC (platform admin)
+// @Description Marks store verification as verified after KYC review
+// @Tags Platform Admin
+// @Produce json
+// @Param store_id path int true "Store ID"
+// @Success 200 {object} response.BaseResponse{data=dto.StoreKYCResponse}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 422 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /admin/store-verifications/:store_id/approve [post]
 func (h *StoreHandler) ApproveStoreVerification(c *gin.Context) {
 	storeID, _ := strconv.ParseInt(c.Param("store_id"), 10, 64)
 	resp, err := h.storeModule.ApproveStoreKYC(c.Request.Context(), storeID)
@@ -325,6 +336,20 @@ func (h *StoreHandler) ApproveStoreVerification(c *gin.Context) {
 	response.Success(c, http.StatusOK, resp)
 }
 
+// RejectStoreVerification rejects a store's KYC submission
+// @Summary Reject store KYC (platform admin)
+// @Description Rejects store KYC with an optional review note
+// @Tags Platform Admin
+// @Accept json
+// @Produce json
+// @Param store_id path int true "Store ID"
+// @Param request body dto.RejectStoreKYCRequest false "Rejection reason"
+// @Success 200 {object} response.BaseResponse{data=dto.StoreKYCResponse}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 403 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 422 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /admin/store-verifications/:store_id/reject [post]
 func (h *StoreHandler) RejectStoreVerification(c *gin.Context) {
 	storeID, _ := strconv.ParseInt(c.Param("store_id"), 10, 64)
 

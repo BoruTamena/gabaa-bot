@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	authmod "github.com/BoruTamena/gabaa-bot/internal/module/auth"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/module"
 	"github.com/BoruTamena/gabaa-bot/pkg/errorx"
 	"github.com/BoruTamena/gabaa-bot/pkg/response"
@@ -47,6 +48,35 @@ func (h *AuthHandler) TelegramAuth(c *gin.Context) {
 		if !ok || appErr.Code == errorx.ErrInternal {
 			appErr = errorx.New(errorx.ErrUnauthorized, err.Error(), http.StatusUnauthorized)
 		}
+		response.CustomError(c, appErr)
+		return
+	}
+
+	response.Success(c, http.StatusOK, resp)
+}
+
+// AdminLogin authenticates a platform admin with static credentials
+// @Summary Platform admin login
+// @Description Validates static admin credentials and returns a JWT with role platform_admin
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param request body dto.AdminLoginRequest true "Admin credentials"
+// @Success 200 {object} response.BaseResponse{data=dto.AuthResponse}
+// @Failure 400 {object} response.BaseResponse{error=errorx.AppError}
+// @Failure 401 {object} response.BaseResponse{error=errorx.AppError}
+// @Router /auth/admin/login [post]
+func (h *AuthHandler) AdminLogin(c *gin.Context) {
+	var req dto.AdminLoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		appErr := errorx.New(errorx.ErrBadRequest, err.Error(), http.StatusBadRequest)
+		response.CustomError(c, appErr)
+		return
+	}
+
+	resp, err := h.authModule.AdminLogin(c.Request.Context(), req.Username, req.Password)
+	if err != nil {
+		appErr := errorx.New(errorx.ErrUnauthorized, err.Error(), http.StatusUnauthorized)
 		response.CustomError(c, appErr)
 		return
 	}

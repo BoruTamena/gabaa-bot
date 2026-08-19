@@ -3,6 +3,7 @@ package routing
 import (
 	_ "github.com/BoruTamena/gabaa-bot/docs"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/address"
+	"github.com/BoruTamena/gabaa-bot/internal/handler/admin"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/auth"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/cart"
 	"github.com/BoruTamena/gabaa-bot/internal/handler/delivery"
@@ -36,6 +37,7 @@ func NewGinRouter(
 	favoriteHandler *product.FavoriteHandler,
 	preferenceHandler *preference.PreferenceHandler,
 	deliveryHandler *delivery.DeliveryHandler,
+	adminHandler *admin.Handler,
 ) *gin.Engine {
 
 	engine := gin.Default()
@@ -68,7 +70,8 @@ func NewGinRouter(
 	protected := apiV1.Group("/")
 	protected.Use(authMiddleware.JWTAuth())
 	{
-		RegisterStoreRoutes(protected, storeHandler, analyticsHandler, authMiddleware)
+		RegisterStoreRoutes(protected, storeHandler, analyticsHandler)
+		RegisterAdminRoutes(protected, adminHandler, storeHandler, authMiddleware)
 		RegisterProductRoutes(protected, productHandler)
 		RegisterCategoryRoutes(protected, categoryHandler)
 		RegisterOrderRoutes(protected, orderHandler)

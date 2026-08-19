@@ -10,6 +10,7 @@ func RegisterAuthRoutes(api *gin.RouterGroup, authHandler *auth.AuthHandler) {
 	authGroup := api.Group("/auth")
 	{
 		authGroup.POST("/telegram", authHandler.TelegramAuth)
+		authGroup.POST("/admin/login", authHandler.AdminLogin)
 		authGroup.POST("/telegram/session", authHandler.StartTelegramLoginSession)
 		authGroup.GET("/telegram/session/:sessionId", authHandler.PollTelegramLoginSession)
 	}

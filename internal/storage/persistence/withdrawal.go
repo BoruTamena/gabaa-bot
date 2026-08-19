@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/BoruTamena/gabaa-bot/internal/constant/models/db"
+	"github.com/BoruTamena/gabaa-bot/internal/constant/models/dto"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
 	"github.com/BoruTamena/gabaa-bot/platform"
 	"gorm.io/gorm"
@@ -65,17 +66,23 @@ func (p *withdrawalPersistence) GetWithdrawalByTransactionID(ctx context.Context
 	return &withdrawal, err
 }
 
-func (p *withdrawalPersistence) ListWithdrawalsByStoreID(ctx context.Context, storeID int64, limit, offset int) ([]db.Withdrawal, int64, error) {
+func (p *withdrawalPersistence) ListWithdrawalsByStoreID(ctx context.Context, storeID int64, filter dto.AdminWithdrawalFilterParams) ([]db.Withdrawal, int64, error) {
 	var withdrawals []db.Withdrawal
 	var total int64
 
 	query := p.db.WithContext(ctx).Model(&db.Withdrawal{}).Where("store_id = ?", storeID)
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
 	if err := query.Count(&total).Error; err != nil {
 		p.logger.Error("Failed to count withdrawals", "error", err, "storeID", storeID)
 		return nil, 0, err
 	}
 
-	err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&withdrawals).Error
+	err := query.Order("created_at DESC").
+		Limit(filter.GetLimit()).
+		Offset(filter.GetOffset()).
+		Find(&withdrawals).Error
 	if err != nil {
 		p.logger.Error("Failed to list withdrawals", "error", err, "storeID", storeID)
 	}

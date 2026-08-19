@@ -65,6 +65,33 @@ func (m *authModule) TelegramAuth(ctx context.Context, initData string) (*dto.Au
 	return m.authenticateTelegramUser(ctx, tgUser, chatID)
 }
 
+func (m *authModule) AdminLogin(ctx context.Context, username, password string) (*dto.AuthResponse, error) {
+	expectedUser := viper.GetString("admin.login.username")
+	expectedPass := viper.GetString("admin.login.password")
+	if expectedUser == "" {
+		expectedUser = "admin"
+	}
+	if expectedPass == "" {
+		expectedPass = "changeme"
+	}
+	if username != expectedUser || password != expectedPass {
+		return nil, fmt.Errorf("invalid admin credentials")
+	}
+
+	token, err := m.generateJWT(0, constant.RolePlatformAdmin, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.AuthResponse{
+		Token:    token,
+		UserID:   0,
+		Username: username,
+		Role:     constant.RolePlatformAdmin,
+		HasStore: false,
+	}, nil
+}
+
 func (m *authModule) StartBotLoginSession(ctx context.Context) (*dto.TelegramLoginSessionResponse, error) {
 	sessionID, err := generateSessionID()
 	if err != nil {

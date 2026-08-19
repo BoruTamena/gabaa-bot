@@ -76,6 +76,13 @@ func (p *paymentPersistence) ListPaymentsByStoreID(ctx context.Context, filter d
 	if filter.Status != "" {
 		query = query.Where("payments.status = ?", filter.Status)
 	}
+	if filter.Medium != "" {
+		query = query.Where("payments.medium = ?", filter.Medium)
+	}
+	if filter.Query != "" {
+		term := "%" + filter.Query + "%"
+		query = query.Where("payments.reference ILIKE ? OR payments.transaction_id ILIKE ?", term, term)
+	}
 
 	if err := query.Count(&total).Error; err != nil {
 		p.logger.Error("Failed to count store payments", "error", err, "storeID", filter.StoreID)

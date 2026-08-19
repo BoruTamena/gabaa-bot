@@ -163,11 +163,8 @@ func (m *walletModule) RequestWithdrawal(ctx context.Context, storeID int64, req
 	return mapWithdrawalToDTO(withdrawal), nil
 }
 
-func (m *walletModule) ListWithdrawals(ctx context.Context, storeID int64, params dto.PaginationParams) (*dto.PaginatedResponse, error) {
-	limit := params.GetLimit()
-	offset := params.GetOffset()
-
-	withdrawals, total, err := m.withdrawalStorage.ListWithdrawalsByStoreID(ctx, storeID, limit, offset)
+func (m *walletModule) ListWithdrawals(ctx context.Context, storeID int64, filter dto.AdminWithdrawalFilterParams) (*dto.PaginatedResponse, error) {
+	withdrawals, total, err := m.withdrawalStorage.ListWithdrawalsByStoreID(ctx, storeID, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -177,10 +174,7 @@ func (m *walletModule) ListWithdrawals(ctx context.Context, storeID int64, param
 		dtoList[i] = *mapWithdrawalToDTO(&w)
 	}
 
-	return &dto.PaginatedResponse{
-		Total: total,
-		Data:  dtoList,
-	}, nil
+	return dto.NewPaginatedResponse(dtoList, total, filter.PaginationParams), nil
 }
 
 func (m *walletModule) GetMyStoreWithdrawal(ctx context.Context, storeID, withdrawalID int64) (*dto.Withdrawal, error) {

@@ -4,6 +4,7 @@ const (
 	// Store Statuses
 	StoreStatusPending  = "pending"
 	StoreStatusLaunched = "launched"
+	StoreStatusBanned   = "banned"
 
 	// Store verification statuses
 	StoreVerificationUnverified    = "unverified"
@@ -18,4 +19,9 @@ const (
 	ProductStatusDraft     = "draft"
 	ProductStatusPublished = "published"
 	ProductStatusArchived  = "archived"
+
+	// Product inquiry statuses
+	InquiryStatusPending  = "pending"
+	InquiryStatusApproved = "approved"
+	InquiryStatusRejected = "rejected"
 )

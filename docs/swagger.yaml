@@ -62,6 +62,23 @@ definitions:
       user_id:
         type: integer
     type: object
+  dto.AdminLoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  dto.AdminUpdateStoreStatusRequest:
+    properties:
+      status:
+        type: string
+    required:
+    - status
+    type: object
   dto.AuthResponse:
     properties:
       deliveryAgentId:
@@ -287,6 +304,14 @@ definitions:
   dto.PaginatedResponse:
     properties:
       data: {}
+      has_next:
+        type: boolean
+      has_previous:
+        type: boolean
+      page:
+        type: integer
+      page_size:
+        type: integer
       total:
         type: integer
     type: object
@@ -416,6 +441,11 @@ definitions:
       views:
         type: integer
     type: object
+  dto.RejectStoreKYCRequest:
+    properties:
+      reviewNote:
+        type: string
+    type: object
   dto.SalesAnalytics:
     properties:
       average_order_value:
@@ -466,6 +496,29 @@ definitions:
       verificationStatus:
         type: string
     type: object
+  dto.StoreKYCResponse:
+    properties:
+      businessLicenseUrl:
+        type: string
+      businessRegistrationNumber:
+        type: string
+      reviewNote:
+        type: string
+      reviewedAt:
+        type: string
+      storeId:
+        type: integer
+      storeName:
+        type: string
+      submittedAt:
+        type: string
+      tinCertificateUrl:
+        type: string
+      tinNumber:
+        type: string
+      verificationStatus:
+        type: string
+    type: object
   dto.StoryAnalytics:
     properties:
       active_stories:
@@ -480,6 +533,17 @@ definitions:
         type: integer
       total_views:
         type: integer
+    type: object
+  dto.SubmitStoreKYCRequest:
+    properties:
+      businessLicenseUrl:
+        type: string
+      businessRegistrationNumber:
+        type: string
+      tinCertificateUrl:
+        type: string
+      tinNumber:
+        type: string
     type: object
   dto.TopProduct:
     properties:
@@ -697,6 +761,1044 @@ definitions:
 info:
   contact: {}
 paths:
+  /admin/orders:
+    get:
+      description: Cross-store order list with optional store_id, order_id, status,
+        and customer search
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by store ID
+        in: query
+        name: store_id
+        type: integer
+      - description: Search by exact order ID
+        in: query
+        name: order_id
+        type: integer
+      - description: Filter by order status
+        in: query
+        name: status
+        type: string
+      - description: Search customer username
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List global orders (platform admin)
+      tags:
+      - Platform Admin
+  /admin/store-verifications:
+    get:
+      description: Paginated KYC queue with optional status and search by store name
+        or TIN
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by verification status (pending_review, verified, rejected)
+        in: query
+        name: status
+        type: string
+      - description: Search store name or TIN
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List store KYC verifications (platform admin)
+      tags:
+      - Platform Admin
+  /admin/store-verifications/:store_id/approve:
+    post:
+      description: Marks store verification as verified after KYC review
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreKYCResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Approve store KYC (platform admin)
+      tags:
+      - Platform Admin
+  /admin/store-verifications/:store_id/reject:
+    post:
+      consumes:
+      - application/json
+      description: Rejects store KYC with an optional review note
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Rejection reason
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/dto.RejectStoreKYCRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreKYCResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Reject store KYC (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores:
+    get:
+      description: Paginated store list with optional status, verification_status,
+        category, and text search
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by store status (pending, launched, banned)
+        in: query
+        name: status
+        type: string
+      - description: Filter by verification status
+        in: query
+        name: verification_status
+        type: string
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      - description: Search name, description, location, or phone
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List stores (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores/:store_id:
+    get:
+      description: Returns full store profile by ID
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Store'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "404":
+          description: Not Found
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get store detail (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores/:store_id/deliveries:
+    get:
+      description: Paginated connected delivery agents with optional status and username
+        search
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by agent link status
+        in: query
+        name: status
+        type: string
+      - description: Search agent username or full name
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List store delivery agents (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores/:store_id/kyc:
+    post:
+      consumes:
+      - application/json
+      description: Submit or update KYC documents for a store and set verification
+        to pending_review
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: KYC documents
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.SubmitStoreKYCRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.StoreKYCResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Upsert store KYC (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores/:store_id/orders:
+    get:
+      description: Paginated orders scoped to a store with optional status, order_id,
+        and customer search
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Search by exact order ID
+        in: query
+        name: order_id
+        type: integer
+      - description: Filter by order status
+        in: query
+        name: status
+        type: string
+      - description: Search customer username
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List store orders (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores/:store_id/status:
+    patch:
+      consumes:
+      - application/json
+      description: Set store status to pending, launched, or banned
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: New status
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdminUpdateStoreStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Store'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Update store status (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores/:store_id/stories:
+    get:
+      description: Paginated story ads with optional is_active, type, and caption
+        search
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by active status
+        in: query
+        name: is_active
+        type: boolean
+      - description: Filter by media type (image, video)
+        in: query
+        name: type
+        type: string
+      - description: Search story caption
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List store stories (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores/:store_id/transactions:
+    get:
+      description: Paginated checkout payments with optional status, medium, and reference
+        search
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by payment status (initiated, pending, success, failed)
+        in: query
+        name: status
+        type: string
+      - description: Filter by payment medium
+        in: query
+        name: medium
+        type: string
+      - description: Search reference or transaction ID
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List store transactions (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores/:store_id/wallet:
+    get:
+      description: Returns pending, available, and locked balances for a store
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.Wallet'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Get store wallet (platform admin)
+      tags:
+      - Platform Admin
+  /admin/stores/:store_id/wallet/withdrawals:
+    get:
+      description: Paginated withdrawal history with optional status filter
+      parameters:
+      - description: Store ID
+        in: path
+        name: store_id
+        required: true
+        type: integer
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by withdrawal status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List store withdrawals (platform admin)
+      tags:
+      - Platform Admin
+  /admin/users:
+    get:
+      description: Paginated user list with optional role filter and username/telegram
+        ID search
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by user role
+        in: query
+        name: role
+        type: string
+      - description: Search username or telegram user ID
+        in: query
+        name: query
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "403":
+          description: Forbidden
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List users (platform admin)
+      tags:
+      - Platform Admin
+  /api/v1/stories:
+    get:
+      description: Returns paginated active story ads. store_name is optional and
+        uses ILIKE text search on store name.
+      parameters:
+      - description: Store name search term (optional)
+        in: path
+        name: storeName
+        type: string
+      - description: Store name text search (optional)
+        in: query
+        name: store_name
+        type: string
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by media type (video, image)
+        in: query
+        name: type
+        type: string
+      - description: Search stories by caption
+        in: query
+        name: search
+        type: string
+      - description: Sort by (newest, popular)
+        in: query
+        name: sort_by
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List public story ads
+      tags:
+      - Story
   /api/v1/webhook/lakipay:
     post:
       consumes:
@@ -742,6 +1844,52 @@ paths:
       summary: Telegram Webhook
       tags:
       - Telegram
+  /auth/admin/login:
+    post:
+      consumes:
+      - application/json
+      description: Validates static admin credentials and returns a JWT with role
+        platform_admin
+      parameters:
+      - description: Admin credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AdminLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.AuthResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: Platform admin login
+      tags:
+      - Auth
   /auth/telegram:
     post:
       consumes:
@@ -1959,13 +3107,30 @@ paths:
       - Order
   /products:
     get:
-      description: Fetch all available products across stores with filtering/pagination
+      description: Fetch published products across stores with optional store_id,
+        title, price range, and pagination
       parameters:
+      - description: Filter by store ID
+        in: query
+        name: store_id
+        type: integer
+      - description: Search by product title (name)
+        in: query
+        name: title
+        type: string
+      - description: Minimum price (inclusive)
+        in: query
+        name: min_price
+        type: number
+      - description: Maximum price (inclusive)
+        in: query
+        name: max_price
+        type: number
       - description: Category
         in: query
         name: category
         type: string
-      - description: Search query
+      - description: Search query (name or description)
         in: query
         name: query
         type: string
@@ -1988,6 +3153,15 @@ paths:
             - properties:
                 data:
                   $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
               type: object
         "500":
           description: Internal Server Error
@@ -2818,6 +3992,59 @@ paths:
       summary: Create store
       tags:
       - Store
+  /stores:
+    get:
+      description: Returns paginated launched stores with optional name/category filters
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Search name, description, or location
+        in: query
+        name: query
+        type: string
+      - description: Filter by category
+        in: query
+        name: category
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PaginatedResponse'
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.BaseResponse'
+            - properties:
+                error:
+                  $ref: '#/definitions/errorx.AppError'
+              type: object
+      summary: List active stores
+      tags:
+      - Store
   /stores/{storeName}:
     get:
       description: Returns public store details
@@ -2999,77 +4226,6 @@ paths:
       summary: List a store's recent sales
       tags:
       - Order
-  /stores/{storeName}/stories:
-    get:
-      description: Returns paginated active story ads for a specific store by name
-      parameters:
-      - description: Store Name
-        in: path
-        name: storeName
-        required: true
-        type: string
-      - description: Page number
-        in: query
-        name: page
-        type: integer
-      - description: Page size limit
-        in: query
-        name: limit
-        type: integer
-      - description: Filter by media type (video, image)
-        in: query
-        name: type
-        type: string
-      - description: Search stories by caption
-        in: query
-        name: search
-        type: string
-      - description: Sort by (newest, popular)
-        in: query
-        name: sort_by
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/dto.PaginatedResponse'
-              type: object
-        "400":
-          description: Bad Request
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                error:
-                  $ref: '#/definitions/errorx.AppError'
-              type: object
-        "404":
-          description: Not Found
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                error:
-                  $ref: '#/definitions/errorx.AppError'
-              type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            allOf:
-            - $ref: '#/definitions/response.BaseResponse'
-            - properties:
-                error:
-                  $ref: '#/definitions/errorx.AppError'
-              type: object
-      summary: List a store's story ads
-      tags:
-      - Story
   /stories:
     get:
       description: Returns all currently active story ads ordered by recency (date-range

@@ -223,6 +223,67 @@ func (tg *telegram) SendProductRecommendation(telegramUserID int64, product dto.
 	return err
 }
 
+func (tg *telegram) SendProductInquiryNotification(telegramUserID int64, inquiry dto.ProductInquiry) error {
+	productName := fmt.Sprintf("Product #%d", inquiry.ProductID)
+	if inquiry.Product != nil && inquiry.Product.Name != "" {
+		productName = inquiry.Product.Name
+	}
+
+	caption := fmt.Sprintf(
+		"<b>New Product Inquiry</b>\n\n"+
+			"<b>Product:</b> %s\n"+
+			"<b>Customer:</b> %s\n"+
+			"<b>Phone:</b> %s\n"+
+			"<b>Quantity:</b> %d\n"+
+			"<b>Status:</b> %s",
+		escapeHTML(productName),
+		escapeHTML(inquiry.Name),
+		escapeHTML(inquiry.Phone),
+		inquiry.Quantity,
+		escapeHTML(inquiry.Status),
+	)
+	if strings.TrimSpace(inquiry.Note) != "" {
+		caption += fmt.Sprintf("\n\n<blockquote>%s</blockquote>", escapeHTML(inquiry.Note))
+	}
+
+	recipient := &telebot.User{ID: telegramUserID}
+	_, err := tg.bot.Send(recipient, caption, telebot.ModeHTML)
+	return err
+}
+
+func (tg *telegram) SendProductInquiryReviewNotification(telegramUserID int64, inquiry dto.ProductInquiry) error {
+	productName := fmt.Sprintf("Product #%d", inquiry.ProductID)
+	productURL := tg.productDetailPageURL(inquiry.ProductID)
+	if inquiry.Product != nil && inquiry.Product.Name != "" {
+		productName = inquiry.Product.Name
+		productURL = tg.productMiniAppURL(inquiry.Product.ID)
+	}
+
+	statusLine := "Approved"
+	if inquiry.Status == "rejected" {
+		statusLine = "Rejected"
+	}
+
+	caption := fmt.Sprintf(
+		"<b>Your Product Inquiry Was %s</b>\n\n"+
+			"<b>Product:</b> %s\n"+
+			"<b>Quantity:</b> %d",
+		escapeHTML(statusLine),
+		escapeHTML(productName),
+		inquiry.Quantity,
+	)
+	if strings.TrimSpace(inquiry.ReviewNote) != "" {
+		caption += fmt.Sprintf("\n\n<blockquote>%s</blockquote>", escapeHTML(inquiry.ReviewNote))
+	}
+
+	selector := &telebot.ReplyMarkup{}
+	selector.Inline(selector.Row(selector.URL("View Product", productURL)))
+
+	recipient := &telebot.User{ID: telegramUserID}
+	_, err := tg.bot.Send(recipient, caption, telebot.ModeHTML, selector)
+	return err
+}
+
 func (tg *telegram) SendNewOrderNotification(telegramUserID int64, order dto.Order, storeName string) error {
 	itemCount := 0
 	var itemLines strings.Builder

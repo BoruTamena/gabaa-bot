@@ -17,7 +17,9 @@ import (
 
 type productModule struct {
 	productStorage       storage.ProductStorage
+	inquiryStorage       storage.InquiryStorage
 	storeStorage         storage.StoreStorage
+	userStorage          storage.UserStorage
 	tele                 platform.Telegram
 	appURL               string
 	recommendationModule module.RecommendationModule
@@ -25,14 +27,18 @@ type productModule struct {
 
 func NewProductModule(
 	pStorage storage.ProductStorage,
+	iStorage storage.InquiryStorage,
 	sStorage storage.StoreStorage,
+	uStorage storage.UserStorage,
 	tele platform.Telegram,
 	appURL string,
 	rModule module.RecommendationModule,
 ) module.ProductModule {
 	return &productModule{
 		productStorage:       pStorage,
+		inquiryStorage:       iStorage,
 		storeStorage:         sStorage,
+		userStorage:          uStorage,
 		tele:                 tele,
 		appURL:               appURL,
 		recommendationModule: rModule,
