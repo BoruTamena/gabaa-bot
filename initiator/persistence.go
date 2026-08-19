@@ -2,16 +2,16 @@ package initiator
 
 import (
 	"github.com/BoruTamena/gabaa-bot/internal/constant/persistencedb"
-	"github.com/BoruTamena/gabaa-bot/internal/storage/persistence"
 	"github.com/BoruTamena/gabaa-bot/internal/storage"
+	"github.com/BoruTamena/gabaa-bot/internal/storage/persistence"
 	"github.com/BoruTamena/gabaa-bot/platform"
 )
-
 
 type Persistence struct {
 	UserStorage           storage.UserStorage
 	StoreStorage          storage.StoreStorage
 	ProductStorage        storage.ProductStorage
+	InquiryStorage        storage.InquiryStorage
 	OrderStorage          storage.OrderStorage
 	WalletStorage         storage.WalletStorage
 	PaymentStorage        storage.PaymentStorage
@@ -36,6 +36,7 @@ func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logge
 		UserStorage:           persistence.NewPersistence(db.DB, logger),
 		StoreStorage:          persistence.NewStorePersistence(db.DB, logger),
 		ProductStorage:        persistence.NewProductPersistence(db.DB, logger),
+		InquiryStorage:        persistence.NewInquiryPersistence(db.DB, logger),
 		OrderStorage:          persistence.NewOrderPersistence(db.DB, logger),
 		WalletStorage:         persistence.NewWalletPersistence(db.DB, logger),
 		PaymentStorage:        persistence.NewPaymentPersistence(db.DB, logger),
@@ -55,6 +56,3 @@ func InitPersistence(db persistencedb.PersistenceDb, redis platform.Redis, logge
 		DeliveryStorage:       persistence.NewDeliveryStorage(db.DB, logger),
 	}
 }
-
-
-

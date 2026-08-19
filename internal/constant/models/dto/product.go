@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"time"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -58,6 +60,49 @@ type ProductFilterParams struct {
 	MaxStock *int     `form:"max_stock"`
 	MinPrice *float64 `form:"min_price"`
 	MaxPrice *float64 `form:"max_price"`
+}
+
+type CreateProductInquiryRequest struct {
+	Quantity int    `json:"quantity"`
+	Note     string `json:"note"`
+	Name     string `json:"name"`
+	Phone    string `json:"phone"`
+}
+
+func (r CreateProductInquiryRequest) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Quantity, validation.Required, validation.Min(1)),
+		validation.Field(&r.Name, validation.Required),
+		validation.Field(&r.Phone, validation.Required),
+	)
+}
+
+type ReviewProductInquiryRequest struct {
+	ReviewNote string `json:"review_note"`
+}
+
+type ProductInquiry struct {
+	ID         int64      `json:"id"`
+	ProductID  int64      `json:"product_id"`
+	StoreID    int64      `json:"store_id"`
+	CustomerID int64      `json:"customer_id"`
+	Status     string     `json:"status"`
+	Quantity   int        `json:"quantity"`
+	Note       string     `json:"note"`
+	Name       string     `json:"name"`
+	Phone      string     `json:"phone"`
+	ReviewedBy *int64     `json:"reviewed_by,omitempty"`
+	ReviewedAt *time.Time `json:"reviewed_at,omitempty"`
+	ReviewNote string     `json:"review_note,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+	Product    *Product   `json:"product,omitempty"`
+}
+
+type ProductInquiryFilterParams struct {
+	PaginationParams
+	ProductID int64  `form:"product_id"`
+	Status    string `form:"status"`
 }
 
 func (r UpdateProductRequest) Validate() error {

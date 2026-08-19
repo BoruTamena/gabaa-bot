@@ -18,4 +18,9 @@ const (
 	ProductStatusDraft     = "draft"
 	ProductStatusPublished = "published"
 	ProductStatusArchived  = "archived"
+
+	// Product inquiry statuses
+	InquiryStatusPending  = "pending"
+	InquiryStatusApproved = "approved"
+	InquiryStatusRejected = "rejected"
 )

@@ -52,6 +52,12 @@ type ProductModule interface {
 	UpdateProduct(ctx context.Context, id int64, req dto.UpdateProductRequest) (*dto.Product, error)
 	DeleteProduct(ctx context.Context, id int64) error
 	PostProduct(ctx context.Context, productID int64, storeID int64) (*dto.Product, error)
+	CreateProductInquiry(ctx context.Context, customerID, productID int64, req dto.CreateProductInquiryRequest) (*dto.ProductInquiry, error)
+	ListMyInquiries(ctx context.Context, customerID int64, filter dto.ProductInquiryFilterParams) (*dto.PaginatedResponse, error)
+	ListStoreInquiries(ctx context.Context, storeID int64, filter dto.ProductInquiryFilterParams) (*dto.PaginatedResponse, error)
+	GetStoreInquiry(ctx context.Context, storeID, inquiryID int64) (*dto.ProductInquiry, error)
+	ApproveProductInquiry(ctx context.Context, storeID, reviewerID, inquiryID int64, req dto.ReviewProductInquiryRequest) (*dto.ProductInquiry, error)
+	RejectProductInquiry(ctx context.Context, storeID, reviewerID, inquiryID int64, req dto.ReviewProductInquiryRequest) (*dto.ProductInquiry, error)
 }
 
 type CartModule interface {

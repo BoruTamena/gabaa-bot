@@ -13,6 +13,13 @@ func RegisterPublicProductRoutes(api *gin.RouterGroup, productHandler *product.P
 
 // RegisterProductRoutes registers protected product routes under the API group.
 func RegisterProductRoutes(api *gin.RouterGroup, productHandler *product.ProductHandler) {
+	api.POST("/products/:id/inquiries", productHandler.CreateInquiry)
+	api.GET("/my/inquiries", productHandler.ListMyInquiries)
+	api.GET("/my-store/inquiries", productHandler.ListStoreInquiries)
+	api.GET("/my-store/inquiries/:inquiry_id", productHandler.GetStoreInquiry)
+	api.POST("/my-store/inquiries/:inquiry_id/approve", productHandler.ApproveInquiry)
+	api.POST("/my-store/inquiries/:inquiry_id/reject", productHandler.RejectInquiry)
+
 	api.GET("/my-store/products", productHandler.ListProducts)
 	api.GET("/my-store/product/:id", productHandler.GetMyProduct)
 

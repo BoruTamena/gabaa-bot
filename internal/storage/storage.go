@@ -60,6 +60,14 @@ type ProductStorage interface {
 	DeleteProduct(ctx context.Context, id int64) error
 }
 
+type InquiryStorage interface {
+	CreateInquiry(ctx context.Context, inquiry *db.ProductInquiry) error
+	GetInquiryByID(ctx context.Context, id int64) (*db.ProductInquiry, error)
+	ListInquiriesByStore(ctx context.Context, storeID int64, filter dto.ProductInquiryFilterParams) ([]db.ProductInquiry, int64, error)
+	ListInquiriesByCustomer(ctx context.Context, customerID int64, filter dto.ProductInquiryFilterParams) ([]db.ProductInquiry, int64, error)
+	UpdateInquiry(ctx context.Context, inquiry *db.ProductInquiry) error
+}
+
 type OrderStorage interface {
 	CreateOrder(ctx context.Context, order *db.Order) error
 	GetOrderByID(ctx context.Context, id int64) (*db.Order, error)
@@ -110,7 +118,6 @@ type DeliveryStorage interface {
 	ListShareEnabledLinksForAgent(ctx context.Context, agentID int64) ([]db.StoreDeliveryLink, error)
 	ListLinksByAgentID(ctx context.Context, agentID int64) ([]db.StoreDeliveryLink, error)
 }
-
 
 type WalletStorage interface {
 	GetWalletByStoreID(ctx context.Context, storeID int64) (*db.Wallet, error)
@@ -212,7 +219,3 @@ type AnalyticsStorage interface {
 	GetProductAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.ProductAnalytics, error)
 	GetStoryAnalytics(ctx context.Context, storeID int64, filter dto.AnalyticsFilterParams) (*dto.StoryAnalytics, error)
 }
-
-
-
-
